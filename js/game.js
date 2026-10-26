@@ -1,10 +1,13 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as G from './logic.js';
 import { THEMES } from './themes.js';
 import { MODELS } from './models.js';
 import { sfx, buzz, unlock, fx } from './audio.js';
+import { makeDetailedScrew } from './screwMesh.js';
 
 const COLORS = { red:0xff6b6b, blue:0x4dabf7, yellow:0xffd43b, green:0x51cf66, purple:0xb197fc, orange:0xff922b };
 const COLOR_HEX = { red:'#ff6b6b', blue:'#4dabf7', yellow:'#ffd43b', green:'#51cf66', purple:'#b197fc', orange:'#ff922b' };
@@ -16,7 +19,7 @@ const ITEMS = {
   revive:{ icon:'💗', name:'复活', desc:'暂存区满了时：清空3格继续玩。' },
 };
 const HOLD_MS = 280;
-const PT = 0.16;
+const PT = 0.18;
 const SAVE_KEY = 'lscc3d';
 const $ = id => document.getElementById(id);
 const hex = c => COLOR_HEX[c] || '#fff';
@@ -55,7 +58,8 @@ try {
 }
 renderer.setPixelRatio?.(Math.min(devicePixelRatio, 2));
 renderer.setSize?.(innerWidth, innerHeight);
-if (renderer.outputColorSpace!==undefined){ renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15; }
+if (renderer.outputColorSpace!==undefined){ renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.22; }
+if (renderer.shadowMap){ renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; }
 if (renderer.domElement){ renderer.domElement.style.visibility = 'hidden'; document.body.appendChild(renderer.domElement); }
 
 const scene = new THREE.Scene();
@@ -66,14 +70,34 @@ controls.enableDamping = true; controls.dampingFactor = 0.08;
 controls.enablePan = false; controls.minDistance = 4; controls.maxDistance = 12;
 controls.maxPolarAngle = Math.PI*0.82; controls.target.set(0,0.2,0);
 
-const hemi = new THREE.HemisphereLight(0xfff2e0, 0xb8d4ff, 0.85);
+// Soft studio environment (PMREM) so metallic screws catch Disney-polished highlights
+let envRT = null;
+try {
+  if (renderer.isWebGLRenderer) {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    envRT = pmrem.fromScene(new RoomEnvironment(renderer), 0.04);
+    scene.environment = envRT.texture;
+    pmrem.dispose();
+  }
+} catch (e) { console.warn('PMREM env skipped', e); }
+
+const hemi = new THREE.HemisphereLight(0xfff2e0, 0xb8d4ff, 0.55);
 scene.add(hemi);
-const key = new THREE.DirectionalLight(0xfff5e6, 1.15);
-key.position.set(3.5, 7, 4); scene.add(key);
-const fill = new THREE.DirectionalLight(0xa8c8ff, 0.35);
+const key = new THREE.DirectionalLight(0xfff5e6, 1.35);
+key.position.set(3.5, 7, 4);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+key.shadow.camera.near = 1; key.shadow.camera.far = 24;
+key.shadow.camera.left = -6; key.shadow.camera.right = 6;
+key.shadow.camera.top = 6; key.shadow.camera.bottom = -6;
+key.shadow.bias = -0.00025; key.shadow.normalBias = 0.02;
+scene.add(key);
+const fill = new THREE.DirectionalLight(0xa8c8ff, 0.42);
 fill.position.set(-4, 2, -2); scene.add(fill);
-const rim = new THREE.DirectionalLight(0xffd9b0, 0.4);
+const rim = new THREE.DirectionalLight(0xffd9b0, 0.55);
 rim.position.set(-2, 3, 5); scene.add(rim);
+const sparkle = new THREE.PointLight(0xffffff, 0.35, 12, 2);
+sparkle.position.set(1.2, 2.8, 3.5); scene.add(sparkle);
 
 const root = new THREE.Group(); scene.add(root);
 let coreMeshes=[], plateVis=[], screwVis=[], falling=[], flying=[], bits=[];
@@ -88,67 +112,105 @@ addEventListener('resize', ()=>{
 });
 document.addEventListener('pointerdown', ()=>unlock(), {once:false, passive:true});
 
-// ---------- materials helpers (soft Disney-ish) ----------
+// ---------- materials helpers (Disney-polished candy / chrome) ----------
 function softMat(color, opts={}){
-  return new THREE.MeshStandardMaterial({
-    color, roughness: opts.roughness ?? 0.42, metalness: opts.metalness ?? 0.08,
-    emissive: opts.emissive ?? 0x000000, emissiveIntensity: opts.ei ?? 0,
-    transparent: !!opts.transparent, opacity: opts.opacity ?? 1, flatShading:false
+  return new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: opts.roughness ?? 0.38,
+    metalness: opts.metalness ?? 0.06,
+    clearcoat: opts.clearcoat ?? 0.45,
+    clearcoatRoughness: opts.clearcoatRoughness ?? 0.28,
+    sheen: opts.sheen ?? 0.35,
+    sheenRoughness: 0.45,
+    sheenColor: new THREE.Color(color),
+    emissive: opts.emissive ?? 0x000000,
+    emissiveIntensity: opts.ei ?? 0,
+    envMapIntensity: opts.envMapIntensity ?? 0.85,
+    transparent: !!opts.transparent,
+    opacity: opts.opacity ?? 1,
+    flatShading: false
+  });
+}
+function plateMat(color){
+  // Painted wooden / plastic board — slight clearcoat, low metal
+  return new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: 0.42,
+    metalness: 0.04,
+    clearcoat: 0.55,
+    clearcoatRoughness: 0.32,
+    sheen: 0.25,
+    sheenColor: new THREE.Color(0xfff5e8),
+    envMapIntensity: 0.7,
   });
 }
 function makeGeo(part){
   const t=part.t, s=part.s;
-  if (t==='rbox') return new RoundedBoxGeometry(s[0],s[1],s[2], 4, part.rad??0.14);
-  if (t==='sph') return new THREE.SphereGeometry(s[0], 24, 18);
-  if (t==='cyl') return new THREE.CylinderGeometry(s[0],s[0],s[1], 20);
-  if (t==='cap') return new THREE.CapsuleGeometry(s[0], s[1], 6, 12);
-  if (t==='cone') return new THREE.ConeGeometry(s[0], s[1], s[2]||16);
-  if (t==='wheel'){ const g=new THREE.CylinderGeometry(s[0],s[0],s[1], 18); g.rotateZ(Math.PI/2); return g; }
-  if (t==='saucer'){ const g=new THREE.SphereGeometry(1, 28, 16); g.scale(s[0], s[1], s[0]); return g; }
-  if (t==='dome') return new THREE.SphereGeometry(s[0], 24, 12, 0, Math.PI*2, 0, Math.PI/2);
-  return new RoundedBoxGeometry(0.4,0.4,0.4, 3, 0.1);
+  if (t==='rbox') return new RoundedBoxGeometry(s[0],s[1],s[2], 6, part.rad??0.16);
+  if (t==='sph') return new THREE.SphereGeometry(s[0], 32, 24);
+  if (t==='cyl') return new THREE.CylinderGeometry(s[0],s[0],s[1], 28);
+  if (t==='cap') return new THREE.CapsuleGeometry(s[0], s[1], 8, 16);
+  if (t==='cone') return new THREE.ConeGeometry(s[0], s[1], s[2]||20);
+  if (t==='wheel'){ const g=new THREE.CylinderGeometry(s[0],s[0],s[1], 28); g.rotateZ(Math.PI/2); return g; }
+  if (t==='saucer'){ const g=new THREE.SphereGeometry(1, 36, 20); g.scale(s[0], s[1], s[0]); return g; }
+  if (t==='dome') return new THREE.SphereGeometry(s[0], 32, 16, 0, Math.PI*2, 0, Math.PI/2);
+  return new RoundedBoxGeometry(0.4,0.4,0.4, 4, 0.12);
 }
 function plateGeo(shape,w,h){
-  if (shape==='disc') return new THREE.CylinderGeometry(Math.min(w,h)/2, Math.min(w,h)/2, PT, 28);
+  if (shape==='disc'){
+    // Thick painted disc with slight rim bevel via lathe-like cylinder + torus feel
+    const r = Math.min(w,h)/2;
+    const g = new THREE.CylinderGeometry(r, r*0.98, PT, 40);
+    return g;
+  }
   if (shape==='tri' || shape==='fin'){
     const sh=new THREE.Shape();
     sh.moveTo(0, h/2); sh.lineTo(-w/2, -h/2); sh.lineTo(w/2, -h/2); sh.closePath();
-    const g=new THREE.ExtrudeGeometry(sh, {depth:PT, bevelEnabled:true, bevelThickness:0.03, bevelSize:0.03, bevelSegments:2});
+    const g=new THREE.ExtrudeGeometry(sh, {depth:PT, bevelEnabled:true, bevelThickness:0.035, bevelSize:0.035, bevelSegments:3});
     g.translate(0,0,-PT/2); return g;
   }
-  return new RoundedBoxGeometry(w, h, PT, 3, 0.08);
+  // Beveled rectangular board (not a flat box)
+  const sh=new THREE.Shape();
+  const hw=w/2, hh=h/2, r=Math.min(0.1, w*0.12, h*0.12);
+  sh.moveTo(-hw+r, -hh);
+  sh.lineTo(hw-r, -hh); sh.quadraticCurveTo(hw,-hh, hw,-hh+r);
+  sh.lineTo(hw, hh-r); sh.quadraticCurveTo(hw,hh, hw-r,hh);
+  sh.lineTo(-hw+r, hh); sh.quadraticCurveTo(-hw,hh, -hw,hh-r);
+  sh.lineTo(-hw, -hh+r); sh.quadraticCurveTo(-hw,-hh, -hw+r,-hh);
+  const g=new THREE.ExtrudeGeometry(sh, {
+    depth: PT, bevelEnabled:true, bevelThickness:0.028, bevelSize:0.028, bevelSegments:3
+  });
+  g.translate(0,0,-PT/2);
+  return g;
 }
 function makeScrew(color){
-  const g = new THREE.Group();
-  const col = COLORS[color];
-  const head = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.13, 0.14, 0.07, 24),
-    softMat(col, {roughness:0.28, metalness:0.35, emissive:col, ei:0.08})
-  );
-  head.rotation.x = Math.PI/2;
-  // shiny highlight disc
-  const hi = new THREE.Mesh(
-    new THREE.CircleGeometry(0.055, 16),
-    new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.55 })
-  );
-  hi.position.set(-0.035, 0.04, 0.038);
-  const slot = new THREE.Mesh(
-    new THREE.BoxGeometry(0.12, 0.025, 0.02),
-    softMat(0x222222, {roughness:0.6})
-  );
-  slot.position.z = 0.038;
-  const shaft = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.045, 0.04, 0.28, 12),
-    softMat(0xc0c4cc, {roughness:0.35, metalness:0.5})
-  );
-  shaft.rotation.x = Math.PI/2; shaft.position.z = -0.12;
-  const hit = new THREE.Mesh(
-    new THREE.SphereGeometry(0.22, 12, 10),
-    new THREE.MeshBasicMaterial({ visible:false })
-  );
-  g.add(head, hi, slot, shaft, hit);
-  return { group:g, head, hit };
+  return makeDetailedScrew(color, COLORS);
 }
+
+// Optional: preload GLB cores (visual refinement); anchors still from MODELS
+const gltfCache = {};
+const gltfLoader = new GLTFLoader();
+function loadModelGltf(key){
+  if (gltfCache[key]) return gltfCache[key];
+  gltfCache[key] = new Promise(res=>{
+    gltfLoader.load(`assets/${key}.glb`, (gltf)=>{
+      gltf.scene.traverse(o=>{
+        if (o.isMesh){
+          o.castShadow = true; o.receiveShadow = true;
+          // Upgrade shipped materials toward candy plastic
+          if (o.material){
+            const c = o.material.color ? o.material.color.getHex() : 0xffffff;
+            o.material = softMat(c, {roughness:0.4, metalness:0.08, clearcoat:0.5, envMapIntensity:0.9});
+          }
+        }
+      });
+      res(gltf.scene);
+    }, undefined, ()=>res(null));
+  });
+  return gltfCache[key];
+}
+// Kick off preloads (non-blocking)
+['cat','bear','robot','car','cake','popsicle','rocket','ufo'].forEach(k=>loadModelGltf(k));
 
 function clearScene(){
   while(root.children.length){ const c=root.children[0]; root.remove(c); c.traverse?.(o=>{ if(o.geometry) o.geometry.dispose?.(); }); }
@@ -163,16 +225,21 @@ function buildLevel(level, modelKey){
   const th = THEMES[save.theme||'pets'];
   // soft ground shadow disc
   const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(2.4, 40),
-    new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.12 })
+    new THREE.CircleGeometry(2.6, 48),
+    new THREE.MeshStandardMaterial({ color:0x1a1420, transparent:true, opacity:0.18, roughness:1, metalness:0 })
   );
-  ground.rotation.x = -Math.PI/2; ground.position.y = -1.85; root.add(ground);
+  ground.rotation.x = -Math.PI/2; ground.position.y = -1.85;
+  ground.receiveShadow = true; root.add(ground);
 
+  // Prefer refined procedural core (RoundedBox + high segs); GLB is shipped for asset pipeline / future swap
   model.core.forEach(part=>{
-    const mesh = new THREE.Mesh(makeGeo(part), softMat(part.c, {roughness:0.48, metalness:0.06}));
+    const mesh = new THREE.Mesh(makeGeo(part), softMat(part.c, {
+      roughness: 0.44, metalness: 0.05, clearcoat: 0.55, clearcoatRoughness: 0.3, envMapIntensity: 0.9
+    }));
     mesh.position.fromArray(part.p);
     if (part.r) mesh.rotation.fromArray(part.r);
-    mesh.castShadow = false; root.add(mesh); coreMeshes.push(mesh);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    root.add(mesh); coreMeshes.push(mesh);
   });
 
   const anchors = {};
@@ -186,9 +253,10 @@ function buildLevel(level, modelKey){
   L.plates.forEach((p,pi)=>{
     const parent = anchors[p.side] || root;
     const col = th.plates[pi % th.plates.length];
-    const mat = softMat(col, {roughness:0.4, metalness:0.05});
+    const mat = plateMat(col);
     const geo = plateGeo(p.shape, p.w, p.h);
     const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true; m.receiveShadow = true;
     // layering: push outward so front plates sit in front of back screws
     m.position.set(p.x, p.y, PT/2 + 0.01 + p.layer * (PT + 0.04));
     if (p.shape==='disc') m.rotation.x = Math.PI/2;
@@ -201,7 +269,7 @@ function buildLevel(level, modelKey){
     const {group, head, hit} = makeScrew(s.color);
     // screw sits on its plate face; lower layer slightly recessed when covered
     const pl = L.plates[s.plate];
-    const z = PT/2 + 0.01 + pl.layer * (PT + 0.04) + 0.06;
+    const z = PT/2 + 0.01 + pl.layer * (PT + 0.04) + 0.095;
     group.position.set(s.lx, s.ly, z);
     hit.userData.i = i;
     parent.add(group);
@@ -707,6 +775,7 @@ window.__game = {
   startLevel, tap:tapScrew, startHoldPreview, endHoldPreview,
   get L(){return L;}, get st(){return st;}, get playing(){return playing;}, get save(){return save;},
   get holdPreview(){return holdPreview;}, get plateVis(){return plateVis;}, get screwVis(){return screwVis;},
+  get camera(){return camera;}, get controls(){return controls;}, get scene(){return scene;}, get root(){return root;},
   G, SAVE_KEY,
   autoWin(level){
     // apply solution if present
