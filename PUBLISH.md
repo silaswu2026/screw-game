@@ -1,6 +1,6 @@
 # Publish note
 
-Visual upgrade: high-detail screws (helical thread + Phillips + washer), MeshPhysicalMaterial candy/chrome, RoomEnvironment PMREM, beveled plates, shipped GLB assets.
+Visual upgrade v4: organic character silhouettes, candy MeshPhysicalMaterial, themed sky/clouds/stars, stage pedestal, soft contact shadow, ambient particles. Screws kept from prior polish.
 
 ## Paths
 - Source: `/workspace/screw3d-v2/`
@@ -12,9 +12,14 @@ Visual upgrade: high-detail screws (helical thread + Phillips + washer), MeshPhy
 https://silaswu2026.github.io/screw-game/
 
 ## How models were made
-- **Screws:** code-authored LatheGeometry head + TubeGeometry helical thread + Phillips recess (`js/screwMesh.js`); matching `assets/screw.glb` via `tools/gen_glb_assets.py`.
-- **Characters:** refined procedural RoundedBox/Sphere/etc. cores (higher segments, physical materials); GLB cores also shipped for offline pipeline.
-- **Blender:** not installed / no apt package on build box.
+- **Screws:** unchanged this pass — LatheGeometry head + TubeGeometry helical thread (`js/screwMesh.js`); matching `assets/screw.glb`.
+- **Characters:** original procedural polish in `models.js` (higher RoundedBox bevel, cheek/limb spheres, capsules, emissive eye/light accents). Matching softer GLBs via `tools/gen_glb_assets.py` (rounded_box + denser spheres). No CC0 downloads — Blender unavailable.
+- **Scene:** canvas-gradient sky dome (fog-free), soft clouds or stars per theme, radial soft shadow, rounded pedestal + rim, floating Points particles. RoomEnvironment PMREM + soft key/fill/rim retained/tuned.
+
+## Limitations
+- Still assembled primitives (no true organic remesh / subdivision surface / sculpt). Joint seams remain visible vs a Disney film hero mesh.
+- No subsurface scattering texture maps; SSS approximated via sheen + emissive accents.
+- Screws deliberately left as previous high-detail meshes.
 
 ## Save key
 `lscc3d`

@@ -102,7 +102,6 @@ async function shot(name) {
 
 await waitGame();
 
-// Seed save + reload
 await ev(`localStorage.setItem('lscc3d', JSON.stringify({
   coins:99, unlocked:15, stars:{}, items:{hammer:2,slot:2,magnet:1,undo:2,revive:1},
   lastDaily:'2099-01-01', collection:{}, theme:'pets', sound:false, vibe:false
@@ -126,7 +125,6 @@ for (const lv of [1, 5, 10]) {
   }
 }
 
-// Hold preview
 await ev(`window.__game.startLevel(4)`);
 await sleep(500);
 const hold = await ev(`(() => {
@@ -149,45 +147,34 @@ const hold = await ev(`(() => {
 results.hold = hold;
 console.log('HOLD', hold);
 
-// Play screenshot
-await ev(`window.__game.setTheme('pets'); window.__game.startLevel(1); true`);
-await sleep(700);
-await shot('s3_play.png');
+// Character screenshots for each theme model
+const chars = [
+  ['pets','cat'],['pets','bear'],
+  ['mech','robot'],['mech','car'],
+  ['sweets','cake'],['sweets','popsicle'],
+  ['space','rocket'],['space','ufo'],
+];
+for (const [theme, model] of chars) {
+  await ev(`window.__game.showModel('${theme}','${model}')`);
+  await sleep(600);
+  await shot(`s4_char_${model}.png`);
+}
 
-// Screw close-up
+// Scene overview (pets + cat pedestal/sky)
+await ev(`window.__game.showModel('pets','cat')`);
+await sleep(500);
 await ev(`(() => {
   const g = window.__game;
-  const v = g.screwVis.find(s => s && s.onObj);
-  if (!v) return false;
-  const wp = new (Object.getPrototypeOf(g.camera).constructor === g.camera.constructor ? g.camera.constructor : null);
-  // Use THREE via screw group
-  const pos = v.group.getWorldPosition(new g.camera.position.constructor());
-  // Actually Vector3 is on position
-  const THREE_Vector3 = g.camera.position.clone().constructor;
-  const p = v.group.getWorldPosition(new THREE_Vector3());
-  g.controls.target.copy(p);
-  g.camera.position.set(p.x + 0.35, p.y + 0.25, p.z + 0.85);
-  g.controls.update();
-  return [p.x, p.y, p.z];
-})()`);
-await sleep(300);
-await shot('s3_screw_close.png');
-
-// Models gallery-ish
-await ev(`window.__game.setTheme('sweets'); window.__game.startLevel(2); true`);
-await sleep(700);
-await ev(`(() => {
-  const g = window.__game;
-  g.camera.position.set(2.2, 1.8, 5.5);
-  g.controls.target.set(0, 0.2, 0);
+  g.camera.position.set(3.2, 2.4, 6.2);
+  g.controls.target.set(0, -0.2, 0);
   g.controls.update();
   return true;
 })()`);
-await sleep(200);
-await shot('s3_models.png');
+await sleep(250);
+await shot('s4_scene.png');
 
 results.pageErrors = await ev(`window.__errs || []`);
-writeFileSync(join(OUT, 's3_test_results.json'), JSON.stringify(results, null, 2));
+writeFileSync(join(OUT, 's4_test_results.json'), JSON.stringify(results, null, 2));
 console.log('RESULTS', JSON.stringify(results, null, 2));
 
 const ok = results.wins[1] && results.wins[5] && results.wins[10] && results.hold && results.hold.hasPreview && !(results.pageErrors||[]).length;

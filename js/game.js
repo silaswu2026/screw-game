@@ -58,7 +58,7 @@ try {
 }
 renderer.setPixelRatio?.(Math.min(devicePixelRatio, 2));
 renderer.setSize?.(innerWidth, innerHeight);
-if (renderer.outputColorSpace!==undefined){ renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.22; }
+if (renderer.outputColorSpace!==undefined){ renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.28; }
 if (renderer.shadowMap){ renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; }
 if (renderer.domElement){ renderer.domElement.style.visibility = 'hidden'; document.body.appendChild(renderer.domElement); }
 
@@ -106,6 +106,121 @@ let combo=0, lastClearT=0, shownCleared=0;
 let holdPreview=null; // { screw, plates:[], t0 }
 let pointerHold=null;
 
+let skyMesh=null, cloudGroup=null, particleSys=null;
+
+function makeSkyTexture(sc){
+  const c=document.createElement('canvas'); c.width=64; c.height=256;
+  const g=c.getContext('2d');
+  const grd=g.createLinearGradient(0,0,0,256);
+  const top=new THREE.Color(sc.skyTop), mid=new THREE.Color(sc.skyMid), bot=new THREE.Color(sc.skyBot);
+  grd.addColorStop(0, '#'+top.getHexString());
+  grd.addColorStop(0.45, '#'+mid.getHexString());
+  grd.addColorStop(1, '#'+bot.getHexString());
+  g.fillStyle=grd; g.fillRect(0,0,64,256);
+  if (sc.stars){
+    for(let i=0;i<110;i++){
+      const x=Math.random()*64, y=Math.random()*170, r=Math.random()*1.3+0.25;
+      g.globalAlpha=0.35+Math.random()*0.6;
+      g.fillStyle='#fff8d0';
+      g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill();
+    }
+    g.globalAlpha=1;
+  }
+  const tex=new THREE.CanvasTexture(c);
+  tex.colorSpace=THREE.SRGBColorSpace; tex.needsUpdate=true;
+  return tex;
+}
+function makeSoftShadowTex(){
+  const c=document.createElement('canvas'); c.width=128; c.height=128;
+  const g=c.getContext('2d');
+  const grd=g.createRadialGradient(64,64,6,64,64,62);
+  grd.addColorStop(0,'rgba(20,12,28,0.5)');
+  grd.addColorStop(0.4,'rgba(20,12,28,0.2)');
+  grd.addColorStop(1,'rgba(20,12,28,0)');
+  g.fillStyle=grd; g.fillRect(0,0,128,128);
+  const tex=new THREE.CanvasTexture(c); tex.needsUpdate=true; return tex;
+}
+const softShadowTex = makeSoftShadowTex();
+
+function ensureSky(sc){
+  if (!skyMesh){
+    skyMesh=new THREE.Mesh(
+      new THREE.SphereGeometry(28, 32, 20),
+      new THREE.MeshBasicMaterial({ map:makeSkyTexture(sc), side:THREE.BackSide, depthWrite:false, fog:false })
+    );
+    skyMesh.renderOrder=-10; scene.add(skyMesh);
+  } else {
+    skyMesh.material.map?.dispose?.();
+    skyMesh.material.map=makeSkyTexture(sc);
+    skyMesh.material.needsUpdate=true;
+  }
+  scene.fog = new THREE.FogExp2(sc.fog, 0.006);
+  if (renderer.isWebGLRenderer){
+    renderer.setClearColor(sc.clear ?? sc.skyBot, 1);
+  }
+}
+function ensureClouds(sc){
+  if (cloudGroup){ scene.remove(cloudGroup); cloudGroup.traverse(o=>{ if(o.geometry) o.geometry.dispose?.(); }); cloudGroup=null; }
+  if (!sc.clouds) return;
+  cloudGroup=new THREE.Group();
+  const mat=new THREE.MeshPhysicalMaterial({
+    color:0xfff8f0, roughness:1, metalness:0, transparent:true, opacity:0.72,
+    depthWrite:false, clearcoat:0.05, sheen:0.4, sheenColor:new THREE.Color(0xffffff)
+  });
+  for(let i=0;i<9;i++){
+    const g=new THREE.Group();
+    const n=3+(i%3);
+    for(let k=0;k<n;k++){
+      const m=new THREE.Mesh(new THREE.SphereGeometry(0.55+((i+k)%3)*0.25, 18, 14), mat);
+      m.position.set((k-n/2)*0.7, ((k*17)%10)*0.04, ((k*13)%7)*0.1);
+      m.scale.set(1.4+k*0.2, 0.6, 1.0);
+      g.add(m);
+    }
+    const side = (i%2?1:-1);
+    g.position.set(side*(3.5+(i%4)), 3.2+((i*13)%10)*0.35, -4-((i*11)%5));
+    g.scale.setScalar(1.3+((i*5)%4)*0.3);
+    cloudGroup.add(g);
+  }
+  scene.add(cloudGroup);
+}
+function ensureParticles(sc){
+  if (particleSys){ scene.remove(particleSys); particleSys.geometry.dispose(); particleSys.material.dispose(); particleSys=null; }
+  const N=sc.stars?70:48;
+  const pos=new Float32Array(N*3), col=new Float32Array(N*3);
+  const c1=new THREE.Color(sc.particle), c2=new THREE.Color(sc.particle2);
+  for(let i=0;i<N;i++){
+    pos[i*3]=(Math.random()-0.5)*10;
+    pos[i*3+1]=Math.random()*6-0.5;
+    pos[i*3+2]=(Math.random()-0.5)*10-1;
+    const c=Math.random()>0.5?c1:c2;
+    col[i*3]=c.r; col[i*3+1]=c.g; col[i*3+2]=c.b;
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col,3));
+  particleSys=new THREE.Points(geo, new THREE.PointsMaterial({
+    size: sc.stars?0.11:0.14, vertexColors:true, transparent:true, opacity:sc.stars?0.95:0.7,
+    depthWrite:false, sizeAttenuation:true
+  }));
+  scene.add(particleSys);
+}
+function buildStage(sc){
+  const ground=new THREE.Mesh(
+    new THREE.PlaneGeometry(5.2, 5.2),
+    new THREE.MeshBasicMaterial({ map:softShadowTex, transparent:true, opacity:0.95, depthWrite:false })
+  );
+  ground.rotation.x=-Math.PI/2; ground.position.y=-1.88; ground.renderOrder=-1;
+  root.add(ground);
+  const pedMat=softMat(sc.pedestal, {roughness:0.48, metalness:0.05, clearcoat:0.7, clearcoatRoughness:0.25, sheen:0.25, envMapIntensity:0.85});
+  const rimMat=softMat(sc.pedestalRim, {roughness:0.4, metalness:0.08, clearcoat:0.75, envMapIntensity:0.9});
+  const base=new THREE.Mesh(new RoundedBoxGeometry(2.8, 0.22, 2.8, 6, 0.1), pedMat);
+  base.position.y=-1.72; base.castShadow=true; base.receiveShadow=true; root.add(base);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.05, 12, 48), rimMat);
+  rim.rotation.x=Math.PI/2; rim.position.y=-1.58; root.add(rim);
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.15, 0.08, 48), pedMat);
+  top.position.y=-1.58; top.receiveShadow=true; root.add(top);
+}
+
 addEventListener('resize', ()=>{
   camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
@@ -116,45 +231,48 @@ document.addEventListener('pointerdown', ()=>unlock(), {once:false, passive:true
 function softMat(color, opts={}){
   return new THREE.MeshPhysicalMaterial({
     color,
-    roughness: opts.roughness ?? 0.38,
-    metalness: opts.metalness ?? 0.06,
-    clearcoat: opts.clearcoat ?? 0.45,
-    clearcoatRoughness: opts.clearcoatRoughness ?? 0.28,
-    sheen: opts.sheen ?? 0.35,
-    sheenRoughness: 0.45,
-    sheenColor: new THREE.Color(color),
+    roughness: opts.roughness ?? 0.34,
+    metalness: opts.metalness ?? 0.04,
+    clearcoat: opts.clearcoat ?? 0.62,
+    clearcoatRoughness: opts.clearcoatRoughness ?? 0.22,
+    sheen: opts.sheen ?? 0.55,
+    sheenRoughness: opts.sheenRoughness ?? 0.38,
+    sheenColor: new THREE.Color(opts.sheenColor ?? color),
     emissive: opts.emissive ?? 0x000000,
     emissiveIntensity: opts.ei ?? 0,
-    envMapIntensity: opts.envMapIntensity ?? 0.85,
+    envMapIntensity: opts.envMapIntensity ?? 1.05,
+    reflectivity: 0.5,
     transparent: !!opts.transparent,
     opacity: opts.opacity ?? 1,
     flatShading: false
   });
 }
 function plateMat(color){
-  // Painted wooden / plastic board — slight clearcoat, low metal
   return new THREE.MeshPhysicalMaterial({
     color,
-    roughness: 0.42,
-    metalness: 0.04,
-    clearcoat: 0.55,
-    clearcoatRoughness: 0.32,
-    sheen: 0.25,
+    roughness: 0.4,
+    metalness: 0.03,
+    clearcoat: 0.6,
+    clearcoatRoughness: 0.28,
+    sheen: 0.3,
     sheenColor: new THREE.Color(0xfff5e8),
-    envMapIntensity: 0.7,
+    envMapIntensity: 0.8,
   });
 }
 function makeGeo(part){
   const t=part.t, s=part.s;
-  if (t==='rbox') return new RoundedBoxGeometry(s[0],s[1],s[2], 6, part.rad??0.16);
-  if (t==='sph') return new THREE.SphereGeometry(s[0], 32, 24);
-  if (t==='cyl') return new THREE.CylinderGeometry(s[0],s[0],s[1], 28);
-  if (t==='cap') return new THREE.CapsuleGeometry(s[0], s[1], 8, 16);
-  if (t==='cone') return new THREE.ConeGeometry(s[0], s[1], s[2]||20);
-  if (t==='wheel'){ const g=new THREE.CylinderGeometry(s[0],s[0],s[1], 28); g.rotateZ(Math.PI/2); return g; }
-  if (t==='saucer'){ const g=new THREE.SphereGeometry(1, 36, 20); g.scale(s[0], s[1], s[0]); return g; }
-  if (t==='dome') return new THREE.SphereGeometry(s[0], 32, 16, 0, Math.PI*2, 0, Math.PI/2);
-  return new RoundedBoxGeometry(0.4,0.4,0.4, 4, 0.12);
+  if (t==='rbox'){
+    const rad = Math.min(part.rad??0.22, Math.min(s[0],s[1],s[2])*0.48);
+    return new RoundedBoxGeometry(s[0],s[1],s[2], 8, rad);
+  }
+  if (t==='sph') return new THREE.SphereGeometry(s[0], 40, 28);
+  if (t==='cyl') return new THREE.CylinderGeometry(s[0],s[0],s[1], 40);
+  if (t==='cap') return new THREE.CapsuleGeometry(s[0], s[1], 10, 20);
+  if (t==='cone') return new THREE.ConeGeometry(s[0], s[1], s[2]||24);
+  if (t==='wheel'){ const g=new THREE.CylinderGeometry(s[0],s[0],s[1], 36); g.rotateZ(Math.PI/2); return g; }
+  if (t==='saucer'){ const g=new THREE.SphereGeometry(1, 48, 28); g.scale(s[0], s[1], s[0]); return g; }
+  if (t==='dome') return new THREE.SphereGeometry(s[0], 40, 20, 0, Math.PI*2, 0, Math.PI/2);
+  return new RoundedBoxGeometry(0.4,0.4,0.4, 6, 0.14);
 }
 function plateGeo(shape,w,h){
   if (shape==='disc'){
@@ -223,18 +341,15 @@ function buildLevel(level, modelKey){
   clearScene();
   L = level; const model = MODELS[modelKey];
   const th = THEMES[save.theme||'pets'];
-  // soft ground shadow disc
-  const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(2.6, 48),
-    new THREE.MeshStandardMaterial({ color:0x1a1420, transparent:true, opacity:0.18, roughness:1, metalness:0 })
-  );
-  ground.rotation.x = -Math.PI/2; ground.position.y = -1.85;
-  ground.receiveShadow = true; root.add(ground);
+  const sc = th.scene || THEMES.pets.scene;
+  ensureSky(sc); ensureClouds(sc); ensureParticles(sc); buildStage(sc);
 
   // Prefer refined procedural core (RoundedBox + high segs); GLB is shipped for asset pipeline / future swap
   model.core.forEach(part=>{
     const mesh = new THREE.Mesh(makeGeo(part), softMat(part.c, {
-      roughness: 0.44, metalness: 0.05, clearcoat: 0.55, clearcoatRoughness: 0.3, envMapIntensity: 0.9
+      roughness: part.roughness ?? 0.36, metalness: part.metalness ?? 0.04,
+      clearcoat: 0.65, clearcoatRoughness: 0.22, envMapIntensity: 1.05,
+      sheen: 0.55, emissive: part.em ?? 0x000000, ei: part.ei ?? 0
     }));
     mesh.position.fromArray(part.p);
     if (part.r) mesh.rotation.fromArray(part.r);
@@ -641,9 +756,17 @@ function applyTheme(){
   const bg=$('bgDeco'); bg.innerHTML='';
   for (let i=0;i<14;i++){ const e=document.createElement('span'); e.textContent=th.bgEmoji[i%th.bgEmoji.length];
     e.style.left=(i*37%100)+'%'; e.style.top=(i*53%100)+'%'; e.style.fontSize=(18+i*7%22)+'px'; e.style.animationDelay=(-i*1.3)+'s'; bg.appendChild(e); }
-  // adjust lights for space theme
-  if (save.theme==='space'){ hemi.color.set(0xc8b8ff); hemi.groundColor.set(0x1a3050); key.color.set(0xe8e0ff); }
-  else { hemi.color.set(0xfff2e0); hemi.groundColor.set(0xb8d4ff); key.color.set(0xfff5e6); }
+  const sc=th.scene||THEMES.pets.scene;
+  ensureSky(sc); ensureClouds(sc); ensureParticles(sc);
+  if (save.theme==='space'){
+    hemi.color.set(0xc8b8ff); hemi.groundColor.set(0x1a3050); hemi.intensity=0.48;
+    key.color.set(0xe8e0ff); key.intensity=1.25; fill.color.set(0x7a9cff); rim.color.set(0xb8a9ff);
+    sparkle.color.set(0xd0c8ff); sparkle.intensity=0.45;
+  } else {
+    hemi.color.set(0xfff2e0); hemi.groundColor.set(0xb8d4ff); hemi.intensity=0.58;
+    key.color.set(0xfff5e6); key.intensity=1.4; fill.color.set(0xa8c8ff); rim.color.set(0xffd9b0);
+    sparkle.color.set(0xffffff); sparkle.intensity=0.4;
+  }
 }
 function openThemePicker(first){
   const l=$('themeList'); l.innerHTML='';
@@ -762,6 +885,17 @@ renderer.setAnimationLoop(()=>{
   for (let i=bits.length-1;i>=0;i--){ const b=bits[i], u=b.userData; u.t+=dt; u.v.y-=7*dt; b.position.addScaledVector(u.v,dt); b.rotation.x+=u.av*dt; b.rotation.y+=u.av*0.7*dt;
     b.scale.setScalar(Math.max(0,1-u.t/1.2)); if (u.t>1.2){ scene.remove(b); bits.splice(i,1); } }
   for (const v of screwVis||[]) if (v.shake>0){ v.shake-=dt; v.head.position.x=v.shake>0?Math.sin(v.shake*70)*0.04:0; }
+  if (particleSys){
+    const pos=particleSys.geometry.attributes.position.array;
+    const t=performance.now()*0.001;
+    for(let i=0;i<pos.length;i+=3){
+      pos[i+1] += Math.sin(t*0.7+i)*0.003;
+      if (pos[i+1]>6) pos[i+1]=-0.5;
+    }
+    particleSys.geometry.attributes.position.needsUpdate=true;
+    particleSys.rotation.y += dt*0.04;
+  }
+  if (cloudGroup) cloudGroup.rotation.y += dt*0.015;
   updateHand();
   renderer.render(scene,camera);
 });
@@ -776,6 +910,18 @@ window.__game = {
   get L(){return L;}, get st(){return st;}, get playing(){return playing;}, get save(){return save;},
   get holdPreview(){return holdPreview;}, get plateVis(){return plateVis;}, get screwVis(){return screwVis;},
   get camera(){return camera;}, get controls(){return controls;}, get scene(){return scene;}, get root(){return root;},
+  get coreMeshes(){return coreMeshes;}, modelForLevel, MODELS, THEMES,
+  showModel(theme, modelKey){
+    save.theme=theme; persist(); applyTheme();
+    n=1; used=0; history=[]; hammerArmed=false; combo=0; shownCleared=0;
+    hideModal(); hideReveal(); endHoldPreview();
+    try { L = G.makeLevel(1, modelKey, MODELS[modelKey]); }
+    catch(e){ console.error(e); return false; }
+    st = G.initState(L); buildLevel(L, modelKey); showScreen('hud');
+    renderUI(); renderItems(); playing=true;
+    camera.position.set(2.0, 1.7, 5.8); controls.target.set(0, 0.15, 0); controls.update();
+    return true;
+  },
   G, SAVE_KEY,
   autoWin(level){
     // apply solution if present
