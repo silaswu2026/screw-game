@@ -10,8 +10,8 @@ export const THEMES = {
     figures:[['🐱','橘猫'],['🐶','柴犬'],['🐰','垂耳兔'],['🐻','泰迪熊'],['🐼','熊猫'],['🦊','小狐狸'],['🐹','仓鼠'],['🐧','企鹅'],['🐨','考拉'],['🦄','独角兽']],
     scene:{ skyTop:0xfff3d4, skyMid:0xc9eadc, skyBot:0x8ec8ee, fog:0xd5eef6, pedestal:0xfff6ee, pedestalRim:0xf0b089,
       particle:0xffc4d4, particle2:0xffe7a8, stars:false, clouds:true, clear:0xc5e4f4,
-      hemiSky:0xfff6e4, hemiGround:0xc7e6d4, key:0xfff4e2, keyI:1.75, fill:0xb7d2ff, fillI:0.28,
-      rim:0xffd8b0, rimI:0.95, exposure:1.14, fogDensity:0.022 }
+      hemiSky:0xfff6e4, hemiGround:0xc7e6d4, key:0xfff4e2, keyI:1.5, fill:0xb7d2ff, fillI:0.2,
+      rim:0xffe4c4, rimI:1.15, exposure:1.02, fogDensity:0.018 }
   },
   mech: {
     name:'机械工坊', icon:'🤖', desc:'可爱机器人与小车',
@@ -23,8 +23,8 @@ export const THEMES = {
     figures:[['🤖','小铁'],['🚗','小车车'],['🚜','拖拉机'],['🚂','蒸汽火车'],['🚁','直升机'],['🦾','机械臂'],['🚒','消防车'],['🛵','小摩托'],['🚧','工程队'],['🛸','飞碟机甲']],
     scene:{ skyTop:0xd8f4ee, skyMid:0xe4eaf2, skyBot:0xffe6b0, fog:0xd5e6ea, pedestal:0xe7f1f4, pedestalRim:0x8fbfc4,
       particle:0xffc15e, particle2:0x7ef9ff, stars:false, clouds:true, clear:0xd0e2ea,
-      hemiSky:0xf2fffb, hemiGround:0xc5d4e4, key:0xf7fffc, keyI:1.65, fill:0xc9d6ee, fillI:0.36,
-      rim:0xffe3b0, rimI:0.72, exposure:1.12, fogDensity:0.02 }
+      hemiSky:0xf2fffb, hemiGround:0xc5d4e4, key:0xf7fffc, keyI:1.28, fill:0xc9d6ee, fillI:0.3,
+      rim:0xffe8c8, rimI:1.05, exposure:1.02, fogDensity:0.018 }
   },
   sweets: {
     name:'甜品屋', icon:'🧁', desc:'蛋糕冰淇淋的香甜世界',
@@ -36,8 +36,8 @@ export const THEMES = {
     figures:[['🍰','草莓蛋糕'],['🧁','纸杯蛋糕'],['🍩','甜甜圈'],['🍦','甜筒'],['🍮','布丁'],['🍪','曲奇'],['🍫','巧克力'],['🍭','棒棒糖'],['🥞','松饼'],['🎂','生日蛋糕']],
     scene:{ skyTop:0xffe7c8, skyMid:0xffe0d2, skyBot:0xd5f0e4, fog:0xffefe6, pedestal:0xfff1e6, pedestalRim:0xf0b0c0,
       particle:0xffb3c4, particle2:0xffd98a, stars:false, clouds:true, clear:0xffe4d8,
-      hemiSky:0xfff3e6, hemiGround:0xf0d8cc, key:0xfff2e4, keyI:1.7, fill:0xd5eadf, fillI:0.3,
-      rim:0xffd0c4, rimI:0.7, exposure:1.12, fogDensity:0.02 }
+      hemiSky:0xfff3e6, hemiGround:0xf0d8cc, key:0xfff2e4, keyI:1.3, fill:0xd5eadf, fillI:0.26,
+      rim:0xffd8cc, rimI:1.0, exposure:1.02, fogDensity:0.018 }
   },
   space: {
     name:'太空冒险', icon:'🚀', desc:'星空火箭与小星球',

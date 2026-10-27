@@ -12,10 +12,19 @@ function smoothstep(e0, e1, x) {
 
 function wrapCute(mat) {
   mat.onBeforeCompile = (shader) => {
-    shader.fragmentShader = shader.fragmentShader.replaceAll(
-      'float dotNL = saturate( dot( normal, lightDir ) );',
-      'float dotNL = saturate( ( dot( normal, lightDir ) + 0.72 ) / 1.72 );'
-    );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+         float formUp = clamp(vNormal.y * 0.62 + 0.46, 0.0, 1.0);
+         float formFace = clamp(-vNormal.z, 0.0, 1.0);
+         diffuseColor.rgb *= mix(0.62, 1.16, formUp);
+         diffuseColor.rgb *= mix(0.90, 1.10, formFace);`
+      )
+      .replaceAll(
+        'float dotNL = saturate( dot( normal, lightDir ) );',
+        'float dotNL = saturate( ( dot( normal, lightDir ) + 0.5 ) / 1.5 );'
+      );
   };
   return mat;
 }
@@ -23,14 +32,14 @@ function wrapCute(mat) {
 function plush(color) {
   return wrapCute(new THREE.MeshPhysicalMaterial({
     color,
-    roughness: 0.48,
+    roughness: 0.38,
     metalness: 0,
-    clearcoat: 0.12,
-    clearcoatRoughness: 0.55,
-    sheen: 0.65,
-    sheenRoughness: 0.5,
-    sheenColor: new THREE.Color(color).lerp(new THREE.Color(0xfff6ee), 0.55),
-    envMapIntensity: 0.55,
+    clearcoat: 0.28,
+    clearcoatRoughness: 0.42,
+    sheen: 0.32,
+    sheenRoughness: 0.58,
+    sheenColor: new THREE.Color(color).lerp(new THREE.Color(0xfff8f2), 0.7),
+    envMapIntensity: 0.42,
   }));
 }
 function paint(color, opts = {}) {
@@ -100,49 +109,188 @@ function addMesh(parent, geo, mat, outline) {
   return m;
 }
 
+const irisCache = new Map();
+function irisTexture(hex) {
+  const key = String(hex);
+  if (irisCache.has(key)) return irisCache.get(key);
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const ctx = c.getContext('2d');
+  const base = new THREE.Color(hex);
+  const deep = base.clone().multiplyScalar(0.42);
+  const mid = base.clone().lerp(new THREE.Color(0xffe7c4), 0.38);
+  const ring = base.clone().multiplyScalar(0.28);
+  const grd = ctx.createRadialGradient(128, 122, 8, 128, 128, 124);
+  grd.addColorStop(0, '#120e0c');
+  grd.addColorStop(0.16, '#' + deep.getHexString());
+  grd.addColorStop(0.34, '#' + mid.getHexString());
+  grd.addColorStop(0.62, '#' + base.getHexString());
+  grd.addColorStop(0.84, '#' + deep.getHexString());
+  grd.addColorStop(1, '#' + ring.getHexString());
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, 256, 256);
+  ctx.globalAlpha = 0.28;
+  for (let i = 0; i < 32; i++) {
+    const a = (i / 32) * Math.PI * 2;
+    ctx.strokeStyle = i % 2 ? '#fff6ea' : '#3a2418';
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    ctx.moveTo(128 + Math.cos(a) * 36, 128 + Math.sin(a) * 36);
+    ctx.lineTo(128 + Math.cos(a) * 112, 128 + Math.sin(a) * 112);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  irisCache.set(key, tex);
+  return tex;
+}
+let blushMap;
+function blushTexture() {
+  if (blushMap) return blushMap;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(64, 68, 6, 64, 64, 60);
+  g.addColorStop(0, 'rgba(255, 112, 138, 0.9)');
+  g.addColorStop(0.45, 'rgba(255, 140, 158, 0.5)');
+  g.addColorStop(1, 'rgba(255, 150, 166, 0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  blushMap = new THREE.CanvasTexture(c);
+  blushMap.colorSpace = THREE.SRGBColorSpace;
+  return blushMap;
+}
+
 function makeEye(r, iris) {
   const g = new THREE.Group();
   const white = new THREE.Mesh(
-    new THREE.SphereGeometry(r, 32, 22),
+    new THREE.SphereGeometry(r, 36, 26),
     new THREE.MeshPhysicalMaterial({
-      color: 0xfffefb, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.04, metalness: 0, envMapIntensity: 1.15,
+      color: 0xfffdf8, roughness: 0.16, clearcoat: 1, clearcoatRoughness: 0.08,
+      metalness: 0, envMapIntensity: 0.85,
     })
   );
-  white.scale.set(1.05, 1.16, 0.46);
+  white.scale.set(1.02, 1.2, 0.58);
   g.add(white);
+  const front = r * 0.6;
   const irisM = new THREE.Mesh(
-    new THREE.SphereGeometry(r * 0.64, 24, 16),
-    new THREE.MeshPhysicalMaterial({
-      color: iris, roughness: 0.22, clearcoat: 0.85, clearcoatRoughness: 0.08, metalness: 0.04,
-    })
+    new THREE.CircleGeometry(r * 0.56, 40),
+    new THREE.MeshBasicMaterial({ map: irisTexture(iris), toneMapped: true })
   );
-  irisM.scale.set(1, 1.12, 0.38);
-  irisM.position.z = r * 0.26;
+  irisM.position.z = front;
   g.add(irisM);
   const pupil = new THREE.Mesh(
-    new THREE.SphereGeometry(r * 0.3, 16, 12),
-    new THREE.MeshBasicMaterial({ color: 0x1c140f, toneMapped: false })
+    new THREE.CircleGeometry(r * 0.24, 24),
+    new THREE.MeshBasicMaterial({ color: 0x1a120e, toneMapped: false })
   );
-  pupil.scale.set(0.85, 1.25, 0.28);
-  pupil.position.z = r * 0.4;
+  pupil.scale.set(0.82, 1.18, 1);
+  pupil.position.z = front + 0.003;
   g.add(pupil);
   const shine = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
-  const h1 = new THREE.Mesh(new THREE.SphereGeometry(r * 0.22, 10, 8), shine);
-  h1.position.set(r * 0.26, r * 0.34, r * 0.46);
+  const h1 = new THREE.Mesh(new THREE.CircleGeometry(r * 0.15, 16), shine);
+  h1.position.set(r * 0.15, r * 0.16, front + 0.006);
   g.add(h1);
-  const h2 = new THREE.Mesh(new THREE.SphereGeometry(r * 0.09, 8, 6), shine);
-  h2.position.set(-r * 0.2, -r * 0.08, r * 0.46);
+  const h2 = new THREE.Mesh(new THREE.CircleGeometry(r * 0.055, 10), shine);
+  h2.position.set(-r * 0.13, -r * 0.07, front + 0.006);
   g.add(h2);
+  const lid = new THREE.QuadraticBezierCurve3(
+    new THREE.Vector3(-r * 0.95, r * 0.18, front * 0.72),
+    new THREE.Vector3(0, r * 0.72, front * 0.95),
+    new THREE.Vector3(r * 0.95, r * 0.18, front * 0.72)
+  );
+  const lidM = new THREE.Mesh(
+    new THREE.TubeGeometry(lid, 14, Math.max(0.01, r * 0.05), 5, false),
+    new THREE.MeshBasicMaterial({ color: 0x5a301c, toneMapped: false })
+  );
+  g.add(lidM);
   g.traverse(o => { o.castShadow = false; o.receiveShadow = false; o.userData.noShadow = true; });
   return g;
 }
 function blush(parent, x, y, z, s = 0.1) {
   const m = new THREE.Mesh(
-    new THREE.SphereGeometry(s, 16, 12),
-    new THREE.MeshBasicMaterial({ color: 0xff8ea4, transparent: true, opacity: 0.38, depthWrite: false, toneMapped: false })
+    new THREE.PlaneGeometry(s * 2.6, s * 1.45),
+    new THREE.MeshBasicMaterial({
+      map: blushTexture(), transparent: true, depthWrite: false, toneMapped: false,
+      polygonOffset: true, polygonOffsetFactor: -2,
+    })
   );
   m.position.set(x, y, z);
-  m.scale.set(1.4, 0.85, 0.35);
+  m.userData.noShadow = true;
+  parent.add(m);
+}
+function whiskers(parent, x, y, z, s) {
+  const mat = new THREE.MeshBasicMaterial({ color: 0xd8b4a2, toneMapped: false });
+  for (const dy of [-0.045, 0.012, 0.07]) {
+    const curve = new THREE.QuadraticBezierCurve3(
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(s * 0.18, dy * 0.35, 0.03),
+      new THREE.Vector3(s * 0.36, dy, -0.01)
+    );
+    const m = new THREE.Mesh(new THREE.TubeGeometry(curve, 8, 0.012, 4, false), mat);
+    m.position.set(x, y, z);
+    m.userData.noShadow = true;
+    parent.add(m);
+  }
+}
+function pointedEar(outerMat, innerMat) {
+  const g = new THREE.Group();
+  const outer = deform(lathe([
+    [0.012, 0.50], [0.05, 0.40], [0.10, 0.24], [0.17, 0.08], [0.19, -0.02], [0.11, -0.10],
+  ], 22), (x, y, z) => [x * 0.76, y, z * 0.36]);
+  const shell = new THREE.Mesh(outer, outerMat);
+  shell.castShadow = true;
+  g.add(shell);
+  const inner = deform(lathe([
+    [0.008, 0.28], [0.038, 0.18], [0.075, 0.05], [0.08, -0.02],
+  ], 16), (x, y, z) => [x * 0.7, y, z * 0.3]);
+  const pad = new THREE.Mesh(inner, innerMat);
+  pad.scale.set(1.4, 1.28, 1);
+  pad.position.set(0, -0.015, 0.05);
+  g.add(pad);
+  return g;
+}
+function noseGem(parent, x, y, z, color, s = 0.06) {
+  const m = new THREE.Mesh(
+    new THREE.SphereGeometry(s, 18, 14),
+    paint(color, { roughness: 0.28, clearcoat: 0.75, clearcoatRoughness: 0.16, sheen: 0.12 })
+  );
+  m.scale.set(1.22, 0.78, 0.72);
+  m.position.set(x, y, z);
+  parent.add(m);
+  const h = new THREE.Mesh(
+    new THREE.SphereGeometry(s * 0.2, 8, 6),
+    new THREE.MeshBasicMaterial({ color: 0xfff8f4, toneMapped: false })
+  );
+  h.position.set(x + s * 0.12, y + s * 0.16, z + s * 0.5);
+  h.userData.noShadow = true;
+  parent.add(h);
+}
+let glossMap;
+function glossTexture() {
+  if (glossMap) return glossMap;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(64, 78, 6, 64, 64, 62);
+  g.addColorStop(0, 'rgba(255,255,255,0.9)');
+  g.addColorStop(0.42, 'rgba(255,255,255,0.28)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  glossMap = new THREE.CanvasTexture(c);
+  return glossMap;
+}
+function foreheadGloss(parent, x, y, z, w = 0.46, h = 0.24) {
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, h),
+    new THREE.MeshBasicMaterial({
+      map: glossTexture(), transparent: true, depthWrite: false, toneMapped: false,
+      polygonOffset: true, polygonOffsetFactor: -1,
+    })
+  );
+  m.position.set(x, y, z);
   m.userData.noShadow = true;
   parent.add(m);
 }
@@ -163,9 +311,9 @@ function smile(parent, x, y, z, w, color = 0x6a4038) {
 
 function buildCat() {
   const g = new THREE.Group();
-  const fur = plush(0xf4a25a);
-  const cream = plush(0xfff4e6);
-  const pink = plush(0xffb3c4);
+  const fur = plush(0xe8894c);
+  const cream = plush(0xfff6ec);
+  const pink = plush(0xff8aa3);
   const geo = deform(lathe([
     [0.02, 1.58], [0.32, 1.50], [0.58, 1.30], [0.76, 1.02],
     [0.78, 0.78], [0.60, 0.52], [0.48, 0.36], [0.66, 0.16],
@@ -179,22 +327,36 @@ function buildCat() {
     if (z > 0) z += cheek * 0.07;
     return [x, y, z];
   });
-  addMesh(g, geo, fur, 0x8a5a3a);
+  addMesh(g, geo, fur);
 
-  // triangular ears, bases sunk into the crown
   for (const s of [-1, 1]) {
-    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.30, 0.68, 28), fur);
-    ear.position.set(s * 0.44, 1.55, 0.10);
-    ear.rotation.z = s * -0.28;
-    ear.rotation.x = -0.08;
-    ear.castShadow = true;
+    const ear = pointedEar(fur, pink);
+    ear.position.set(s * 0.46, 1.38, 0.06);
+    ear.rotation.z = s * -0.22;
+    ear.rotation.x = -0.1;
     g.add(ear);
-    const inner = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.38, 20), pink);
-    inner.position.set(s * 0.44, 1.52, 0.16);
-    inner.rotation.z = s * -0.28;
-    inner.rotation.x = -0.08;
-    g.add(inner);
   }
+  const collar = new THREE.Mesh(
+    new THREE.TorusGeometry(0.64, 0.042, 12, 40),
+    paint(0xd24b6e, { roughness: 0.32, clearcoat: 0.55, sheen: 0.1 })
+  );
+  collar.rotation.x = Math.PI / 2;
+  collar.position.set(0, 0.48, 0.06);
+  g.add(collar);
+  const bell = new THREE.Mesh(
+    new THREE.SphereGeometry(0.095, 18, 14),
+    paint(0xffd56a, { roughness: 0.18, metalness: 0.72, clearcoat: 0.85, sheen: 0 })
+  );
+  bell.scale.set(1, 0.84, 0.86);
+  bell.position.set(0, 0.36, 0.68);
+  g.add(bell);
+  const slit = new THREE.Mesh(
+    new THREE.BoxGeometry(0.016, 0.1, 0.02),
+    new THREE.MeshBasicMaterial({ color: 0x6a4818, toneMapped: false })
+  );
+  slit.position.set(0, 0.34, 0.76);
+  slit.userData.noShadow = true;
+  g.add(slit);
 
   const belly = new THREE.Mesh(new THREE.SphereGeometry(0.46, 28, 20), cream);
   belly.scale.set(1.05, 1.2, 0.42);
@@ -202,24 +364,23 @@ function buildCat() {
   belly.castShadow = true;
   g.add(belly);
 
-  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.26, 24, 18), cream);
-  muzzle.scale.set(1.25, 0.85, 0.7);
-  muzzle.position.set(0, 0.66, 0.78);
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.3, 28, 20), cream);
+  muzzle.scale.set(1.4, 0.82, 0.72);
+  muzzle.position.set(0, 0.64, 0.8);
   g.add(muzzle);
 
   for (const s of [-1, 1]) {
-    const e = makeEye(0.175, 0x6a432c);
-    e.position.set(s * 0.29, 0.98, 0.82);
-    e.rotation.y = s * -0.12;
+    const e = makeEye(0.2, 0xc47a38);
+    e.position.set(s * 0.3, 1.0, 0.74);
+    e.rotation.y = s * -0.08;
     g.add(e);
+    whiskers(g, s * 0.34, 0.66, 0.9, s);
   }
-  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.065, 16, 12), paint(0xff7f98, { roughness: 0.35, clearcoat: 0.5, sheen: 0.2 }));
-  nose.scale.set(1.2, 0.85, 0.8);
-  nose.position.set(0, 0.74, 0.96);
-  g.add(nose);
-  smile(g, 0, 0.60, 0.94, 0.09, 0x7a4a40);
-  blush(g, -0.46, 0.78, 0.72, 0.09);
-  blush(g, 0.46, 0.78, 0.72, 0.09);
+  noseGem(g, 0, 0.74, 0.96, 0xff7f98, 0.058);
+  smile(g, 0, 0.60, 0.94, 0.08, 0x7a4a40);
+  blush(g, -0.46, 0.78, 0.78, 0.11);
+  blush(g, 0.46, 0.78, 0.78, 0.11);
+  foreheadGloss(g, 0, 1.22, 0.72, 0.5, 0.26);
 
   // short arms and feet, same fur, so the body reads as a plush not a turnip
   for (const s of [-1, 1]) {
@@ -231,6 +392,12 @@ function buildCat() {
     const paw = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), cream);
     paw.position.set(s * 1.02, -0.28, 0.28);
     g.add(paw);
+    for (const [dx, dy] of [[0, 0.04], [-0.045, -0.02], [0.045, -0.02]]) {
+      const bean = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 6), pink);
+      bean.scale.set(1, 0.7, 0.55);
+      bean.position.set(s * 1.02 + dx * s, -0.30 + dy, 0.38);
+      g.add(bean);
+    }
     for (const z of [0.22, -0.16]) {
       const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.22, 4, 12), fur);
       leg.position.set(s * 0.40, -1.12, z);
@@ -256,7 +423,7 @@ function buildCat() {
 
 function buildBear() {
   const g = new THREE.Group();
-  const fur = plush(0xc48458);
+  const fur = plush(0xb87348);
   const cream = plush(0xfff1df);
   const geo = deform(lathe([
     [0.02, 1.62], [0.36, 1.52], [0.66, 1.28], [0.80, 0.98],
@@ -268,20 +435,22 @@ function buildBear() {
     z += smoothstep(0.4, 1.05, y) * 0.16;
     return [x, y, z];
   });
-  addMesh(g, geo, fur, 0x7a5340);
+  addMesh(g, geo, fur);
 
   for (const s of [-1, 1]) {
-    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.26, 28, 20), fur);
-    ear.position.set(s * 0.52, 1.52, 0.08);
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.24, 28, 20), fur);
+    ear.scale.set(1.05, 0.72, 0.55);
+    ear.position.set(s * 0.52, 1.5, 0.06);
     ear.castShadow = true;
     g.add(ear);
-    const inner = new THREE.Mesh(new THREE.SphereGeometry(0.14, 18, 14), cream);
-    inner.position.set(s * 0.52, 1.52, 0.2);
+    const inner = new THREE.Mesh(new THREE.SphereGeometry(0.16, 18, 14), plush(0xf0a090));
+    inner.scale.set(1.05, 0.9, 0.42);
+    inner.position.set(s * 0.52, 1.48, 0.18);
     g.add(inner);
   }
-  const snout = new THREE.Mesh(new THREE.SphereGeometry(0.32, 28, 20), cream);
-  snout.scale.set(1.15, 0.85, 0.85);
-  snout.position.set(0, 0.72, 0.62);
+  const snout = new THREE.Mesh(new THREE.SphereGeometry(0.36, 28, 20), cream);
+  snout.scale.set(1.2, 0.78, 0.8);
+  snout.position.set(0, 0.7, 0.66);
   g.add(snout);
   const belly = new THREE.Mesh(new THREE.SphereGeometry(0.42, 24, 18), cream);
   belly.scale.set(1.05, 1.15, 0.4);
@@ -289,7 +458,7 @@ function buildBear() {
   g.add(belly);
 
   for (const s of [-1, 1]) {
-    const e = makeEye(0.13, 0x4a3428);
+    const e = makeEye(0.17, 0x7a5340);
     e.position.set(s * 0.28, 1.05, 0.78);
     g.add(e);
     const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.18, 0.26, 5, 14), fur);
@@ -308,13 +477,11 @@ function buildBear() {
     foot.position.set(s * 0.38, -1.28, 0.24);
     g.add(foot);
   }
-  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 12), paint(0x4a342c, { roughness: 0.45, clearcoat: 0.3, sheen: 0.1 }));
-  nose.scale.set(1.25, 0.9, 0.75);
-  nose.position.set(0, 0.78, 0.9);
-  g.add(nose);
+  noseGem(g, 0, 0.78, 0.9, 0x4a342c, 0.085);
   smile(g, 0, 0.62, 0.86, 0.1, 0x5a4038);
   blush(g, -0.42, 0.82, 0.66, 0.1);
   blush(g, 0.42, 0.82, 0.66, 0.1);
+  foreheadGloss(g, 0, 1.28, 0.7, 0.48, 0.22);
   return g;
 }
 
@@ -327,8 +494,20 @@ function buildRobot() {
   body.position.y = -0.18;
   body.castShadow = true;
   g.add(body);
-  addOutline(g, body.geometry, 0x2c4450, 0.014);
-  g.children[g.children.length - 1].position.y = -0.18;
+
+  const chest = new THREE.Mesh(
+    new RoundedBoxGeometry(0.42, 0.34, 0.06, 3, 0.05),
+    paint(0xd8f7f1, { roughness: 0.26, clearcoat: 0.6, sheen: 0.08, metalness: 0.08 })
+  );
+  chest.position.set(0, 0.02, 0.58);
+  g.add(chest);
+  const gem = new THREE.Mesh(
+    new THREE.CircleGeometry(0.055, 20),
+    new THREE.MeshBasicMaterial({ color: 0xffc15e, toneMapped: false })
+  );
+  gem.position.set(0, 0.02, 0.62);
+  gem.userData.noShadow = true;
+  g.add(gem);
 
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.52, 36, 28), mint);
   head.scale.set(1.08, 0.92, 0.98);
@@ -343,6 +522,12 @@ function buildRobot() {
   const visor = new THREE.Mesh(new RoundedBoxGeometry(0.78, 0.32, 0.12, 4, 0.1), glass(0x102830, 0.45));
   visor.position.set(0, 1.18, 0.46);
   g.add(visor);
+  const bezel = new THREE.Mesh(
+    new THREE.TorusGeometry(0.46, 0.018, 8, 32),
+    paint(0xe7eef2, { roughness: 0.22, metalness: 0.62, clearcoat: 0.55, sheen: 0 })
+  );
+  bezel.position.set(0, 1.18, 0.52);
+  g.add(bezel);
   for (const x of [-0.18, 0.18]) {
     const e = new THREE.Mesh(
       new THREE.SphereGeometry(0.085, 16, 12),
@@ -351,8 +536,14 @@ function buildRobot() {
       })
     );
     e.scale.set(1.15, 1.05, 0.45);
-    e.position.set(x, 1.18, 0.52);
+    e.position.set(x, 1.18, 0.54);
     g.add(e);
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.105, 0.012, 6, 20),
+      paint(0xd5e2ea, { roughness: 0.2, metalness: 0.7, clearcoat: 0.5, sheen: 0 })
+    );
+    ring.position.set(x, 1.18, 0.545);
+    g.add(ring);
     const h = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }));
     h.position.set(x + 0.03, 1.21, 0.56);
     h.userData.noShadow = true;
@@ -408,9 +599,12 @@ function wheel(x, z) {
   );
   rim.rotation.x = Math.PI / 2;
   grp.add(rim);
-  const hub = new THREE.Mesh(new THREE.SphereGeometry(0.09, 14, 10), paint(0xffd54a, { metalness: 0.4, clearcoat: 0.7, sheen: 0 }));
-  hub.position.z = Math.sign(z) * 0.12;
+  const hub = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.016, 8, 18), paint(0xffd54a, { metalness: 0.55, clearcoat: 0.8, sheen: 0 }));
+  hub.position.z = Math.sign(z) * 0.13;
   grp.add(hub);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 8), paint(0xfff6d0, { metalness: 0.35, clearcoat: 0.7, sheen: 0 }));
+  cap.position.z = Math.sign(z) * 0.14;
+  grp.add(cap);
   return grp;
 }
 
@@ -426,6 +620,12 @@ function buildCar() {
   cabin.position.set(-0.18, 0.22, 0);
   cabin.castShadow = true;
   g.add(cabin);
+  const belt = new THREE.Mesh(
+    new RoundedBoxGeometry(2.32, 0.04, 1.36, 3, 0.018),
+    paint(0xfff4ea, { roughness: 0.18, metalness: 0.72, clearcoat: 0.85, sheen: 0 })
+  );
+  belt.position.set(0.05, -0.22, 0);
+  g.add(belt);
   const win = new THREE.Mesh(new RoundedBoxGeometry(1.02, 0.36, 0.98, 4, 0.08), glass(0xd4f2ff, 0.8));
   win.position.set(-0.16, 0.26, 0);
   g.add(win);
@@ -464,6 +664,12 @@ function cakeTier(radius, height, color) {
   return new THREE.Mesh(geo, paint(color, { roughness: 0.38, clearcoat: 0.4, sheen: 0.7, clearcoatRoughness: 0.3 }));
 }
 
+function dripGeo() {
+  return lathe([
+    [0.008, 0.11], [0.04, 0.07], [0.062, 0.01], [0.048, -0.06], [0.016, -0.12], [0.006, -0.14],
+  ], 14);
+}
+
 function buildCake() {
   const g = new THREE.Group();
   const plate = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.26, 0.08, 48), paint(0xfffaf4, { roughness: 0.3, clearcoat: 0.45, sheen: 0.2 }));
@@ -480,12 +686,23 @@ function buildCake() {
     m.position.y = y;
     m.castShadow = true;
     g.add(m);
-    for (let k = 0; k < 6 + i; k++) {
-      const a = (k / (6 + i)) * Math.PI * 2 + i;
-      const d = new THREE.Mesh(new THREE.SphereGeometry(0.07 + (k % 3) * 0.015, 12, 10), paint(c, { roughness: 0.35, sheen: 0.8, clearcoat: 0.3 }));
-      d.position.set(Math.cos(a) * r * 0.92, y + h * 0.42, Math.sin(a) * r * 0.92);
-      d.scale.y = 1.3;
+    for (let k = 0; k < 7; k++) {
+      const a = (k / 7) * Math.PI * 2 + i * 0.4;
+      const d = new THREE.Mesh(dripGeo(), paint(c, { roughness: 0.32, sheen: 0.55, clearcoat: 0.35 }));
+      d.position.set(Math.cos(a) * r * 0.9, y + h * 0.48, Math.sin(a) * r * 0.9);
+      d.scale.setScalar(0.85 + (k % 3) * 0.08);
       g.add(d);
+    }
+    if (i === 1) {
+      for (let k = 0; k < 10; k++) {
+        const a = (k / 10) * Math.PI * 2 + 0.3;
+        const pearl = new THREE.Mesh(
+          new THREE.SphereGeometry(0.032, 12, 10),
+          paint(0xfffaf6, { roughness: 0.14, clearcoat: 0.95, metalness: 0.04, sheen: 0.15 })
+        );
+        pearl.position.set(Math.cos(a) * (r + 0.02), y - h * 0.22, Math.sin(a) * (r + 0.02));
+        g.add(pearl);
+      }
     }
   });
   const cherry = new THREE.Mesh(new THREE.SphereGeometry(0.15, 20, 16), paint(0xff4d68, { roughness: 0.25, clearcoat: 0.9, sheen: 0.15, emissive: 0xff3358, ei: 0.1 }));
@@ -543,9 +760,8 @@ function buildPopsicle() {
   geo.userData.shared = true;
   const mat = paint(0xffffff, { roughness: 0.18, clearcoat: 0.85, clearcoatRoughness: 0.1, sheen: 0.2, metalness: 0.02 });
   mat.vertexColors = true;
-  const mesh = addMesh(g, geo, mat, 0x3d6e64);
+  const mesh = addMesh(g, geo, mat);
   mesh.position.y = 0.32;
-  g.children[1].position.y = 0.32;
   const stick = new THREE.Mesh(
     new THREE.CapsuleGeometry(0.1, 0.78, 5, 12),
     new THREE.MeshPhysicalMaterial({ color: 0xe4b57e, roughness: 0.7, clearcoat: 0.06, sheen: 0.15, sheenColor: new THREE.Color(0xf3d7b0) })
@@ -574,7 +790,7 @@ function buildRocket() {
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   const mat = paint(0xffffff, { roughness: 0.26, clearcoat: 0.75, sheen: 0.12 });
   mat.vertexColors = true;
-  addMesh(g, geo, mat, 0x3a3558);
+  addMesh(g, geo, mat);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.03, 8, 24), paint(0x5c6d80, { metalness: 0.45, clearcoat: 0.4, sheen: 0 }));
   ring.position.set(0, 0.28, 0.55);
   g.add(ring);
@@ -622,7 +838,7 @@ function buildUfo() {
     [1.7, 0.06], [1.86, -0.01], [1.55, -0.08], [0.7, -0.14], [0.02, -0.16],
   ], 72);
   const mat = paint(0xd2ccff, { roughness: 0.26, clearcoat: 0.8, metalness: 0.06, sheen: 0.15 });
-  addMesh(g, geo, mat, 0x2a2448);
+  addMesh(g, geo, mat);
   const dome = new THREE.Mesh(new THREE.SphereGeometry(0.66, 40, 24, 0, Math.PI * 2, 0, Math.PI / 2), glass(0xe7fbff, 0.88));
   dome.position.y = 0.16;
   g.add(dome);

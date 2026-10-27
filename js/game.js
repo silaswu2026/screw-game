@@ -83,8 +83,8 @@ try {
 
 const hemi = new THREE.HemisphereLight(0xfff4e6, 0xb7c9ea, 0.48);
 scene.add(hemi);
-const key = new THREE.DirectionalLight(0xfff6ea, 1.7);
-key.position.set(4.2, 8.2, 3.4);
+const key = new THREE.DirectionalLight(0xfff7ee, 1.42);
+key.position.set(2.6, 7.4, 5.2);
 key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024);
 key.shadow.camera.near = 1; key.shadow.camera.far = 24;
@@ -94,28 +94,28 @@ key.shadow.bias = -0.00025; key.shadow.normalBias = 0.02;
 scene.add(key);
 const fill = new THREE.DirectionalLight(0xb9d0ff, 0.32);
 fill.position.set(-5, 2.2, -2.5); scene.add(fill);
-const rim = new THREE.DirectionalLight(0xffe1c2, 0.85);
-rim.position.set(-2.2, 4.2, 6); scene.add(rim);
+const rim = new THREE.DirectionalLight(0xfff0dc, 1.05);
+rim.position.set(-2.4, 5.8, -5.2); scene.add(rim);
 const bounce = new THREE.DirectionalLight(0xffe8d4, 0.28);
 bounce.position.set(0.4, -3.5, 2.2); scene.add(bounce);
-const sparkle = new THREE.PointLight(0xfff8ee, 0.22, 14, 2);
-sparkle.position.set(1.4, 2.6, 3.2); scene.add(sparkle);
+const sparkle = new THREE.PointLight(0xfff8ee, 0.42, 10, 2);
+sparkle.position.set(0.5, 2.5, 3.0); scene.add(sparkle);
 
 function applyLights(sc){
   hemi.color.set(sc.hemiSky ?? 0xfff4e6);
   hemi.groundColor.set(sc.hemiGround ?? 0xc5d4ea);
   hemi.intensity = sc.hemiI ?? 0.48;
   key.color.set(sc.key ?? 0xfff6ea);
-  key.intensity = sc.keyI ?? 1.7;
+  key.intensity = sc.keyI ?? 1.32;
   fill.color.set(sc.fill ?? 0xb9d0ff);
   fill.intensity = sc.fillI ?? 0.32;
   rim.color.set(sc.rim ?? 0xffe1c2);
-  rim.intensity = sc.rimI ?? 0.85;
+  rim.intensity = sc.rimI ?? 1.1;
   bounce.color.set(sc.bounce ?? 0xffe8d4);
   bounce.intensity = sc.bounceI ?? 0.28;
   sparkle.color.set(sc.spark ?? 0xfff8ee);
-  sparkle.intensity = sc.sparkI ?? 0.22;
-  if (renderer.toneMappingExposure !== undefined) renderer.toneMappingExposure = sc.exposure ?? 1.12;
+  sparkle.intensity = sc.sparkI ?? 0.42;
+  if (renderer.toneMappingExposure !== undefined) renderer.toneMappingExposure = sc.exposure ?? 1.04;
 }
 
 const root = new THREE.Group(); scene.add(root);
