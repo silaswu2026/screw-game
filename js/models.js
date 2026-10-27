@@ -1,5 +1,5 @@
 // Themed 3D models: anchors (flat surfaces where screwed parts attach).
-// Visual characters are sculpted in characters.js. `core` is only a fallback if that build throws.
+// Visual characters are built in characters.js. `core` is only a fallback if that build throws.
 // Anchor: p = centre on the surface, r = euler so local +z is the outward normal, w/h = usable size.
 // back:true anchors face away from the start camera (used only from level 15).  special:true = a shaped part (ear, fin, hubcap...) always added from level 4.
 // Visual cores aim for rounded Disney-polished cartoon silhouettes; anchor planes stay fixed for gameplay.
