@@ -1,0 +1,23 @@
+// 4 selectable themes: palette, background details, level models, collectible figures
+export const THEMES = {
+  pets: { name:'萌宠乐园', icon:'🐾', desc:'猫猫狗狗、小兔小熊', bgEmoji:['🐾','🦴','🐟','🌸','💕'],
+    css:{ '--acc':'#ff6f91', '--btn1':'#ffb08a', '--btn2':'#ff8a65', '--btnS':'#d9694a', '--card':'#ffd9c2', '--bg':'linear-gradient(160deg,#fff4e0,#eaf7e8 55%,#dff1fb)' },
+    plates:[0xfff7ea,0xd9f2e6,0xdcecff,0xfff0c2,0xffe1d6,0xe6f5d0],
+    models:[{name:'小猫咪',m:'cat'},{name:'小熊',m:'bear'}],
+    figures:[['🐱','橘猫'],['🐶','柴犬'],['🐰','垂耳兔'],['🐻','泰迪熊'],['🐼','熊猫'],['🦊','小狐狸'],['🐹','仓鼠'],['🐧','企鹅'],['🐨','考拉'],['🦄','独角兽']] },
+  mech: { name:'机械工坊', icon:'🤖', desc:'机器人、小车、工程机械', bgEmoji:['⚙️','🔧','🔩','⚡','🛠️'],
+    css:{ '--acc':'#1f8a9e', '--btn1':'#5fd1c4', '--btn2':'#2bb3a3', '--btnS':'#1d8579', '--card':'#bfe8e2', '--bg':'linear-gradient(160deg,#e6f4f1,#eef0f3 55%,#fff1d6)' },
+    plates:[0xf2f6fa,0xfff1c9,0xdaf0ff,0xe1f7e4,0xffe2cc,0xe8e4f7],
+    models:[{name:'机器人',m:'robot'},{name:'小汽车',m:'car'}],
+    figures:[['🤖','小铁'],['🚗','小车车'],['🚜','拖拉机'],['🚂','蒸汽火车'],['🚁','直升机'],['🦾','机械臂'],['🚒','消防车'],['🛵','小摩托'],['🚧','工程队'],['🛸','飞碟机甲']] },
+  sweets: { name:'甜品屋', icon:'🧁', desc:'蛋糕、甜甜圈、冰淇淋', bgEmoji:['🍬','🍓','🍩','🍭','✨'],
+    css:{ '--acc':'#f0648f', '--btn1':'#ffb3c6', '--btn2':'#f58aa8', '--btnS':'#cf6a88', '--card':'#ffe0c7', '--bg':'linear-gradient(160deg,#fff6e6,#fdf0e8 50%,#e6f7ee)' },
+    plates:[0xfffaf0,0xffe9f0,0xe3f7e8,0xfff0c4,0xf3e6ff,0xffe4d1],
+    models:[{name:'草莓蛋糕',m:'cake'},{name:'薄荷冰棍',m:'popsicle'}],
+    figures:[['🍰','草莓蛋糕'],['🧁','纸杯蛋糕'],['🍩','甜甜圈'],['🍦','甜筒'],['🍮','布丁'],['🍪','曲奇'],['🍫','巧克力'],['🍭','棒棒糖'],['🥞','松饼'],['🎂','生日蛋糕']] },
+  space: { name:'太空冒险', icon:'🚀', desc:'火箭、外星人、星球', bgEmoji:['⭐','🪐','🌙','✨','☄️'],
+    css:{ '--acc':'#7c5cff', '--btn1':'#a99bff', '--btn2':'#7c5cff', '--btnS':'#5a3fd1', '--card':'#cfc4ff', '--bg':'linear-gradient(160deg,#23244f,#3b3277 55%,#18587a)' },
+    plates:[0xf4f0ff,0xdff6ff,0xfff3d6,0xe2ffe9,0xffe6ef,0xe6e6ff],
+    models:[{name:'小火箭',m:'rocket'},{name:'飞碟',m:'ufo'}],
+    figures:[['🚀','火箭'],['👽','小外星人'],['🛸','飞碟'],['🪐','土星'],['🌙','月亮'],['👩‍🚀','宇航员'],['🛰️','卫星'],['☄️','彗星'],['🌍','地球'],['🌟','超新星']] },
+};

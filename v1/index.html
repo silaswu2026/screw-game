@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#fff4e0"><link rel="icon" href="data:,">
+<title>Screw Breaker 3D</title>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"three":"../vendor/three.module.js","three/addons/":"../vendor/addons/"}}</script>
+</head><body>
+<div id="bg"><div id="bgDeco"></div></div>
+<!-- MAP -->
+<div id="map" class="screen">
+  <div class="hdr"><div class="coins">💖 <span class="cv">0</span></div><div class="title">螺丝拆拆乐 3D</div><button class="btn small" id="openShop">🛍️</button><button class="btn small" id="openCol">🏆</button><button class="btn small" id="openSettings">⚙️</button></div>
+  <div id="path"></div>
+</div>
+<!-- GAME HUD -->
+<div id="hud" class="screen hidden">
+  <div id="top">
+    <div class="bar"><button class="btn small" id="toMap">🗺️</button><div id="lvl">第1关</div><div class="coins">💖 <span class="cv">0</span></div><button class="btn small" id="restart">↻</button></div>
+    <div id="boxes"></div><div id="buf"></div>
+  </div>
+  <div id="hand">👆</div>
+  <div id="tip"></div>
+  <div id="combo"></div>
+  <div id="reveal" class="hidden"><div id="rvSpark"></div><div id="rvFig">🐱</div><div class="rvT">获得手办 · <b id="rvName"></b></div><div class="rvHint">点点它！</div></div>
+  <div id="items"></div>
+</div>
+<!-- SHOP -->
+<div id="shop" class="modal hidden"><div class="card"><h2>🛍️ 道具商店</h2><div class="coins big">💖 <span class="cv">0</span></div><div id="shopList"></div><button class="btn" id="closeShop">关闭</button></div></div>
+<!-- RESULT -->
+<div id="ov" class="modal hidden"><div class="card"><h2 id="ovt"></h2><div id="ovStars"></div><div id="ovs"></div><div id="ovBtns"></div></div></div>
+<div id="themePick" class="modal hidden"><div class="card wide"><h2 id="themeTitle"></h2><div id="themeSub" class="sub"></div><div id="themeList"></div><button class="btn gray" id="themeClose">取消</button></div></div>
+<div id="settings" class="modal hidden"><div class="card"><h2>⚙️ 设置</h2><div id="setBtns"><button class="btn" id="setTheme">🎨 切换主题</button><button class="btn alt" id="tgSound"></button><button class="btn alt" id="tgVibe"></button><button class="btn gray" id="setReset">🗑️ 清除进度</button><button class="btn alt" id="closeSettings">关闭</button></div></div></div>
+<div id="collection" class="modal hidden"><div class="card wide"><h2>🏆 收藏架</h2><div id="colSum" class="sub"></div><div id="colList"></div><button class="btn" id="closeCol">关闭</button></div></div>
+<div id="toast"></div>
+<script type="module" src="game.js"></script>
+</body></html>
