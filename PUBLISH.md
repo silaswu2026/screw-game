@@ -2,8 +2,10 @@
 
 Characters are clean chibi forms with a tighter finish: lathe bodies, painted irises (gradient, pupil, catchlights), soft blush, and a light studio grade (warm crown, cooler shade). The cat has a rose collar and a small gold bell. Cake drips are piped teardrops with a pearl row. Thick sticker outlines are gone. The earlier marching-cubes shells read as melted lumps and are no longer used.
 
-## GitHub Pages
-https://silaswu2026.github.io/screw-game/
+## Rocket demo
+A separate quality sample, not a replacement for the main game: https://silaswu2026.github.io/screw-game/rocket-demo/
+
+All geometry is original and procedural (lathe, extrude, rounded boxes) in `rocket-demo/demo.js`. No downloaded meshes. 11 removable parts, 24 candy screws, a launch-pad diorama, and a hand-solved puzzle.
 
 ## How models were made
 - Cat and bear: one lathe silhouette, sculpted ears with a contrasting inner ear, cream muzzle and belly, short limbs. Cat wears a collar and bell.

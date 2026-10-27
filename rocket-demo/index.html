@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#c5d6ff">
+<title>火箭试飞 · 螺丝拆拆乐</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="demo.css">
+<script type="importmap">{"imports":{
+  "three":"../vendor/three.module.js",
+  "three/addons/":"../vendor/addons/"
+}}</script>
+</head>
+<body>
+<div class="spark" style="left:6%;top:28%;animation-delay:.2s">✦</div>
+<div class="spark" style="left:88%;top:34%;font-size:14px;animation-delay:.8s">✦</div>
+<div class="spark" style="left:12%;top:62%;font-size:12px;animation-delay:1.1s">✦</div>
+<div class="spark" style="left:84%;top:70%;animation-delay:.4s">✦</div>
+<div class="spark" style="left:48%;top:24%;font-size:13px;animation-delay:1.5s">✦</div>
+
+<header>
+  <a class="round" href="../index.html" aria-label="返回">←</a>
+  <div class="lvl">第 1 关</div>
+  <button class="round" id="restart" aria-label="重开">↻</button>
+</header>
+<div id="boxes"></div>
+<div id="slots"></div>
+<div id="stage"><canvas id="view"></canvas></div>
+<div class="banner"><i class="nail"></i><span id="bannerText">点彩色螺丝，拆开火箭</span><i class="nail"></i></div>
+<div id="tip"></div>
+<div id="win">
+  <div class="winCard">
+    <h2>发射成功</h2>
+    <p>外壳拆完了，芯子升空。</p>
+    <div class="row">
+      <button class="pill alt" id="again">再玩一次</button>
+      <a class="pill" href="../index.html">返回主页</a>
+    </div>
+  </div>
+</div>
+<div id="err"></div>
+<script type="module" src="demo.js"></script>
+</body>
+</html>
