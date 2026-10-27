@@ -484,6 +484,36 @@ function save(data) {
   localStorage.setItem(STORE, JSON.stringify(data));
 }
 
+const REWARD_STORE = 'shuyang_ai_rewards_v1';
+const DEFAULT_REWARDS = [
+  { id: 'r1', name: '小星星贴纸 / 小零食一份', cost: 3, emoji: '🍬' },
+  { id: 'r2', name: '多看一集喜欢的动画', cost: 5, emoji: '📺' },
+  { id: 'r3', name: '周末多玩 20 分钟游戏', cost: 7, emoji: '🎮' },
+  { id: 'r4', name: '爸爸陪做「新关卡想法」一晚', cost: 10, emoji: '🗺️' },
+  { id: 'r5', name: '澍暘导演日：用 AI 画一个角色', cost: 12, emoji: '🎬' },
+  { id: 'r6', name: '月度大奖：他选的一次小奖励（约定好）', cost: 20, emoji: '🏆' },
+];
+
+function loadRewards() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(REWARD_STORE) || 'null');
+    if (!raw) return { catalog: DEFAULT_REWARDS.map((x) => ({ ...x })), redeemed: [] };
+    if (!Array.isArray(raw.catalog) || !raw.catalog.length) raw.catalog = DEFAULT_REWARDS.map((x) => ({ ...x }));
+    if (!Array.isArray(raw.redeemed)) raw.redeemed = [];
+    return raw;
+  } catch {
+    return { catalog: DEFAULT_REWARDS.map((x) => ({ ...x })), redeemed: [] };
+  }
+}
+function saveRewards(r) {
+  localStorage.setItem(REWARD_STORE, JSON.stringify(r));
+}
+function starStats(data, rewards) {
+  const earned = DAYS.filter((d) => data[d.d]?.done).length;
+  const spent = (rewards.redeemed || []).reduce((s, x) => s + (x.cost || 0), 0);
+  return { earned, spent, bal: Math.max(0, earned - spent) };
+}
+
 function $(sel) {
   return document.querySelector(sel);
 }
@@ -514,7 +544,8 @@ function renderHome() {
         <p class="progress">已完成 <b>${done}</b> / 30 天</p>
         <div class="bar"><i style="width:${(done / 30) * 100}%"></i></div>
         <button class="primary go" id="continue">今天从 Day ${cont} 开始</button>
-        <p class="hint-line">先点上面按钮；也可以在下面选任意一天。总结会保存在这台手机里。</p>
+        <button class="shop-btn" id="shop">⭐ 成就兑换（${starStats(data, loadRewards()).bal} 星可用）</button>
+        <p class="hint-line">先点上面按钮；也可以在下面选任意一天。打卡攒星星，去兑换页换奖励。</p>
       </div>
     </header>
     <section class="weeks">
@@ -542,6 +573,121 @@ function renderHome() {
     btn.onclick = () => renderDay(+btn.dataset.day);
   });
   $('#continue').onclick = () => renderDay(cont);
+  $('#shop').onclick = () => renderShop();
+}
+
+function renderShop() {
+  const data = load();
+  const rewards = loadRewards();
+  const st = starStats(data, rewards);
+  const app = $('#app');
+  app.innerHTML = `
+    <button class="back" id="back">← 回月历</button>
+    <header class="shop-hero">
+      <div class="star-pill">⭐ ${st.bal} <span>可用星星</span></div>
+      <h1>成就兑换</h1>
+      <p>每打卡完成 1 天 = 1 颗星。花掉的星会记下来，和爸爸一起兑现奖励。</p>
+      <p class="muted">已获得 ${st.earned} · 已兑换花掉 ${st.spent}</p>
+    </header>
+    <section class="card tip">
+      <h3>怎么玩</h3>
+      <p>澍暘选想换的奖励 → 爸爸点「兑换」→ 真的兑现后再勾「已兑现」。不够星的会灰色。</p>
+    </section>
+    <section class="rewards">
+      ${rewards.catalog
+        .map((r) => {
+          const can = st.bal >= r.cost;
+          return `<article class="reward ${can ? '' : 'locked'}">
+            <div class="emoji">${r.emoji || '🎁'}</div>
+            <div class="body">
+              <h3>${r.name}</h3>
+              <p>需要 <b>${r.cost}</b> 星</p>
+            </div>
+            <button class="primary redeem" data-id="${r.id}" ${can ? '' : 'disabled'}>兑换</button>
+          </article>`;
+        })
+        .join('')}
+    </section>
+    <section class="card">
+      <h3>爸爸可改奖励清单</h3>
+      <p class="hint">每行格式：表情|名称|星星数。保存后立刻生效。</p>
+      <textarea id="catalogEdit" rows="7">${rewards.catalog
+        .map((r) => `${r.emoji || '🎁'}|${r.name}|${r.cost}`)
+        .join('\n')}</textarea>
+      <button id="saveCat">保存奖励清单</button>
+    </section>
+    <section class="card">
+      <h3>兑换记录</h3>
+      ${
+        rewards.redeemed.length
+          ? `<ul class="hist">${rewards.redeemed
+              .slice()
+              .reverse()
+              .map(
+                (x, idx) => {
+                  const realIdx = rewards.redeemed.length - 1 - idx;
+                  return `<li>
+                    <span>${x.emoji || '🎁'} ${x.name}（-${x.cost}星）</span>
+                    <label class="check"><input type="checkbox" data-ful="${realIdx}" ${
+                      x.fulfilled ? 'checked' : ''
+                    }/> 已兑现</label>
+                  </li>`;
+                }
+              )
+              .join('')}</ul>`
+          : '<p class="muted">还没有兑换。先去打卡攒星星吧！</p>'
+      }
+    </section>
+  `;
+  $('#back').onclick = renderHome;
+  app.querySelectorAll('.redeem').forEach((btn) => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      const rewards = loadRewards();
+      const data = load();
+      const st = starStats(data, rewards);
+      const item = rewards.catalog.find((x) => x.id === id);
+      if (!item || st.bal < item.cost) return;
+      if (!confirm(`确定用 ${item.cost} 星兑换「${item.name}」吗？`)) return;
+      rewards.redeemed.push({
+        id: item.id,
+        name: item.name,
+        cost: item.cost,
+        emoji: item.emoji,
+        at: new Date().toISOString(),
+        fulfilled: false,
+      });
+      saveRewards(rewards);
+      renderShop();
+    };
+  });
+  app.querySelectorAll('[data-ful]').forEach((cb) => {
+    cb.onchange = () => {
+      const rewards = loadRewards();
+      const i = +cb.dataset.ful;
+      if (rewards.redeemed[i]) rewards.redeemed[i].fulfilled = cb.checked;
+      saveRewards(rewards);
+    };
+  });
+  $('#saveCat').onclick = () => {
+    const lines = $('#catalogEdit').value.split('\n').map((x) => x.trim()).filter(Boolean);
+    const catalog = [];
+    lines.forEach((line, i) => {
+      const parts = line.split('|').map((x) => x.trim());
+      if (parts.length < 3) return;
+      const cost = parseInt(parts[2], 10);
+      if (!cost) return;
+      catalog.push({ id: 'c' + (i + 1), emoji: parts[0], name: parts[1], cost });
+    });
+    if (!catalog.length) {
+      alert('至少保留一条有效奖励');
+      return;
+    }
+    const rewards = loadRewards();
+    rewards.catalog = catalog;
+    saveRewards(rewards);
+    renderShop();
+  };
 }
 
 function speak(text, onend) {
@@ -639,6 +785,7 @@ function renderDay(n) {
 
     <div class="nav">
       <button id="prev" ${n <= 1 ? 'disabled' : ''}>前一天</button>
+      <button id="toShop">⭐ 兑换</button>
       <button id="next" ${n >= 30 ? 'disabled' : ''}>下一天</button>
     </div>
   `;
@@ -646,6 +793,7 @@ function renderDay(n) {
   $('#back').onclick = renderHome;
   $('#prev').onclick = () => renderDay(n - 1);
   $('#next').onclick = () => renderDay(n + 1);
+  $('#toShop').onclick = () => renderShop();
   $('#readStory').onclick = () => speak(day.story);
   $('#speakSum').onclick = () => speak($('#summary').value || day.prompt);
   app.querySelectorAll('[data-say]').forEach((b) => {

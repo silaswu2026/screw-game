@@ -50,3 +50,17 @@ body.speaking .avatar{animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{50%{transform:scale(1.03);box-shadow:0 0 50px #ffe9a088}}
 .saved.flash{animation:flash .8s ease}
 @keyframes flash{from{opacity:.2}to{opacity:1}}
+
+.shop-btn{display:block;width:100%;max-width:360px;margin:10px 0 0;padding:12px 16px;border-radius:14px;border:1px solid #ffe9a066;background:#3a2f1a;color:var(--gold);font-size:16px;cursor:pointer}
+.shop-hero{text-align:center;margin:8px 0 16px}
+.star-pill{display:inline-flex;align-items:baseline;gap:8px;background:#3a2f1a;border:1px solid #ffe9a088;color:var(--gold);font-size:34px;font-weight:800;padding:10px 18px;border-radius:999px;margin-bottom:10px}
+.star-pill span{font-size:14px;font-weight:600;color:#f0d98a}
+.muted{color:var(--muted)}
+.rewards{display:grid;gap:10px}
+.reward{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.reward .emoji{font-size:28px;width:42px;text-align:center}
+.reward .body{flex:1}
+.reward h3{margin:0 0 4px;font-size:16px}
+.reward.locked{opacity:.55}
+.hist{list-style:none;padding:0;margin:0}
+.hist li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #ffffff12}
