@@ -188,13 +188,36 @@ const buttons = await ev(`({
   n: document.querySelectorAll('#touch button').length,
   jump: document.getElementById('btnJ').getBoundingClientRect().width,
   title: document.title,
+  modes: document.querySelector('.modes').classList.contains('hidden'),
 })`);
 console.log('UI', JSON.stringify(buttons));
+const spring = await ev(`(() => {
+  __ninja.pause(false);
+  __ninja.start(1, false);
+  const sp = __ninja.markers.spring;
+  __ninja.place(sp.x, sp.y);
+  __ninja.press('right', true);
+  __ninja.press('jump', false);
+  __ninja.press('jump', true);
+  let minY = 9999, maxX = 0;
+  for (let i = 0; i < 90; i++) {
+    __ninja.step(1);
+    const s = __ninja.state;
+    if (s.y < minY) minY = s.y;
+    if (s.x > maxX) maxX = s.x;
+  }
+  __ninja.press('right', false);
+  __ninja.press('jump', false);
+  __ninja.pause(true);
+  return { minY, maxX, x: __ninja.state.x, y: __ninja.state.y, err: __ninja.state.errors, coop: __ninja.state.coop };
+})()`);
+console.log('SPRING', JSON.stringify(spring));
+await shot('ninja_spring.png');
 console.log('LOGS', logs.slice(0, 20));
 
 const gapOk = play.x > play.gap.x1 - 4 && play.y <= play.gap.y + 8;
-const ok = boot.title === '忍者水管工 Ninja Plumber'
-  && boot.h1.includes('忍者水管工') && boot.h1.includes('Ninja Plumber')
+const ok = boot.title === '忍者小绿 / Green Ninja'
+  && boot.h1.includes('忍者小绿') && boot.h1.includes('Green Ninja')
   && gapOk
   && play.slimes === 0
   && play.throwAnim === 'throw'
@@ -203,8 +226,9 @@ const ok = boot.title === '忍者水管工 Ninja Plumber'
   && wall.slide.anim === 'slide' && wall.slide.onWall === -1
   && wall.hop.vy < 0 && wall.hop.vx > 0 && wall.hop.whoosh > 0.4
   && Math.abs(fall.x - fall.spawn) < 40
-  && buttons.n === 4 && buttons.jump >= 70
-  && !(boot.err || []).length && !(play.err || []).length && !(wall.err || []).length && !(fall.err || []).length
+  && buttons.n === 4 && buttons.jump >= 70 && buttons.modes
+  && spring.minY < 280 && spring.maxX > 1280 && spring.coop === false
+  && !(boot.err || []).length && !(play.err || []).length && !(wall.err || []).length && !(fall.err || []).length && !(spring.err || []).length
   && !logs.some((l) => l.startsWith('error') || l.startsWith('EXC'));
 ws.close();
 chrome.kill();
