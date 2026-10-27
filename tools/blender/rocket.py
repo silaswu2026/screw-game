@@ -71,7 +71,7 @@ UP0_PORT_A = PORT_L_A - 0.28 / PANEL_R1
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 QUICK = "--quick" in argv
 OUT = "rocket-demo/assets"
-RES = 1024
+RES = 512
 if "--out" in argv:
     OUT = argv[argv.index("--out") + 1]
 if "--res" in argv:
@@ -463,8 +463,8 @@ def build():
     core = lathe("core", [
         (0.05, 0.50), (0.28, 0.56), (CORE_R, 0.78), (CORE_R, 1.55),
         (0.36, 1.85), (0.26, 2.05), (0.12, 2.16), (0.02, 2.20),
-    ], 36)
-    bevel(core, 0.02, 2, sub=1)
+    ], 24)
+    bevel(core, 0.02, 2, sub=0)
     tag(core, "core", "fn:core")
 
     # Pilot sits in the cavity, just outside the core skin, behind the windows.
@@ -487,8 +487,8 @@ def build():
     nose = lathe("nose", [
         (0.02, 2.98), (0.10, 2.88), (0.22, 2.70), (0.36, 2.50),
         (0.48, 2.32), (0.58, 2.22), (0.72, 2.14), (0.80, 2.08), (0.74, 2.00),
-    ], 36)
-    bevel(nose, 0.014, 2, sub=1)
+    ], 28)
+    bevel(nose, 0.014, 2, sub=0)
     star = star_bm(0.09)
     M = Matrix.Translation(polar(-math.pi / 2, 0.34, 2.58))
     bmesh.ops.transform(star, verts=list(star.verts), matrix=M)
@@ -503,8 +503,8 @@ def build():
 
     collar = lathe("collar", [
         (0.42, 1.98), (0.56, 2.02), (0.62, 2.08), (0.56, 2.14), (0.42, 2.18), (0.40, 2.08),
-    ], 36)
-    bevel(collar, 0.012, 2, sub=1)
+    ], 24)
+    bevel(collar, 0.012, 2, sub=0)
     for deg in (-90, 30, 150):
         a = math.radians(deg)
         radial = Vector((math.cos(a), math.sin(a), 0))
@@ -519,8 +519,8 @@ def build():
     band = lathe("band", [
         (0.78, 1.02), (0.90, 1.14), (0.98, 1.26), (1.00, 1.34),
         (0.98, 1.42), (0.88, 1.50), (0.78, 1.56),
-    ], 40)
-    bevel(band, 0.012, 2, sub=1)
+    ], 28)
+    bevel(band, 0.012, 2, sub=0)
     for deg in (-90, 70, 200):
         a = math.radians(deg)
         radial = Vector((math.cos(a), math.sin(a), 0))
@@ -554,7 +554,7 @@ def build():
     }
     for pid, layer, sectors, (z0, z1) in panel_defs:
         a0, a1 = cover_angles(sectors, gap=0.10)
-        obj = arc_shell(pid, z0, z1, a0, a1, PANEL_R0, PANEL_R1)
+        obj = arc_shell(pid, z0, z1, a0, a1, PANEL_R0, PANEL_R1, na=8, nz=5)
         if pid == "up0":
             cut_hole(obj, math.radians(-106), 1.62, 0.125)
             cut_hole(obj, math.radians(-74), 1.62, 0.125)
@@ -609,8 +609,8 @@ def build():
     nozzle = lathe("nozzle", [
         (0.04, 0.50), (0.18, 0.46), (0.22, 0.34), (0.32, 0.18),
         (0.44, 0.06), (0.34, 0.02), (0.20, 0.10), (0.12, 0.30), (0.06, 0.46),
-    ], 32)
-    bevel(nozzle, 0.012, 2, sub=1)
+    ], 20)
+    bevel(nozzle, 0.012, 2, sub=0)
     # Two fasteners on the neck, inside the front lower shell.
     for deg in (-120, -80):
         a = math.radians(deg)
@@ -686,8 +686,8 @@ def build():
     pad = lathe("static_pad", [
         (0.02, 0.16), (0.9, 0.155), (1.22, 0.145), (1.34, 0.10),
         (1.40, 0.02), (1.36, -0.10), (1.20, -0.18), (0.02, -0.18),
-    ], 48)
-    bevel(pad, 0.02, 2, sub=1)
+    ], 32)
+    bevel(pad, 0.02, 2, sub=0)
     tag(pad, "static", "fn:pad")
 
     build_diorama()
@@ -710,7 +710,7 @@ def bake_loc(obj):
 
 def sphere(name, loc, radius, scale=(1, 1, 1)):
     bm = bmesh.new()
-    bmesh.ops.create_uvsphere(bm, u_segments=14, v_segments=10, radius=radius)
+    bmesh.ops.create_uvsphere(bm, u_segments=10, v_segments=6, radius=radius)
     bmesh.ops.scale(bm, verts=list(bm.verts), vec=Vector(scale))
     bmesh.ops.translate(bm, verts=list(bm.verts), vec=Vector(loc))
     obj = to_mesh(bm, name)
@@ -785,7 +785,7 @@ def booster_mesh(name, angle):
     obj = lathe(name, [
         (0.04, 0.52), (0.12, 0.58), (0.16, 0.72), (0.16, 1.05),
         (0.11, 1.14), (0.04, 1.18),
-    ], 24)
+    ], 16)
     radial = Vector((math.cos(angle), math.sin(angle), 0))
     bm = bmesh.new()
     bm.from_mesh(obj.data)
@@ -795,7 +795,7 @@ def booster_mesh(name, angle):
         pass
     bm.to_mesh(obj.data)
     bm.free()
-    bevel(obj, 0.012, 2, sub=1)
+    bevel(obj, 0.012, 2, sub=0)
     cap = lathe("_bcap", [(0.02, 0.0), (0.10, 0.02), (0.14, 0.08), (0.08, 0.12), (0.02, 0.14)], 16)
     bake_shift = radial * 1.18 + Vector((0, 0, 0.46))
     bm = bmesh.new()
@@ -910,9 +910,9 @@ def build_diorama():
         for k in range(5):
             pa = k / 5 * math.tau
             off = Vector((math.cos(pa) * 0.045, math.sin(pa) * 0.045, 0.03))
-            bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=6, radius=0.032,
+            bmesh.ops.create_uvsphere(bm, u_segments=6, v_segments=4, radius=0.032,
                                       matrix=Matrix.Translation(c + off))
-        bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=6, radius=0.022,
+        bmesh.ops.create_uvsphere(bm, u_segments=6, v_segments=4, radius=0.022,
                                   matrix=Matrix.Translation(c + Vector((0, 0, 0.05))))
     flowers = to_mesh(bm, "static_flowers", flip_check=False)
     smooth(flowers)

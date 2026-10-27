@@ -95,9 +95,40 @@ while (Date.now() - t0 < 30000) {
   await sleep(200);
 }
 await sleep(500);
-const boot = await ev(`({ sol: (__demo.solution||[]).length, parts: __demo.parts, screws: __demo.screwCount, err: __demo.errors, left: __demo.left, socket: __demo.socketDelta, mid: __demo.midMove, reveal: __demo.revealMove })`);
+const boot = await ev(`({ sol: (__demo.solution||[]).length, parts: __demo.parts, screws: __demo.screwCount, err: __demo.errors, left: __demo.left, socket: __demo.socketDelta, mid: __demo.midMove, reveal: __demo.revealMove, draws: __demo.draws, tris: __demo.tris, loadMs: __demo.loadMs, pixelRatio: __demo.pixelRatio })`);
 console.log('BOOT', JSON.stringify(boot));
+const glb = await ev(`performance.getEntriesByType('resource').filter(e => e.name.includes('rocket.glb')).map(e => ({ dur: Math.round(e.duration), encoded: e.encodedBodySize, decoded: e.decodedBodySize }))`);
+console.log('GLB', JSON.stringify(glb));
 await shot('rocket_start.png');
+const feel = await ev(`(() => {
+  const view = document.getElementById('view');
+  const fire = (type, x, y) => view.dispatchEvent(new PointerEvent(type, {
+    clientX: x, clientY: y, pointerId: 1, bubbles: true, pointerType: 'mouse', button: 0, buttons: type === 'pointerup' ? 0 : 1,
+  }));
+  const tap = (i) => {
+    const p = __demo.projectScrew(i);
+    fire('pointerdown', p.x, p.y);
+    const ms = __demo.pressFeedbackMs;
+    fire('pointerup', p.x, p.y);
+    return { i, ms, blocked: p.blocked, left: __demo.left, tip: document.getElementById('tip').classList.contains('show') };
+  };
+  __demo.jumpTo(0);
+  const before = __demo.left;
+  const blocked = tap(__demo.previewScrew);
+  __demo.jumpTo(0);
+  const free = __demo.freeScrew();
+  const pf = __demo.projectScrew(free);
+  fire('pointerdown', pf.x, pf.y);
+  fire('pointermove', pf.x + 48, pf.y + 4);
+  fire('pointerup', pf.x + 48, pf.y + 4);
+  const afterDrag = __demo.left;
+  __demo.jumpTo(0);
+  __demo.home();
+  const tapped = tap(__demo.freeScrew());
+  __demo.home();
+  return { before, blocked, afterDrag, tapped, err: __demo.errors };
+})()`);
+console.log('FEEL', JSON.stringify(feel));
 const preview = await ev(`const ids = window.__demo.preview(__demo.previewScrew); window.__demo.clearPreview(); ids`);
 console.log('PREVIEW', JSON.stringify(preview));
 
@@ -139,6 +170,12 @@ const ok = boot.sol === boot.screws && boot.screws >= 50 && boot.parts >= 25
   && end.won && played.ok
   && Array.isArray(preview) && preview.includes('band')
   && boot.socket < 0.05
-  && !(boot.err || []).length && !(end.err || []).length && !(played.err || []).length;
+  && feel.afterDrag === feel.before
+  && feel.blocked.left === feel.before
+  && feel.blocked.tip
+  && feel.blocked.ms < 50
+  && feel.tapped.left === feel.before - 1
+  && feel.tapped.ms < 50
+  && !(boot.err || []).length && !(end.err || []).length && !(played.err || []).length && !(feel.err || []).length;
 ws.close(); chrome.kill(); server.close();
 process.exit(ok ? 0 : 2);
