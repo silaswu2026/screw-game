@@ -25,7 +25,7 @@ const renderer = new THREE.WebGLRenderer({ canvas: view, antialias: true, alpha:
 renderer.setClearColor(0x000000, 0);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.08;
+renderer.toneMappingExposure = 1.16;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -35,8 +35,8 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
 pmrem.dispose();
 
-scene.add(new THREE.HemisphereLight(0xfff6ee, 0x9aa6ff, 0.62));
-const key = new THREE.DirectionalLight(0xfff1e2, 2.25);
+scene.add(new THREE.HemisphereLight(0xfff3e4, 0xffd0e8, 0.38));
+const key = new THREE.DirectionalLight(0xfff6e4, 2.7);
 key.position.set(-3.4, 7.2, 4.4);
 key.castShadow = true;
 key.shadow.mapSize.set(512, 512);
@@ -49,7 +49,7 @@ key.shadow.camera.bottom = -6;
 key.shadow.bias = -0.0004;
 key.shadow.normalBias = 0.03;
 scene.add(key);
-const fill = new THREE.DirectionalLight(0xc5d6ff, 0.42);
+const fill = new THREE.DirectionalLight(0xffe4f2, 0.28);
 fill.position.set(4.4, 2.4, 3.2);
 scene.add(fill);
 const rim = new THREE.DirectionalLight(0xffffff, 0.9);
@@ -70,9 +70,9 @@ function contactTex() {
   c.width = c.height = 256;
   const g = c.getContext('2d');
   const grd = g.createRadialGradient(128, 128, 16, 128, 128, 122);
-  grd.addColorStop(0, 'rgba(90, 104, 196, 0.38)');
-  grd.addColorStop(0.55, 'rgba(111, 120, 200, 0.18)');
-  grd.addColorStop(1, 'rgba(111, 120, 200, 0)');
+  grd.addColorStop(0, 'rgba(120, 70, 110, 0.28)');
+  grd.addColorStop(0.55, 'rgba(160, 90, 120, 0.12)');
+  grd.addColorStop(1, 'rgba(160, 90, 120, 0)');
   g.fillStyle = grd;
   g.fillRect(0, 0, 256, 256);
   const t = new THREE.CanvasTexture(c);
@@ -132,12 +132,12 @@ function screwTemplate() {
 const screwGeo = screwTemplate();
 const screwMat = new THREE.MeshPhysicalMaterial({
   color: 0xffffff,
-  roughness: 0.32,
+  roughness: 0.24,
   metalness: 0,
-  clearcoat: 0.55,
-  clearcoatRoughness: 0.35,
+  clearcoat: 0.72,
+  clearcoatRoughness: 0.22,
   sheen: 0,
-  envMapIntensity: 0.28,
+  envMapIntensity: 0.22,
   polygonOffset: true,
   polygonOffsetFactor: -1,
   polygonOffsetUnits: -1,
@@ -157,16 +157,14 @@ function upgradeVinyl(src) {
     normalMap: src.normalMap || null,
     aoMap: src.aoMap || null,
     color: src.color ? src.color.clone() : new THREE.Color(0xffffff),
-    roughness: 0.4,
+    roughness: 0.18,
     metalness: 0,
-    clearcoat: 0.52,
-    clearcoatRoughness: 0.26,
-    sheen: 0.08,
-    sheenRoughness: 0.6,
-    sheenColor: new THREE.Color('#fff6ee'),
-    envMapIntensity: 0.72,
-    aoMapIntensity: 0.9,
-    normalScale: new THREE.Vector2(0.8, 0.8),
+    clearcoat: 0.82,
+    clearcoatRoughness: 0.16,
+    sheen: 0,
+    envMapIntensity: 0.28,
+    aoMapIntensity: 0.42,
+    normalScale: new THREE.Vector2(0.35, 0.35),
     side: src.side || THREE.FrontSide,
   });
   for (const tex of [m.map, m.normalMap, m.aoMap]) {
@@ -517,9 +515,12 @@ function frame() {
   camera.fov = 30;
   if (fitSize) {
     const vFov = 30 * Math.PI / 180;
-    const distH = (fitSize.y * 0.52) / Math.tan(vFov / 2);
-    const distW = (fitSize.x * 0.50) / Math.tan(vFov / 2) / Math.max(0.4, camera.aspect);
-    camDist = Math.max(distH, distW) * 1.02;
+    const tan = Math.tan(vFov / 2);
+    const aspect = Math.max(0.4, camera.aspect);
+    // Rocket silhouette fills about 80% of the stage width.
+    const distW = (fitSize.x / 0.80) / (2 * tan * aspect);
+    const distH = (fitSize.y / 0.90) / (2 * tan);
+    camDist = Math.max(distH, distW);
   }
   const yaw = -0.62;
   const pitch = 0.40;
@@ -642,22 +643,20 @@ function tick() {
 tick();
 
 function fitCamera(root) {
-  // Frame the rocket, not the grass. The pad is pulled back in by hand
-  // so the diorama still peeks in under the hull.
+  // Frame the rocket hull. Pad props stay in the scene but do not widen the shot.
+  const pad = new Set((LAYOUT.parts || []).filter(p => p.space === 'pad').map(p => p.id));
   const box = new THREE.Box3();
   let any = false;
   root.traverse(o => {
-    if (!o.isMesh || o.name === 'static') return;
+    if (!o.isMesh || o.name === 'static' || pad.has(o.name)) return;
     box.expandByObject(o);
     any = true;
   });
   if (!any) box.setFromObject(root);
-  box.min.y -= 0.48;
-  box.min.x -= 0.16;
-  box.max.x += 0.16;
+  box.min.y -= 0.18;
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
-  lookTarget = new THREE.Vector3(center.x, center.y + size.y * 0.02, center.z);
+  lookTarget = new THREE.Vector3(center.x, center.y, center.z);
   fitSize = { x: size.x, y: size.y, z: size.z };
   frame();
 }

@@ -9,6 +9,10 @@ export const COLOR_HEX = {
   yellow: '#FFC918',
   lime: '#8FD21E',
   cyan: '#19C3D3',
+  orange: '#FF8A14',
+  red: '#FF3B4E',
+  blue: '#3D6BFF',
+  purple: '#A13DFF',
 };
 
 export let LAYOUT = null;

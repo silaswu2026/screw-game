@@ -8,7 +8,7 @@ html, body {
   margin: 0; height: 100%; overflow: hidden;
   font-family: "Fredoka", "ZCOOL KuaiLe", ui-rounded, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   color: var(--ink);
-  background: linear-gradient(#c5d6ff 0%, #ddd9ff 46%, #f6e4ff 100%);
+  background: linear-gradient(#ffe4f2 0%, #efe0ff 46%, #fff1d8 100%);
   touch-action: none;
 }
 #stage {
@@ -84,6 +84,10 @@ header {
 .box.yellow { --c: #FFC918; --d: #e09a00; }
 .box.lime { --c: #8FD21E; --d: #5ea00d; }
 .box.cyan { --c: #19C3D3; --d: #0e8f9e; }
+.box.orange { --c: #FF8A14; --d: #e06500; }
+.box.red { --c: #FF3B4E; --d: #d0122a; }
+.box.blue { --c: #3D6BFF; --d: #2448d4; }
+.box.purple { --c: #A13DFF; --d: #7a18d6; }
 .box.empty { visibility: hidden; }
 
 #slots {
@@ -107,6 +111,10 @@ header {
 .slot.yellow { --c: #FFC918; --d: #e09a00; }
 .slot.lime { --c: #8FD21E; --d: #5ea00d; }
 .slot.cyan { --c: #19C3D3; --d: #0e8f9e; }
+.slot.orange { --c: #FF8A14; --d: #e06500; }
+.slot.red { --c: #FF3B4E; --d: #d0122a; }
+.slot.blue { --c: #3D6BFF; --d: #2448d4; }
+.slot.purple { --c: #A13DFF; --d: #7a18d6; }
 
 .banner {
   position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 14px);

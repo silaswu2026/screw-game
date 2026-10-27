@@ -5,14 +5,14 @@ Characters are clean chibi forms with a tighter finish: lathe bodies, painted ir
 ## Rocket demo
 A separate quality sample, not a replacement for the main game: https://silaswu2026.github.io/screw-game/rocket-demo/
 
-30 removable parts, 72 candy screws (18 pink, 18 yellow, 18 lime, 18 cyan). The download is `rocket-demo/assets/rocket.glb` (1.7 MB) plus `layout.json`. Nothing here replaces the main game.
+30 removable parts in ten candy hues (red, orange, yellow, lime, green, teal, sky, royal blue, purple, pink). 72 screws in eight colors, nine each (pink, yellow, lime, cyan, orange, red, blue, purple). Four boxes on screen; the queue brings the other colors as boxes clear. `rocket-demo/assets/rocket.glb` is 1.5 MB.
 
 ## How the rocket was made
 Original geometry only, from `tools/blender/rocket.py` in Blender 4.2 LTS. No downloaded meshes.
 
 - Parts sit on an 8-sector grid. Removal order comes from layer, sector, and ring, so shells do not interpenetrate and do not need a hand-written overlap list.
-- One vinyl material. A shared palette texture holds eleven color cells, each a vertical light-to-dark gradient. A part picks its cell with the first UV. That is the color and a fake top light. Adjacent parts use different cells. Cycles bakes ambient occlusion and a tangent normal (seams, rivets, grass, a light plastic grain) into the second UV. Both maps ship as WebP inside the GLB. There is no KTX2: the vendored loader has no Basis transcoder.
-- Screws are one three.js template, placed from the layout table (part, position, normal, color) with InstancedMesh. The cap is about 30% of that part's edge, a low dome, with a cross slot 40% of the cap height and a shank that shows two thread rings. A screw's color is never its part's color. The static pad, grass, flowers, rocks, and the small astronaut are one merged mesh. Removable parts stay separate so they can fall.
+- One vinyl material. A shared palette holds saturated color cells with a short light-to-dark gradient, written in linear color so the glTF export stays punchy. Adjacent parts use different hues. Cycles bakes a soft ambient occlusion and a clean tangent normal (seams and rivets, no plaster grain). Both maps ship as WebP. There is no KTX2: the vendored loader has no Basis transcoder.
+- Screws are one three.js template, placed from the layout table with InstancedMesh. Each one is raycast onto its part so the axis is the surface normal, including on the curved band. The cap is about 30% of that part's edge, a low dome, with a cross slot 40% of the cap height and a shank with two thread rings. A screw's color contrasts with its part. The pad, green grass, flowers, rocks, and the small astronaut are one merged mesh.
 - The solution is generated with the layout and replayed by the page. Four 3-hole boxes, five holding slots, hold-to-preview, then launch.
 
 ## Limitations

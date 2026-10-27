@@ -18,34 +18,47 @@ import sys
 from mathutils import Matrix, Vector
 
 NSECTOR = 8
+# sRGB candy hues. Written into the palette image as linear so they stay
+# saturated after the glTF sRGB encode (linear values were exporting pale).
 PALETTE = [
-    ("cream", (0.97, 0.94, 0.90)),
-    ("coral", (0.96, 0.34, 0.30)),
-    ("orange", (0.96, 0.48, 0.10)),
-    ("gold", (1.00, 0.78, 0.12)),
-    ("mint", (0.32, 0.80, 0.48)),
-    ("sky", (0.27, 0.60, 1.00)),
-    ("violet", (0.54, 0.32, 0.92)),
-    ("blush", (1.00, 0.46, 0.64)),
-    ("leaf", (0.24, 0.68, 0.32)),
-    ("skin", (1.00, 0.76, 0.64)),
-    ("stone", (0.76, 0.70, 0.82)),
+    ("red", (0.93, 0.13, 0.18)),
+    ("orange", (1.00, 0.42, 0.05)),
+    ("yellow", (1.00, 0.78, 0.06)),
+    ("lime", (0.58, 0.88, 0.08)),
+    ("green", (0.08, 0.70, 0.26)),
+    ("teal", (0.00, 0.70, 0.66)),
+    ("sky", (0.12, 0.52, 1.00)),
+    ("royal", (0.18, 0.28, 0.95)),
+    ("purple", (0.56, 0.18, 0.92)),
+    ("pink", (1.00, 0.22, 0.55)),
+    ("cream", (1.00, 0.94, 0.86)),
+    ("skin", (1.00, 0.70, 0.56)),
+    ("stone", (0.58, 0.38, 0.28)),
 ]
 PALETTE_I = {n: i for i, (n, _) in enumerate(PALETTE)}
-SCREW_COLORS = ["pink", "yellow", "cyan", "lime"]
+SCREW_COLORS = ["pink", "yellow", "lime", "cyan", "orange", "red", "blue", "purple"]
+NBOX = 4
 FORBID = {
-    "coral": {"pink"},
-    "blush": {"pink"},
-    "gold": {"yellow"},
-    "orange": {"yellow"},
-    "mint": {"lime"},
-    "sky": {"cyan"},
+    "red": {"red"},
+    "orange": {"orange"},
+    "yellow": {"yellow"},
+    "lime": {"lime"},
+    "green": {"lime"},
+    "teal": {"cyan"},
+    "sky": {"cyan", "blue"},
+    "royal": {"blue"},
+    "purple": {"purple"},
+    "pink": {"pink"},
     "cream": set(),
-    "violet": set(),
-    "leaf": set(),
     "skin": set(),
     "stone": set(),
 }
+
+
+def srgb_to_linear(rgb):
+    def f(u):
+        return u / 12.92 if u <= 0.04045 else ((u + 0.055) / 1.055) ** 2.4
+    return tuple(f(c) for c in rgb)
 
 PANEL_R0, PANEL_R1 = 0.545, 0.70
 CORE_R = 0.40
@@ -418,7 +431,7 @@ def build():
         a = -math.pi / 2 + ang
         add_screw("nose", polar(a, 0.40, 2.40), Vector((math.cos(a), math.sin(a), 0.85)))
     register(nose, "nose", space="body", layer=2, sectors=list(range(8)), rings=[4],
-             fall=Vector((0, -0.15, 1.25)), cell=0.42, paint="coral")
+             fall=Vector((0, -0.15, 1.25)), cell=0.42, paint="red")
 
     collar = lathe("collar", [
         (0.42, 1.98), (0.56, 2.02), (0.62, 2.08), (0.56, 2.14), (0.42, 2.18), (0.40, 2.08),
@@ -428,7 +441,7 @@ def build():
         a = -math.pi / 2 + (k - 1) * 0.7
         add_screw("collar", polar(a, 0.62, 2.08), Vector((math.cos(a), math.sin(a), 0.15)))
     register(collar, "collar", space="body", layer=2, sectors=list(range(8)), rings=[3],
-             fall=outward(range(8), 0.7, 0.4), cell=0.36, paint="gold")
+             fall=outward(range(8), 0.7, 0.4), cell=0.36, paint="yellow")
 
     band = lathe("band", [
         (0.78, 1.18), (0.86, 1.22), (0.96, 1.28), (0.98, 1.30),
@@ -456,15 +469,15 @@ def build():
         ("lo3", 1, [5, 6], (0.66, 1.18)),
     ]
     panel_colors = {
-        "up0": "cream", "up1": "sky", "up2": "mint", "up3": "violet",
-        "lo0": "blush", "lo1": "gold", "lo2": "cream", "lo3": "sky",
+        "up0": "sky", "up1": "lime", "up2": "purple", "up3": "pink",
+        "lo0": "teal", "lo1": "royal", "lo2": "red", "lo3": "yellow",
     }
     rings_of = {
         "up0": [2], "up1": [2], "up2": [2], "up3": [2],
         "lo0": [0, 1], "lo1": [1], "lo2": [1], "lo3": [1],
     }
     for pid, layer, sectors, (z0, z1) in panel_defs:
-        a0, a1 = cover_angles(sectors, gap=0.06)
+        a0, a1 = cover_angles(sectors, gap=0.10)
         obj = arc_shell(pid, z0, z1, a0, a1, PANEL_R0, PANEL_R1)
         if pid == "up0":
             cut_hole(obj, math.radians(-106), 1.62, 0.125)
@@ -485,7 +498,7 @@ def build():
                  fall=outward(sectors, 0.35, 1.25), cell=0.50, paint=panel_colors[pid])
 
     print("build portholes, nozzle, fins, boosters")
-    for pid, deg, col in (("portL", -106, "sky"), ("portR", -74, "gold")):
+    for pid, deg, col in (("portL", -106, "pink"), ("portR", -74, "lime")):
         a = math.radians(deg)
         center = polar(a, 0.70, 1.62)
         obj = to_mesh(place_torus(0.088, 0.02, a, 0.70, 1.62), pid, flip_check=False)
@@ -507,10 +520,10 @@ def build():
         a = -math.pi / 2 + (k - 1) * 0.55
         add_screw("nozzle", polar(a, 0.24, 0.44), Vector((math.cos(a) * 0.45, math.sin(a) * 0.45, 0.9)))
     register(nozzle, "nozzle", space="body", layer=0, sectors=[7, 0], rings=[0],
-             fall=Vector((0, -0.15, -0.9)), cell=0.40, paint="violet")
+             fall=Vector((0, -0.15, -0.9)), cell=0.40, paint="royal")
 
     fin_sectors = [1, 3, 5]
-    fin_colors = ["coral", "sky", "mint"]
+    fin_colors = ["green", "sky", "purple"]
     for pid, sec, col in zip(("fin0", "fin1", "fin2"), fin_sectors, fin_colors):
         a = sector_center(sec)
         obj = fin_mesh(pid, a)
@@ -522,7 +535,7 @@ def build():
         register(obj, pid, space="body", layer=2, sectors=[sec], rings=[0],
                  fall=outward([sec], 0.3, 1.35), cell=0.40, paint=col)
 
-    for pid, sec, col in (("boostR", 2, "blush"), ("boostL", 6, "sky")):
+    for pid, sec, col in (("boostR", 2, "pink"), ("boostL", 6, "teal")):
         a = sector_center(sec)
         obj = booster_mesh(pid, a)
         for z in (0.68, 0.88, 1.02):
@@ -538,7 +551,7 @@ def build():
     for z in (2.05, 2.22, 2.40):
         add_screw("antenna", polar(ant_a, 0.86, z), Vector((math.cos(ant_a), math.sin(ant_a), 0.2)))
     register(antenna, "antenna", space="body", layer=2, sectors=[2], rings=[3],
-             fall=outward([2], 0.8, 1.1), cell=0.30, paint="violet")
+             fall=outward([2], 0.8, 1.1), cell=0.30, paint="royal")
 
     dish_a = sector_center(4)
     dish = dish_mesh("dish", dish_a)
@@ -548,7 +561,7 @@ def build():
     add_screw("dish", c + Vector((0, 0, -0.06)), radial)
     add_screw("dish", c + Vector((-math.sin(dish_a) * 0.08, math.cos(dish_a) * 0.08, 0)), radial)
     register(dish, "dish", space="body", layer=2, sectors=[4], rings=[2],
-             fall=outward([4], 0.4, 1.3), cell=0.28, paint="coral")
+             fall=outward([4], 0.4, 1.3), cell=0.28, paint="green")
 
     flag = flag_mesh("flag")
     add_screw("flag", Vector((-0.55, -0.985, 0.48)), Vector((0, -1, 0)))
@@ -754,11 +767,11 @@ def build_diorama():
             except ValueError:
                 pass
     grass = to_mesh(bm, "static_grass", flip_check=False)
-    tag(grass, "static", "leaf")
+    tag(grass, "static", "green")
 
     bm = bmesh.new()
     centers = []
-    petals_cols = ["blush", "coral", "gold", "sky", "blush", "violet", "coral", "mint"]
+    petals_cols = ["pink", "red", "yellow", "sky", "orange", "purple", "lime", "royal"]
     for i, col in enumerate(petals_cols):
         a = i / 8 * math.tau + 0.4
         c = polar(a, 1.55, 0.18)
@@ -792,7 +805,7 @@ def build_diorama():
         bmesh.ops.create_icosphere(bm, subdivisions=1, radius=0.032, matrix=M)
     domes = to_mesh(bm, "static_domes", flip_check=False)
     smooth(domes)
-    tag(domes, "static", "gold")
+    tag(domes, "static", "yellow")
 
     build_mascot()
 
@@ -801,9 +814,9 @@ def build_mascot():
     base = Vector((0.62, -0.82, 0.18))
     parts = []
     body = sphere("static_m_body", base + Vector((0, 0, 0.16)), 0.07, (0.85, 0.7, 1.15))
-    parts.append(tag(body, "static", "cream"))
+    parts.append(tag(body, "static", "pink"))
     pack = sphere("static_m_pack", base + Vector((-0.02, 0.06, 0.17)), 0.045, (0.7, 0.9, 1.1))
-    parts.append(tag(pack, "static", "sky"))
+    parts.append(tag(pack, "static", "royal"))
     head_c = base + Vector((0, -0.01, 0.30))
     head = sphere("static_m_head", head_c, 0.055, (1, 0.95, 0.9))
     parts.append(tag(head, "static", "skin"))
@@ -817,7 +830,7 @@ def build_mascot():
         leg = sphere(f"static_m_leg{sx}", base + Vector((sx, 0, 0.06)), 0.028, (0.7, 0.7, 1.3))
         parts.append(tag(leg, "static", "sky"))
         boot = sphere(f"static_m_boot{sx}", base + Vector((sx, -0.01, 0.02)), 0.026, (1.1, 0.8, 0.7))
-        parts.append(tag(boot, "static", "gold"))
+        parts.append(tag(boot, "static", "yellow"))
     # keep as separate objects; UVs written per object, then merged into static
 
 
@@ -832,7 +845,7 @@ def build_trim_and_props():
             add_screw(pid, polar(a, 1.26, 0.22), Vector((0, 0, 1)))
         register(obj, pid, space="pad", layer=None, sectors=[], rings=[],
                  fall=Vector((math.cos(a_c) * 0.8, math.sin(a_c) * 0.8, 0.35)),
-                 cell=0.30, paint="gold")
+                 cell=0.30, paint="pink" if pid == "trimF" else "yellow")
 
     # Ladder, gantry + arm, cans, sign.
     ladder = box_bar("ladder", Vector((-0.95, -0.72, 0.18)), Vector((-0.82, -0.55, 0.95)))
@@ -848,7 +861,7 @@ def build_trim_and_props():
     add_screw("ladder", Vector((-0.95, -0.70, 0.40)), Vector((-0.2, -1, 0)))
     add_screw("ladder", Vector((-0.86, -0.58, 0.78)), Vector((-0.2, -1, 0.1)))
     register(ladder, "ladder", space="pad", layer=None, sectors=[], rings=[],
-             fall=Vector((-0.7, -0.6, 0.3)), cell=0.34, paint="mint")
+             fall=Vector((-0.7, -0.6, 0.3)), cell=0.34, paint="green")
 
     post = box_bar("gantry", Vector((0.95, 0.85, 0.18)), Vector((1.13, 1.03, 1.25)))
     bevel(post, 0.01, 2, sub=0)
@@ -856,18 +869,18 @@ def build_trim_and_props():
     add_screw("gantry", Vector((1.04, 0.94, 0.85)), Vector((0.3, 1, 0)))
     add_screw("gantry", Vector((1.04, 0.94, 1.15)), Vector((0, 0.4, 1)))
     register(post, "gantry", space="pad", layer=0, sectors=[0], rings=[0],
-             fall=Vector((0.7, 0.7, 0.4)), cell=0.40, paint="sky")
+             fall=Vector((0.7, 0.7, 0.4)), cell=0.40, paint="royal")
 
     arm = box_bar("arm", Vector((0.55, 0.90, 1.12)), Vector((1.05, 1.02, 1.24)))
     bevel(arm, 0.008, 1, sub=0)
     add_screw("arm", Vector((0.70, 0.96, 1.24)), Vector((0, 0.2, 1)))
     add_screw("arm", Vector((0.92, 0.96, 1.24)), Vector((0, 0.2, 1)))
     register(arm, "arm", space="pad", layer=1, sectors=[0], rings=[0],
-             fall=Vector((0.2, 0.4, 0.7)), cell=0.36, paint="gold")
+             fall=Vector((0.2, 0.4, 0.7)), cell=0.36, paint="yellow")
 
     for pid, loc, col in (
-        ("canA", Vector((0.85, -0.35, 0.18)), "blush"),
-        ("canB", Vector((1.02, -0.12, 0.18)), "mint"),
+        ("canA", Vector((0.85, -0.35, 0.18)), "orange"),
+        ("canB", Vector((1.02, -0.12, 0.18)), "pink"),
     ):
         obj = lathe(pid, [(0.07, 0), (0.08, 0.04), (0.08, 0.22), (0.05, 0.28), (0.02, 0.30)], 12)
         bm = bmesh.new()
@@ -973,7 +986,7 @@ def assign_colors():
             bad = {b["color"] for b in PARTS if b is not a and adjacent(a, b)}
             if a["color"] in bad:
                 for n in names:
-                    if n not in bad and n not in ("leaf", "skin", "stone"):
+                    if n not in bad and n not in ("cream", "skin", "stone"):
                         a["color"] = n
                         PAINT[a["id"]] = n
                         changed = True
@@ -988,7 +1001,16 @@ def assign_colors():
 
 
 def color_cycle(phase):
-    return [SCREW_COLORS[(i + phase) % 4] for i in range(4)]
+    n = len(SCREW_COLORS)
+    return [SCREW_COLORS[(i + phase) % n] for i in range(n)]
+
+
+def opening_and_queue(cycle):
+    # Four boxes on screen. Clearing one brings the color four steps ahead,
+    # so a group of three always lands in a box that is already open.
+    opening = cycle[:NBOX]
+    queue = (cycle[NBOX:] + cycle * 8)[:32]
+    return opening, queue
 
 
 def build_solution():
@@ -1020,7 +1042,7 @@ def build_solution():
         if n % 3:
             return None
         for gi in range(n // 3):
-            color = SCREW_COLORS[(gi + phase) % 4]
+            color = SCREW_COLORS[(gi + phase) % len(SCREW_COLORS)]
             for _ in range(3):
                 cands = []
                 for pid, ixs in remaining.items():
@@ -1041,7 +1063,7 @@ def build_solution():
                 SCREWS[pick]["color"] = color
         return order
 
-    for phase in range(4):
+    for phase in range(len(SCREW_COLORS)):
         order = attempt(phase)
         if order:
             print("solution phase", phase)
@@ -1051,12 +1073,13 @@ def build_solution():
 
 def verify(order, phase):
     cycle = color_cycle(phase)
+    opening, queue = opening_and_queue(cycle)
+    queue = queue[:]
     screws_of = {p["id"]: [] for p in PARTS}
     for i, s in enumerate(SCREWS):
         screws_of[s["part"]].append(i)
     removed = [False] * len(SCREWS)
-    boxes = [{"color": c, "n": 0} for c in cycle]
-    queue = (cycle * 6)[:20]
+    boxes = [{"color": c, "n": 0} for c in opening]
     blockers = {p["id"]: [] for p in PARTS}
     for p in PARTS:
         for b in p["blocks"]:
@@ -1095,17 +1118,42 @@ def snap_screws():
     missed = 0
     for s in SCREWS:
         obj = by_id[s["part"]]
-        n = s["normal"].normalized()
-        origin = s["pos"] + n * 0.35
-        hit, loc, nor, _ = obj.ray_cast(origin, -n, distance=0.8)
-        if hit:
-            s["pos"] = loc
-            if nor.length > 0.5:
-                s["normal"] = nor.normalized()
-        else:
+        hint = s["normal"].normalized()
+        hit, loc, nor = _ray_surface(obj, s["pos"], hint)
+        if not hit:
             missed += 1
             print("  miss", s["part"], [round(x, 3) for x in s["pos"]])
+            continue
+        nor = nor.normalized()
+        center = Vector((0, 0, 0))
+        for corner in obj.bound_box:
+            center += Vector(corner)
+        center = obj.matrix_world @ (center / 8.0)
+        outward = loc - center
+        if outward.length > 1e-5 and nor.dot(outward) < 0:
+            nor.negate()
+        # Sit the shank base on the face. The axis is this surface normal,
+        # including on the curved band where the hint was only a guess.
+        s["pos"] = loc + nor * 0.003
+        s["normal"] = nor
     print("screw snap misses", missed)
+
+
+def _ray_surface(obj, pos, hint):
+    origin = pos + hint * 0.5
+    hit, loc, nor, _ = obj.ray_cast(origin, -hint, distance=1.2)
+    if hit:
+        return True, loc, nor
+    axis = hint.cross(Vector((0, 0, 1)))
+    if axis.length < 1e-4:
+        axis = hint.cross(Vector((1, 0, 0)))
+    axis.normalize()
+    for ang in (0.35, -0.35, 0.7, -0.7, 1.1, -1.1):
+        d = (hint * math.cos(ang) + axis * math.sin(ang)).normalized()
+        hit, loc, nor, _ = obj.ray_cast(pos + d * 0.55, -d, distance=1.3)
+        if hit:
+            return True, loc, nor
+    return False, pos, hint
 
 
 def diameters():
@@ -1120,35 +1168,35 @@ def diameters():
 def paint_name(obj, co, normal):
     spec = PAINT.get(obj.name)
     if isinstance(spec, tuple) and spec and spec[0] == "flowers":
-        best, bestd = "blush", 1e9
+        best, bestd = "pink", 1e9
         for c, col in spec[1]:
             d = (co - c).length
             if d < bestd:
                 bestd, best = d, col
         if bestd < 0.034:
-            return "gold"
+            return "yellow"
         return best
     if spec == "fn:core":
         if co.z < 0.95:
-            return "coral"
+            return "red"
         if co.z < 1.50:
-            return "mint"
+            return "lime"
         return "sky"
     if spec == "fn:pad":
         r = math.hypot(co.x, co.y)
-        if co.z > 0.08 and r < 1.20:
-            return "cream"
-        if r > 1.20:
-            return "gold"
-        return "sky"
+        if co.z > 0.08 and r < 1.18:
+            return "yellow"
+        if r > 1.18:
+            return "pink"
+        return "teal"
     if spec == "fn:flag":
         if co.x > -0.52 and co.z < 0.66:
-            return "cream"
+            return "yellow"
         if co.z > 0.6 and co.x > -0.52:
-            return "coral"
-        return "gold"
+            return "red"
+        return "teal"
     if spec == "fn:sign":
-        return "gold" if co.z > 0.30 and abs(co.x) < 0.12 else "coral"
+        return "yellow" if co.z > 0.30 and abs(co.x) < 0.12 else "red"
     if isinstance(spec, str) and spec in PALETTE_I:
         return spec
     return "cream"
@@ -1170,7 +1218,10 @@ def write_palette(obj):
             co = me.vertices[vi].co
             nor = me.vertices[vi].normal
             h = (co.z - z0) / (z1 - z0)
-            v = max(0.04, min(0.96, 0.08 + 0.72 * h + 0.22 * max(nor.z, 0)))
+            # Stay in the saturated middle of the cell. A small lift toward
+            # the light end fakes a top light without bleaching the hue.
+            v = 0.38 + 0.22 * h + 0.16 * max(nor.z, 0.0)
+            v = max(0.30, min(0.78, v))
             u = (PALETTE_I[paint_name(obj, co, nor)] + 0.5) / n
             uv[li].uv = (u, v)
 
@@ -1249,8 +1300,8 @@ def make_palette_image():
     img.colorspace_settings.name = "sRGB"
     px = [0.0] * (cols * cw * h * 4)
     for i, (_name, rgb) in enumerate(PALETTE):
-        light = tuple(min(1.0, c * 0.42 + 0.58) for c in rgb)
-        dark = tuple(c * 0.58 for c in rgb)
+        light = srgb_to_linear(tuple(min(1.0, c * 0.82 + 0.18) for c in rgb))
+        dark = srgb_to_linear(tuple(max(0.0, c * 0.72) for c in rgb))
         for y in range(h):
             t = y / (h - 1)
             col = tuple(dark[k] * (1 - t) + light[k] * t for k in range(3))
@@ -1291,7 +1342,7 @@ def build_material(palette, ao, normal):
     out.location = (600, 0)
     bsdf = nodes.new("ShaderNodeBsdfPrincipled")
     bsdf.location = (300, 0)
-    bsdf.inputs["Roughness"].default_value = 0.48
+    bsdf.inputs["Roughness"].default_value = 0.28
     bsdf.inputs["Metallic"].default_value = 0.0
     links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
 
@@ -1315,18 +1366,7 @@ def build_material(palette, ao, normal):
     nmap = nodes.new("ShaderNodeNormalMap")
     nmap.location = (-120, -40)
     links.new(tex_n.outputs["Color"], nmap.inputs["Color"])
-
-    noise = nodes.new("ShaderNodeTexNoise")
-    noise.location = (-420, -280)
-    noise.inputs["Scale"].default_value = 64.0
-    noise.inputs["Detail"].default_value = 2.0
-    bump = nodes.new("ShaderNodeBump")
-    bump.location = (-120, -240)
-    bump.inputs["Strength"].default_value = 0.7
-    bump.inputs["Distance"].default_value = 0.035
-    links.new(noise.outputs["Fac"], bump.inputs["Height"])
-    links.new(nmap.outputs["Normal"], bump.inputs["Normal"])
-    links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+    links.new(nmap.outputs["Normal"], bsdf.inputs["Normal"])
 
     tex_a = nodes.new("ShaderNodeTexImage")
     tex_a.image = ao
@@ -1373,6 +1413,19 @@ def assign(obj, mat):
     # Boolean faces keep a stale material_index and export a second slot.
     for poly in me.polygons:
         poly.material_index = 0
+
+
+def soften_ao(img):
+    # Keep creases, drop the plaster. Faces sit near white.
+    px = list(img.pixels)
+    out = [1.0] * len(px)
+    n = len(px) // 4
+    for i in range(n):
+        v = 0.72 + 0.28 * px[i * 4]
+        o = i * 4
+        out[o] = out[o + 1] = out[o + 2] = v
+    img.pixels.foreach_set(out)
+    img.pack()
 
 
 def _disconnect(nt, node):
@@ -1428,6 +1481,7 @@ def bake(mat, meshes, ao_img, nrm_img):
 
     run(tex_a, ao_img, "AO", 32)
     run(tex_n, nrm_img, "NORMAL", 16, normal_space="TANGENT")
+    soften_ao(ao_img)
     for out, sock in held:
         nt.links.new(out, sock)
     ao_img.colorspace_settings.name = "Non-Color"
@@ -1529,9 +1583,13 @@ def write_json(order, phase):
             "yellow": "#FFC918",
             "lime": "#8FD21E",
             "cyan": "#19C3D3",
+            "orange": "#FF8A14",
+            "red": "#FF3B4E",
+            "blue": "#3D6BFF",
+            "purple": "#A13DFF",
         },
-        "opening": cycle[:],
-        "queue": (cycle * 6)[:20],
+        "opening": opening_and_queue(cycle)[0],
+        "queue": opening_and_queue(cycle)[1],
         "parts": parts,
         "screws": screws,
         "solution": order,
