@@ -492,9 +492,17 @@ function weekOf(d) {
   return WEEKS.find((w) => w.id === d.w);
 }
 
+function nextOpenDay(data) {
+  for (const d of DAYS) if (!data[d.d]?.done) return d.d;
+  return 30;
+}
+function weekDone(data, wid) {
+  return DAYS.filter((d) => d.w === wid && data[d.d]?.done).length;
+}
 function renderHome() {
   const data = load();
   const done = DAYS.filter((x) => data[x.d]?.done).length;
+  const cont = nextOpenDay(data);
   const app = $('#app');
   app.innerHTML = `
     <header class="hero">
@@ -505,13 +513,15 @@ function renderHome() {
         <p class="deep"><strong>总目标（深）</strong> ${META.deepGoal}</p>
         <p class="progress">已完成 <b>${done}</b> / 30 天</p>
         <div class="bar"><i style="width:${(done / 30) * 100}%"></i></div>
+        <button class="primary go" id="continue">今天从 Day ${cont} 开始</button>
+        <p class="hint-line">先点上面按钮；也可以在下面选任意一天。总结会保存在这台手机里。</p>
       </div>
     </header>
     <section class="weeks">
       ${WEEKS.map(
         (w) => `
         <article class="week-card">
-          <h2>第 ${w.id} 周 · ${w.name}</h2>
+          <h2>第 ${w.id} 周 · ${w.name} <small>${weekDone(data, w.id)}/7</small></h2>
           <p><strong>深目标</strong> ${w.deep}</p>
           <p><strong>浅活动</strong> ${w.shallow}</p>
           <p class="story">📖 ${w.story}</p>
@@ -531,17 +541,25 @@ function renderHome() {
   app.querySelectorAll('[data-day]').forEach((btn) => {
     btn.onclick = () => renderDay(+btn.dataset.day);
   });
+  $('#continue').onclick = () => renderDay(cont);
 }
 
-function speak(text) {
+function speak(text, onend) {
   try {
     speechSynthesis.cancel();
+    document.body.classList.add('speaking');
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'zh-CN';
     u.rate = 0.92;
     u.pitch = 1.25;
+    u.onend = u.onerror = () => {
+      document.body.classList.remove('speaking');
+      if (onend) onend();
+    };
     speechSynthesis.speak(u);
-  } catch {}
+  } catch {
+    document.body.classList.remove('speaking');
+  }
 }
 
 function renderDay(n) {
@@ -562,6 +580,15 @@ function renderDay(n) {
       </div>
     </header>
 
+    <section class="card tip">
+      <h3>怎么用这 20 分钟</h3>
+      <ol class="howto">
+        <li>听小雨讲故事（点按钮）</li>
+        <li>三人按脚本说话，澍暘那句一定要自己说</li>
+        <li>做完「动手」打勾</li>
+        <li>写今日总结并打卡保存</li>
+      </ol>
+    </section>
     <section class="card">
       <h3>📖 今日小故事</h3>
       <p id="story">${day.story}</p>
@@ -647,7 +674,11 @@ function renderDay(n) {
       at: new Date().toISOString(),
     };
     save(data);
-    $('#savedMsg').textContent = '已保存到本机。灵姬那边的规划文件也有月目标备份。';
+    const msg = $('#savedMsg');
+    msg.textContent = data[n].done
+      ? '已保存并打卡。回月历可以看到这一天变绿。'
+      : '已保存到本机。勾选「今天打卡完成」再保存，月历才会标记完成。';
+    msg.classList.add('flash');
   };
 }
 

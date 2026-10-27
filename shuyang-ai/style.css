@@ -40,3 +40,13 @@ textarea{width:100%;border-radius:12px;border:1px solid var(--line);background:#
   .deep{text-align:left}
   .day-links{grid-template-columns:1fr}
 }
+
+button.go{display:inline-block;margin-top:14px;font-size:17px;padding:12px 22px}
+.hint-line{color:var(--muted);font-size:13px;margin:8px 0 0;line-height:1.4}
+.week-card h2 small{color:var(--accent);font-weight:600;margin-left:6px}
+.howto{margin:0;padding-left:1.2em;line-height:1.55;color:#e7e3ff}
+.card.tip{border-color:#5fb36b66;background:#1e3a2e}
+body.speaking .avatar{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.03);box-shadow:0 0 50px #ffe9a088}}
+.saved.flash{animation:flash .8s ease}
+@keyframes flash{from{opacity:.2}to{opacity:1}}
