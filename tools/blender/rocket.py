@@ -4,8 +4,8 @@
 #   add --quick to skip Cycles (flat AO / normal) while tuning shapes.
 #
 # Grid: 8 sectors around Z, rings up the stack, layers out from the core.
-# A part blocks the next layer inward when sector and ring sets overlap.
-# One gradient palette, parts pick a cell with UV. AO + normal are baked.
+# Which screw is blocked comes from a ray along its axis: a fairing, bezel,
+# skirt, or fin sole has to physically sit outside that screw. AO + normal bake.
 
 import bpy
 import bmesh
@@ -62,6 +62,11 @@ def srgb_to_linear(rgb):
 
 PANEL_R0, PANEL_R1 = 0.545, 0.70
 CORE_R = 0.40
+# Left porthole, and the up0 fastener its tab hides. The offset clears both
+# window cuts (radius 0.125) so the screw sits on metal, under the tab.
+PORT_L_A = math.radians(-106)
+PORT_R_A = math.radians(-74)
+UP0_PORT_A = PORT_L_A - 0.28 / PANEL_R1
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 QUICK = "--quick" in argv
@@ -226,6 +231,24 @@ def sector_center(i):
     return -math.pi / 2 + i * (math.tau / NSECTOR)
 
 
+def steer_clear(ang):
+    """Keep a radial screw off the booster axes and the fin blades."""
+    hazards = (0.0, math.pi, -math.pi, 0.30, math.pi - 0.30, sector_center(3))
+
+    def gap(a):
+        return min(abs((a - h + math.pi) % math.tau - math.pi) for h in hazards)
+
+    if gap(ang) >= 0.22:
+        return ang
+    best, bestg = ang, gap(ang)
+    for step in (0.16, -0.16, 0.32, -0.32, 0.48, -0.48):
+        trial = ang + step
+        g = gap(trial)
+        if g > bestg:
+            best, bestg = trial, g
+    return best
+
+
 def cover_angles(sectors, gap=0.055):
     half = math.tau / NSECTOR * 0.5
     angs = [sector_center(s) for s in sectors]
@@ -264,7 +287,49 @@ def add_screw(pid, pos, normal):
         "part": pid,
         "pos": Vector(pos),
         "normal": Vector(normal).normalized(),
+        "coveredBy": [],
     })
+
+
+def add_box(obj, center, ax, ay, az):
+    """Join a box. ax, ay, az are the full edge vectors (side to opposite side)."""
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1)
+    c = Vector(center)
+    M = Matrix((
+        (ax.x, ay.x, az.x, c.x),
+        (ax.y, ay.y, az.y, c.y),
+        (ax.z, ay.z, az.z, c.z),
+        (0.0, 0.0, 0.0, 1.0),
+    ))
+    bmesh.ops.transform(bm, verts=list(bm.verts), matrix=M)
+    join_bm(obj, bm)
+
+
+def add_pad(obj, origin, normal, tangent, w=0.10, h=0.08, thick=0.05):
+    """Boss whose front face is centered on origin. The body runs back along -normal
+    so an embedded shank has metal behind the cap."""
+    n = Vector(normal).normalized()
+    t = Vector(tangent)
+    t = t - n * t.dot(n)
+    if t.length < 1e-6:
+        t = n.cross(Vector((0, 0, 1)))
+        if t.length < 1e-6:
+            t = n.cross(Vector((1, 0, 0)))
+    t.normalize()
+    b = n.cross(t).normalized()
+    origin = Vector(origin)
+    add_box(obj, origin - n * (thick * 0.5), t * w, b * h, n * thick)
+
+
+def seat_screw(obj, pid, pos, normal, tangent=None, w=0.09, h=0.07, thick=0.045):
+    n = Vector(normal).normalized()
+    if tangent is None:
+        tangent = n.cross(Vector((0, 0, 1)))
+        if tangent.length < 1e-6:
+            tangent = n.cross(Vector((1, 0, 0)))
+    add_pad(obj, pos, n, tangent, w=w, h=h, thick=thick)
+    add_screw(pid, pos, n)
 
 
 def tag(obj, role, paint):
@@ -418,18 +483,21 @@ def build():
     visor = sphere("_visor", head_c + Vector((math.cos(pilot_a) * 0.04, math.sin(pilot_a) * 0.04, 0.01)), 0.04, (1.3, 0.7, 0.8))
     tag(visor, "core", "sky")
 
+    # Skirt flares outside the collar so the collar screws sit under the nose.
     nose = lathe("nose", [
         (0.02, 2.98), (0.10, 2.88), (0.22, 2.70), (0.36, 2.50),
-        (0.48, 2.32), (0.50, 2.24), (0.40, 2.20), (0.22, 2.18),
+        (0.48, 2.32), (0.58, 2.22), (0.72, 2.14), (0.80, 2.08), (0.74, 2.00),
     ], 36)
-    bevel(nose, 0.018, 2, sub=1)
+    bevel(nose, 0.014, 2, sub=1)
     star = star_bm(0.09)
     M = Matrix.Translation(polar(-math.pi / 2, 0.34, 2.58))
     bmesh.ops.transform(star, verts=list(star.verts), matrix=M)
     join_bm(nose, star)
-    for k, ang in enumerate((-0.45, 0.15, 0.7)):
+    for ang in (-0.85, 0.0, 0.85):
         a = -math.pi / 2 + ang
-        add_screw("nose", polar(a, 0.40, 2.40), Vector((math.cos(a), math.sin(a), 0.85)))
+        nrm = Vector((math.cos(a) * 0.55, math.sin(a) * 0.55, 0.84))
+        pos = polar(a, 0.40, 2.48)
+        seat_screw(nose, "nose", pos, nrm, w=0.07, h=0.06, thick=0.035)
     register(nose, "nose", space="body", layer=2, sectors=list(range(8)), rings=[4],
              fall=Vector((0, -0.15, 1.25)), cell=0.42, paint="red")
 
@@ -437,23 +505,31 @@ def build():
         (0.42, 1.98), (0.56, 2.02), (0.62, 2.08), (0.56, 2.14), (0.42, 2.18), (0.40, 2.08),
     ], 36)
     bevel(collar, 0.012, 2, sub=1)
-    for k in range(3):
-        a = -math.pi / 2 + (k - 1) * 0.7
-        add_screw("collar", polar(a, 0.62, 2.08), Vector((math.cos(a), math.sin(a), 0.15)))
+    for deg in (-90, 30, 150):
+        a = math.radians(deg)
+        radial = Vector((math.cos(a), math.sin(a), 0))
+        tangent = Vector((-math.sin(a), math.cos(a), 0))
+        seat_screw(collar, "collar", polar(a, 0.645, 2.08), radial, tangent,
+                   w=0.08, h=0.06, thick=0.04)
     register(collar, "collar", space="body", layer=2, sectors=list(range(8)), rings=[3],
              fall=outward(range(8), 0.7, 0.4), cell=0.36, paint="yellow")
 
+    # Fairing dropped over the panel seam. Inner lip stays outside the shells
+    # (panel outer is 0.70) so the two meshes do not intersect.
     band = lathe("band", [
-        (0.78, 1.18), (0.86, 1.22), (0.96, 1.28), (0.98, 1.30),
-        (0.96, 1.34), (0.86, 1.40), (0.78, 1.44), (0.76, 1.30),
+        (0.78, 1.02), (0.90, 1.14), (0.98, 1.26), (1.00, 1.34),
+        (0.98, 1.42), (0.88, 1.50), (0.78, 1.56),
     ], 40)
     bevel(band, 0.012, 2, sub=1)
-    for k in range(4):
-        a = -math.pi / 2 + k * (math.tau / 4)
-        add_screw("band", polar(a, 0.98, 1.30), Vector((math.cos(a), math.sin(a), 0)))
+    for deg in (-90, 70, 200):
+        a = math.radians(deg)
+        radial = Vector((math.cos(a), math.sin(a), 0))
+        tangent = Vector((-math.sin(a), math.cos(a), 0))
+        seat_screw(band, "band", polar(a, 1.025, 1.34), radial, tangent,
+                   w=0.08, h=0.06, thick=0.045)
     for a_i in range(12):
-        a = a_i / 12 * math.tau
-        join_bm(band, rivet(polar(a, 0.96, 1.30), Vector((math.cos(a), math.sin(a), 0)), 0.012))
+        a = a_i / 12 * math.tau + 0.13
+        join_bm(band, rivet(polar(a, 0.99, 1.34), Vector((math.cos(a), math.sin(a), 0)), 0.012))
     register(band, "band", space="body", layer=2, sectors=list(range(8)), rings=[1, 2],
              fall=Vector((0, -0.2, 0.85)), cell=0.32, paint="orange")
 
@@ -484,30 +560,49 @@ def build():
             cut_hole(obj, math.radians(-74), 1.62, 0.125)
         bevel(obj, 0.016, 2, sub=0)
         add_rivet_row(obj, a0, a1, z0, z1, PANEL_R1 - 0.004, n=3)
+        # One screw tucked under the orange fairing, one left in the open.
+        # up0's middle screw sits under the left porthole tab.
         if pid == "up0":
-            spots = ((math.radians(-138), 1.42), (math.radians(-82), 1.82))
+            spots = (
+                (math.radians(-140), 1.38),
+                (UP0_PORT_A, 1.62),
+                (math.radians(-50), 1.78),
+            )
+        elif z1 > 1.5:
+            mid = (a0 + a1) * 0.5
+            spots = ((steer_clear(mid - 0.28), 1.38), (steer_clear(mid + 0.28), 1.76))
         else:
             mid = (a0 + a1) * 0.5
             spots = (
-                (mid - 0.18, z0 + (z1 - z0) * 0.32),
-                (mid + 0.18, z0 + (z1 - z0) * 0.68),
+                (steer_clear(mid - 0.28), 1.10),
+                (steer_clear(mid + 0.28), 0.72 if pid == "lo0" else 0.80),
             )
         for ang, z in spots:
-            add_screw(pid, polar(ang, PANEL_R1, z), Vector((math.cos(ang), math.sin(ang), 0.05)))
+            radial = Vector((math.cos(ang), math.sin(ang), 0))
+            tangent = Vector((-math.sin(ang), math.cos(ang), 0))
+            seat_screw(obj, pid, polar(ang, PANEL_R1 + 0.006, z), radial, tangent,
+                       w=0.08, h=0.06, thick=0.04)
         register(obj, pid, space="body", layer=layer, sectors=sectors, rings=rings_of[pid],
                  fall=outward(sectors, 0.35, 1.25), cell=0.50, paint=panel_colors[pid])
 
     print("build portholes, nozzle, fins, boosters")
-    for pid, deg, col in (("portL", -106, "pink"), ("portR", -74, "lime")):
-        a = math.radians(deg)
-        center = polar(a, 0.70, 1.62)
-        obj = to_mesh(place_torus(0.088, 0.02, a, 0.70, 1.62), pid, flip_check=False)
-        join_bm(obj, place_disc(0.07, a, 0.66, 1.62, 0.0))
+    for pid, ang, col, tab in (
+        ("portL", PORT_L_A, "pink", True),
+        ("portR", PORT_R_A, "lime", False),
+    ):
+        center = polar(ang, 0.74, 1.62)
+        obj = to_mesh(place_torus(0.090, 0.020, ang, 0.74, 1.62), pid, flip_check=False)
+        join_bm(obj, place_disc(0.068, ang, 0.71, 1.62, 0.0))
+        radial = Vector((math.cos(ang), math.sin(ang), 0))
+        tangent = Vector((-math.sin(ang), math.cos(ang), 0))
+        for side in (-1, 1):
+            pos = center + tangent * (0.108 * side) + radial * 0.028
+            seat_screw(obj, pid, pos, radial, Vector((0, 0, 1)), w=0.05, h=0.05, thick=0.035)
+        if tab:
+            tr = Vector((math.cos(UP0_PORT_A), math.sin(UP0_PORT_A), 0))
+            tt = Vector((-math.sin(UP0_PORT_A), math.cos(UP0_PORT_A), 0))
+            add_box(obj, tr * 0.835 + Vector((0, 0, 1.62)), tr * 0.07, tt * 0.20, Vector((0, 0, 0.20)))
         smooth(obj)
-        tangent = Vector((-math.sin(a), math.cos(a), 0))
-        radial = Vector((math.cos(a), math.sin(a), 0))
-        add_screw(pid, center + tangent * 0.09, radial)
-        add_screw(pid, center - tangent * 0.09, radial)
         register(obj, pid, space="body", layer=2, sectors=[0], rings=[2],
                  fall=outward([0], 0.4, 1.3), cell=0.24, paint=col)
 
@@ -516,56 +611,75 @@ def build():
         (0.44, 0.06), (0.34, 0.02), (0.20, 0.10), (0.12, 0.30), (0.06, 0.46),
     ], 32)
     bevel(nozzle, 0.012, 2, sub=1)
-    for k in range(3):
-        a = -math.pi / 2 + (k - 1) * 0.55
-        add_screw("nozzle", polar(a, 0.24, 0.44), Vector((math.cos(a) * 0.45, math.sin(a) * 0.45, 0.9)))
+    # Two fasteners on the neck, inside the front lower shell.
+    for deg in (-120, -80):
+        a = math.radians(deg)
+        nrm = Vector((math.cos(a), math.sin(a), 0.12))
+        seat_screw(nozzle, "nozzle", polar(a, 0.20, 0.46), nrm, w=0.06, h=0.05, thick=0.04)
     register(nozzle, "nozzle", space="body", layer=0, sectors=[7, 0], rings=[0],
              fall=Vector((0, -0.15, -0.9)), cell=0.40, paint="royal")
 
-    fin_sectors = [1, 3, 5]
-    fin_colors = ["green", "sky", "purple"]
-    for pid, sec, col in zip(("fin0", "fin1", "fin2"), fin_sectors, fin_colors):
-        a = sector_center(sec)
-        obj = fin_mesh(pid, a)
-        bevel(obj, 0.014, 2, sub=0)
-        radial = Vector((math.cos(a), math.sin(a), 0))
-        tangent = Vector((-math.sin(a), math.cos(a), 0))
-        add_screw(pid, radial * 0.96 + Vector((0, 0, 0.48)) + tangent * 0.06, tangent)
-        add_screw(pid, radial * 1.05 + Vector((0, 0, 0.64)) + tangent * 0.06, tangent)
+    # fin0 sits beside the right booster, fin2 beside the left. The sole of
+    # each covers that booster's mount screws. fin1 is a plain blade.
+    fin_defs = (
+        ("fin0", 0.30, 2, "green", True),
+        ("fin1", sector_center(3), 3, "sky", False),
+        ("fin2", math.pi - 0.30, 6, "purple", True),
+    )
+    for pid, ang, sec, col, sole in fin_defs:
+        obj = fin_mesh(pid, ang)
+        bevel(obj, 0.012, 2, sub=0)
+        radial = Vector((math.cos(ang), math.sin(ang), 0))
+        tangent = Vector((-math.sin(ang), math.cos(ang), 0))
+        if sole:
+            add_box(obj, radial * 1.04 + Vector((0, 0, 0.62)),
+                    radial * 0.36, tangent * 0.22, Vector((0, 0, 0.08)))
+        # Outer tip and top edge, aimed out so the ray does not hit the booster.
+        seat_screw(obj, pid, radial * 1.28 + Vector((0, 0, 0.72)), radial, tangent,
+                   w=0.06, h=0.05, thick=0.04)
+        seat_screw(obj, pid, radial * 1.08 + Vector((0, 0, 0.98)),
+                   (radial * 0.20 + Vector((0, 0, 1))).normalized(), tangent,
+                   w=0.06, h=0.05, thick=0.035)
         register(obj, pid, space="body", layer=2, sectors=[sec], rings=[0],
                  fall=outward([sec], 0.3, 1.35), cell=0.40, paint=col)
 
-    for pid, sec, col in (("boostR", 2, "pink"), ("boostL", 6, "teal")):
+    for pid, sec, col, fin_ang in (
+        ("boostR", 2, "pink", 0.30),
+        ("boostL", 6, "teal", math.pi - 0.30),
+    ):
         a = sector_center(sec)
         obj = booster_mesh(pid, a)
-        for z in (0.68, 0.88, 1.02):
-            radial = Vector((math.cos(a), math.sin(a), 0))
-            pos = radial * 1.36 + Vector((0, 0, z))
-            add_screw(pid, pos, radial)
+        add_booster_ear(obj, fin_ang, a, pid)
         register(obj, pid, space="body", layer=2, sectors=[sec], rings=[1],
                  fall=outward([sec], 0.35, 1.3), cell=0.46, paint=col)
 
     print("build antenna, dish, flag, pad")
     ant_a = sector_center(2)
     antenna = antenna_mesh("antenna", ant_a)
-    for z in (2.05, 2.22, 2.40):
-        add_screw("antenna", polar(ant_a, 0.86, z), Vector((math.cos(ant_a), math.sin(ant_a), 0.2)))
+    ar = Vector((math.cos(ant_a), math.sin(ant_a), 0))
+    at = Vector((-math.sin(ant_a), math.cos(ant_a), 0))
+    foot = ar * 0.90 + Vector((0, 0, 1.90))
+    add_box(antenna, foot, ar * 0.14, at * 0.18, Vector((0, 0, 0.08)))
+    for side in (-1, 1):
+        add_screw("antenna", foot + Vector((0, 0, 0.04)) + at * (0.05 * side), Vector((0, 0, 1)))
     register(antenna, "antenna", space="body", layer=2, sectors=[2], rings=[3],
              fall=outward([2], 0.8, 1.1), cell=0.30, paint="royal")
 
     dish_a = sector_center(4)
     dish = dish_mesh("dish", dish_a)
     radial = Vector((math.cos(dish_a), math.sin(dish_a), 0))
-    c = polar(dish_a, 0.86, 1.62)
-    add_screw("dish", c + Vector((0, 0, 0.08)), radial + Vector((0, 0, 0.3)))
-    add_screw("dish", c + Vector((0, 0, -0.06)), radial)
-    add_screw("dish", c + Vector((-math.sin(dish_a) * 0.08, math.cos(dish_a) * 0.08, 0)), radial)
+    tangent = Vector((-math.sin(dish_a), math.cos(dish_a), 0))
+    plate = radial * 0.78 + Vector((0, 0, 1.62))
+    add_box(dish, plate, radial * 0.12, tangent * 0.16, Vector((0, 0, 0.18)))
+    for dz in (0.055, -0.055):
+        add_screw("dish", plate + radial * 0.06 + Vector((0, 0, dz)), radial)
     register(dish, "dish", space="body", layer=2, sectors=[4], rings=[2],
              fall=outward([4], 0.4, 1.3), cell=0.28, paint="green")
 
     flag = flag_mesh("flag")
-    add_screw("flag", Vector((-0.55, -0.985, 0.48)), Vector((0, -1, 0)))
-    add_screw("flag", Vector((-0.40, -1.04, 0.56)), Vector((0, -1, 0)))
+    for z in (0.34, 0.66):
+        seat_screw(flag, "flag", Vector((-0.55, -1.00, z)), Vector((0, -1, 0)), Vector((1, 0, 0)),
+                   w=0.06, h=0.055, thick=0.07)
     register(flag, "flag", space="pad", layer=None, sectors=[], rings=[],
              fall=Vector((-0.4, -0.8, 0.4)), cell=0.32, paint="fn:flag")
 
@@ -624,8 +738,25 @@ def star_bm(radius):
     return bm
 
 
+def add_booster_ear(obj, fin_angle, boost_angle, pid):
+    """Mount tab beside the booster. The neighboring fin's sole covers it."""
+    radial = Vector((math.cos(fin_angle), math.sin(fin_angle), 0))
+    tangent = Vector((-math.sin(fin_angle), math.cos(fin_angle), 0))
+    add_box(obj, radial * 1.04 + Vector((0, 0, 0.44)),
+            radial * 0.30, tangent * 0.16, Vector((0, 0, 0.12)))
+    mid = math.atan2(math.sin(fin_angle) + math.sin(boost_angle),
+                     math.cos(fin_angle) + math.cos(boost_angle))
+    mr = Vector((math.cos(mid), math.sin(mid), 0))
+    mt = Vector((-math.sin(mid), math.cos(mid), 0))
+    add_box(obj, mr * 1.16 + Vector((0, 0, 0.46)),
+            mr * 0.18, mt * 0.08, Vector((0, 0, 0.10)))
+    for rad in (0.96, 1.12):
+        add_screw(pid, radial * rad + Vector((0, 0, 0.50)), Vector((0, 0, 1)))
+
+
 def fin_mesh(name, angle):
-    pts = [(0.80, 0.34), (1.20, 0.30), (1.24, 0.58), (1.02, 0.82), (0.80, 0.64)]
+    # Root sits above the booster ear so the sole, not the blade, is the cover.
+    pts = [(0.84, 0.66), (1.26, 0.58), (1.32, 0.84), (1.06, 1.00), (0.84, 0.82)]
     radial = Vector((math.cos(angle), math.sin(angle), 0))
     tangent = Vector((-math.sin(angle), math.cos(angle), 0))
     bm = bmesh.new()
@@ -681,7 +812,7 @@ def antenna_mesh(name, angle):
     radial = Vector((math.cos(angle), math.sin(angle), 0))
     bm = bmesh.new()
     rings = []
-    for z, r in ((1.95, 0.03), (2.15, 0.028), (2.32, 0.02), (2.48, 0.055), (2.56, 0.02)):
+    for z, r in ((1.92, 0.035), (2.15, 0.028), (2.32, 0.02), (2.48, 0.055), (2.56, 0.02)):
         ring = []
         for i in range(10):
             a = i / 10 * math.tau
@@ -840,9 +971,11 @@ def build_trim_and_props():
         a_c = math.radians(center_deg)
         obj = arc_shell(pid, 0.155, 0.21, a_c - 0.55, a_c + 0.55, 1.18, 1.32, na=10, nz=2)
         bevel(obj, 0.01, 2, sub=0)
-        for k in range(3):
-            a = a_c + (k - 1) * 0.28
-            add_screw(pid, polar(a, 1.26, 0.22), Vector((0, 0, 1)))
+        for k in (-1, 1):
+            a = a_c + k * 0.40
+            tangent = Vector((-math.sin(a), math.cos(a), 0))
+            seat_screw(obj, pid, polar(a, 1.26, 0.225), Vector((0, 0, 1)), tangent,
+                       w=0.08, h=0.05, thick=0.04)
         register(obj, pid, space="pad", layer=None, sectors=[], rings=[],
                  fall=Vector((math.cos(a_c) * 0.8, math.sin(a_c) * 0.8, 0.35)),
                  cell=0.30, paint="pink" if pid == "trimF" else "yellow")
@@ -865,9 +998,8 @@ def build_trim_and_props():
 
     post = box_bar("gantry", Vector((0.95, 0.85, 0.18)), Vector((1.13, 1.03, 1.25)))
     bevel(post, 0.01, 2, sub=0)
-    add_screw("gantry", Vector((1.04, 0.94, 0.45)), Vector((0.3, 1, 0)))
-    add_screw("gantry", Vector((1.04, 0.94, 0.85)), Vector((0.3, 1, 0)))
-    add_screw("gantry", Vector((1.04, 0.94, 1.15)), Vector((0, 0.4, 1)))
+    add_screw("gantry", Vector((0.98, 1.05, 0.48)), Vector((0, 1, 0)))
+    add_screw("gantry", Vector((1.10, 1.05, 0.96)), Vector((0, 1, 0)))
     register(post, "gantry", space="pad", layer=0, sectors=[0], rings=[0],
              fall=Vector((0.7, 0.7, 0.4)), cell=0.40, paint="royal")
 
@@ -889,8 +1021,13 @@ def build_trim_and_props():
         bm.to_mesh(obj.data)
         bm.free()
         bevel(obj, 0.006, 1, sub=0)
-        add_screw(pid, loc + Vector((0.0, -0.09, 0.12)), Vector((0, -1, 0)))
-        add_screw(pid, loc + Vector((0.0, -0.09, 0.22)), Vector((0, -1, 0.2)))
+        top = loc + Vector((0, 0, 0.30))
+        add_pad(obj, top, Vector((0, 0, 1)), Vector((1, 0, 0)), w=0.06, h=0.06, thick=0.035)
+        add_screw(pid, top, Vector((0, 0, 1)))
+        if pid == "canA":
+            front = loc + Vector((0, -0.085, 0.14))
+            seat_screw(obj, pid, front, Vector((0, -1, 0)), Vector((1, 0, 0)),
+                       w=0.05, h=0.05, thick=0.04)
         register(obj, pid, space="pad", layer=None, sectors=[], rings=[],
                  fall=Vector((loc.x, loc.y, 0.4)), cell=0.28, paint=col)
 
@@ -900,8 +1037,8 @@ def build_trim_and_props():
     bmesh.ops.transform(star, verts=list(star.verts), matrix=M)
     join_bm(sign, star)
     bevel(sign, 0.008, 1, sub=0)
-    add_screw("sign", Vector((-0.10, -1.02, 0.24)), Vector((0, -1, 0)))
-    add_screw("sign", Vector((0.10, -1.02, 0.24)), Vector((0, -1, 0)))
+    add_screw("sign", Vector((-0.12, -1.04, 0.22)), Vector((0, -1, 0)))
+    add_screw("sign", Vector((0.12, -1.04, 0.36)), Vector((0, -1, 0)))
     register(sign, "sign", space="pad", layer=None, sectors=[], rings=[],
              fall=Vector((0, -0.8, 0.35)), cell=0.32, paint="fn:sign")
 
@@ -1015,28 +1152,24 @@ def opening_and_queue(cycle):
 
 def build_solution():
     by_id = {p["id"]: p for p in PARTS}
-    blocked_by = {p["id"]: [] for p in PARTS}
-    for p in PARTS:
-        for b in p["blocks"]:
-            blocked_by[b].append(p["id"])
     index_by_part = {}
     for i, s in enumerate(SCREWS):
         index_by_part.setdefault(s["part"], []).append(i)
 
-    def attempt(phase):
+    def attempt(phase, salt):
+        rng = random.Random(phase * 97 + salt * 13 + 5)
         remaining = {pid: set(ixs) for pid, ixs in index_by_part.items()}
         done = set()
         order = []
-
-        def ready(pid):
-            return all(b in done for b in blocked_by[pid])
 
         def priority(ix):
             s = SCREWS[ix]
             p = by_id[s["part"]]
             space = 0 if p["space"] == "body" else 1
             layer = -(p["layer"] if p["layer"] is not None else -1)
-            return (space, layer, len(remaining[s["part"]]), s["part"], ix)
+            # Peel uncovered screws first so a cover comes off before the
+            # fastener it hides.
+            return (len(s["coveredBy"]), space, layer, len(remaining[s["part"]]), s["part"], ix)
 
         n = len(SCREWS)
         if n % 3:
@@ -1046,15 +1179,15 @@ def build_solution():
             for _ in range(3):
                 cands = []
                 for pid, ixs in remaining.items():
-                    if not ixs or not ready(pid):
-                        continue
                     if color in FORBID.get(by_id[pid]["color"], ()):
                         continue
-                    cands.extend(ixs)
+                    for ix in ixs:
+                        if all(b in done for b in SCREWS[ix]["coveredBy"]):
+                            cands.append(ix)
                 if not cands:
                     return None
                 cands.sort(key=priority)
-                pick = cands[0]
+                pick = cands[0] if salt == 0 else cands[rng.randrange(min(3, len(cands)))]
                 order.append(pick)
                 pid = SCREWS[pick]["part"]
                 remaining[pid].remove(pick)
@@ -1063,11 +1196,12 @@ def build_solution():
                 SCREWS[pick]["color"] = color
         return order
 
-    for phase in range(len(SCREW_COLORS)):
-        order = attempt(phase)
-        if order:
-            print("solution phase", phase)
-            return order, phase
+    for salt in range(16):
+        for phase in range(len(SCREW_COLORS)):
+            order = attempt(phase, salt)
+            if order:
+                print("solution phase", phase, "salt", salt)
+                return order, phase
     return None, 0
 
 
@@ -1080,17 +1214,12 @@ def verify(order, phase):
         screws_of[s["part"]].append(i)
     removed = [False] * len(SCREWS)
     boxes = [{"color": c, "n": 0} for c in opening]
-    blockers = {p["id"]: [] for p in PARTS}
-    for p in PARTS:
-        for b in p["blocks"]:
-            blockers[b].append(p["id"])
 
     def alive(pid):
         return any(not removed[i] for i in screws_of[pid])
 
     def blocked(i):
-        owner = SCREWS[i]["part"]
-        return any(alive(b) for b in blockers[owner])
+        return any(alive(b) for b in SCREWS[i].get("coveredBy") or [])
 
     for step, i in enumerate(order):
         if removed[i] or blocked(i):
@@ -1115,6 +1244,7 @@ def verify(order, phase):
 
 def snap_screws():
     by_id = {p["id"]: p["obj"] for p in PARTS}
+    bpy.context.view_layer.update()
     missed = 0
     for s in SCREWS:
         obj = by_id[s["part"]]
@@ -1125,18 +1255,135 @@ def snap_screws():
             print("  miss", s["part"], [round(x, 3) for x in s["pos"]])
             continue
         nor = nor.normalized()
-        center = Vector((0, 0, 0))
-        for corner in obj.bound_box:
-            center += Vector(corner)
-        center = obj.matrix_world @ (center / 8.0)
-        outward = loc - center
-        if outward.length > 1e-5 and nor.dot(outward) < 0:
+        # Face the side we aimed at. A bbox-center test flips screws on a
+        # foot or a mount that sits off the part's middle.
+        if nor.dot(hint) < 0:
             nor.negate()
         # Sit the shank base on the face. The axis is this surface normal,
         # including on the curved band where the hint was only a guess.
         s["pos"] = loc + nor * 0.003
         s["normal"] = nor
     print("screw snap misses", missed)
+    if missed:
+        raise SystemExit("screw snap missed " + str(missed))
+
+
+def derive_covers():
+    """A screw is blocked while a part still occupies the ray outside its cap."""
+    for s in SCREWS:
+        s["coveredBy"] = []
+    for s in SCREWS:
+        n = Vector(s["normal"]).normalized()
+        d = s["diameter"]
+        cap_tip = s["pos"] + n * (0.28 * d)
+        origin = cap_tip + n * 0.70
+        hits = []
+        owner_space = next(q["space"] for q in PARTS if q["id"] == s["part"])
+        for p in PARTS:
+            if p["id"] == s["part"] or p["space"] != owner_space:
+                continue
+            hit, loc, _nor, _idx = p["obj"].ray_cast(origin, -n, distance=0.86)
+            if not hit:
+                continue
+            along = (loc - cap_tip).dot(n)
+            lateral = (loc - cap_tip) - n * along
+            lat = lateral.length
+            # Close enough to hide the cap. A part further up the same ray
+            # (the waist band above a fin root) is not covering this screw.
+            if along < 0.012 or along > 0.50:
+                continue
+            if lat > 0.14:
+                continue
+            if along > 0.34 and lat > 0.07:
+                continue
+            hits.append((along, p["id"]))
+        hits.sort()
+        for _along, pid in hits:
+            if pid not in s["coveredBy"]:
+                s["coveredBy"].append(pid)
+    break_cover_cycles()
+    by_id = {p["id"]: p for p in PARTS}
+    for p in PARTS:
+        p["blocks"] = []
+    for s in SCREWS:
+        for cid in s["coveredBy"]:
+            blk = by_id[cid]["blocks"]
+            if s["part"] not in blk:
+                blk.append(s["part"])
+
+
+def break_cover_cycles():
+    required = {
+        ("nose", "collar"),
+        ("band", "up0"),
+        ("portL", "up0"),
+        ("lo0", "nozzle"),
+        ("fin0", "boostR"),
+        ("fin2", "boostL"),
+    }
+    guard = 0
+    while guard < 8:
+        guard += 1
+        pair = {}
+        for s in SCREWS:
+            for c in s["coveredBy"]:
+                pair.setdefault((c, s["part"]), []).append(s)
+        dropped = False
+        for (a, b), screws in list(pair.items()):
+            if (b, a) not in pair:
+                continue
+            if (a, b) in required and (b, a) not in required:
+                victims = pair[(b, a)]
+                cover, owner = b, a
+            else:
+                victims = screws
+                cover, owner = a, b
+            for s in victims:
+                if s["part"] == owner and cover in s["coveredBy"]:
+                    s["coveredBy"].remove(cover)
+                    print("drop cycle", cover, "over", s["part"])
+                    dropped = True
+            if dropped:
+                break
+        if not dropped:
+            return
+    raise SystemExit("cover cycles remain")
+
+
+def assert_covers():
+    def owners(cover):
+        return [s["part"] for s in SCREWS if cover in (s.get("coveredBy") or [])]
+
+    print("COVERS")
+    for i, s in enumerate(SCREWS):
+        if s["coveredBy"]:
+            print(f"  {i} {s['part']} <- {s['coveredBy']}")
+    counts = {}
+    for s in SCREWS:
+        counts[s["part"]] = counts.get(s["part"], 0) + 1
+    print("SCREW COUNTS", counts)
+    up0 = [i for i, s in enumerate(SCREWS) if s["part"] == "up0"]
+    if not up0:
+        raise SystemExit("no up0 screws")
+    need = [
+        ("nose", "collar"),
+        ("band", "up0"),
+        ("portL", "up0"),
+        ("lo0", "nozzle"),
+        ("fin0", "boostR"),
+        ("fin2", "boostL"),
+    ]
+    missing = [f"{c}->{o}" for c, o in need if o not in owners(c)]
+    if "band" not in SCREWS[up0[0]]["coveredBy"]:
+        missing.append("first up0 screw not under band: " + str(SCREWS[up0[0]]["coveredBy"]))
+    n = len(SCREWS)
+    if n % 3 or n < 50:
+        missing.append(f"screw count {n}")
+    for pid, k in counts.items():
+        if k < 1 or k > 4:
+            missing.append(f"{pid} has {k} screws")
+    if missing:
+        raise SystemExit("cover check failed " + str(missing))
 
 
 def _ray_surface(obj, pos, hint):
@@ -1567,14 +1814,20 @@ def write_json(order, phase):
             "pos": yup(s["pos"]),
             "normal": yup(s["normal"]),
             "diameter": s["diameter"],
+            "coveredBy": list(s.get("coveredBy") or []),
         })
     up0 = [i for i, s in enumerate(SCREWS) if s["part"] == "up0"]
     mid = 0
     for n, ix in enumerate(order, start=1):
         if ix in up0:
             mid = n
+    reveal = 0
+    for n, ix in enumerate(order):
+        if SCREWS[ix].get("coveredBy"):
+            reveal = n
+            break
     preview = up0[0]
-    covers = [p["id"] for p in PARTS if "up0" in p["blocks"]]
+    covers = list(SCREWS[preview].get("coveredBy") or [])
     payload = {
         "generator": "tools/blender/rocket.py",
         "palette": [{"name": n, "hex": "#{:02X}{:02X}{:02X}".format(*(int(c * 255) for c in rgb))} for n, rgb in PALETTE],
@@ -1596,6 +1849,7 @@ def write_json(order, phase):
         "previewScrew": preview,
         "previewCover": covers,
         "midMove": mid,
+        "revealMove": reveal,
     }
     path = os.path.join(OUT, "layout.json")
     with open(path, "w") as f:
@@ -1616,21 +1870,21 @@ def tri_count(objs):
 def main():
     build()
     print("parts", len(PARTS), "screws", len(SCREWS))
-    derive_blocks()
-    for p in PARTS:
-        if p["blocks"]:
-            print(f"  {p['id']} blocks {p['blocks']}")
     assign_colors()
     for p in PARTS:
         print(f"  color {p['id']} {p['color']}")
-    # pilot / static paint already tagged
+    snap_screws()
+    diameters()
+    derive_covers()
+    for p in PARTS:
+        if p["blocks"]:
+            print(f"  {p['id']} blocks {p['blocks']}")
+    assert_covers()
     order, phase = build_solution()
     if not order:
         raise SystemExit("unsolvable layout")
     verify(order, phase)
     print("verified", len(order), "moves")
-    snap_screws()
-    diameters()
 
     meshes = []
     for o in ALL_OBJS:
@@ -1712,6 +1966,7 @@ def main():
         "tris": tri_count(final),
         "glb": size,
         "mid": payload["midMove"],
+        "reveal": payload["revealMove"],
         "preview": payload["previewScrew"],
         "cover": payload["previewCover"],
         "quick": QUICK,

@@ -70,13 +70,19 @@ function alive(st, part) {
 }
 
 export function isBlocked(st, i) {
-  const owner = PUZZLE.screws[i].part;
-  return PUZZLE.parts.some(p => p.blocks.includes(owner) && alive(st, p));
+  const covers = PUZZLE.screws[i].coveredBy || [];
+  return covers.some(id => {
+    const p = PUZZLE.parts.find(q => q.id === id);
+    return p && alive(st, p);
+  });
 }
 
 export function coveringParts(st, i) {
-  const owner = PUZZLE.screws[i].part;
-  return PUZZLE.parts.filter(p => p.blocks.includes(owner) && alive(st, p)).map(p => p.id);
+  const covers = PUZZLE.screws[i].coveredBy || [];
+  return covers.filter(id => {
+    const p = PUZZLE.parts.find(q => q.id === id);
+    return p && alive(st, p);
+  });
 }
 
 function settle(st) {

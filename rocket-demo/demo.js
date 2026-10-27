@@ -108,21 +108,21 @@ shadow.rotation.x = -Math.PI / 2;
 shadow.position.y = -0.19;
 bob.add(shadow);
 
-// Cap diameter is 1. A visible shank carries two thread rings, then a low
-// dome. The cross is 40% of the cap height deep and thick enough to read
-// at phone size (a hairline slot looks like a sticker).
+// Cap diameter is 1. y = 0 is the underside of the cap, seated on the part.
+// The threaded shank is negative so it embeds; only the low dome stays proud.
+// The cross is 40% of the cap height and thick enough to read on a phone.
 function screwTemplate() {
   const pts = [
-    [0.16, 0.00], [0.16, 0.07], [0.36, 0.15], [0.16, 0.23],
-    [0.16, 0.34], [0.36, 0.42], [0.16, 0.50], [0.16, 0.60],
-    [0.44, 0.63], [0.50, 0.68], [0.50, 0.78], [0.38, 0.84],
-    [0.16, 0.88], [0.00, 0.90],
+    [0.16, -0.63], [0.16, -0.56], [0.36, -0.48], [0.16, -0.40],
+    [0.16, -0.29], [0.36, -0.21], [0.16, -0.13], [0.16, -0.03],
+    [0.44, 0.00], [0.50, 0.05], [0.50, 0.15], [0.38, 0.21],
+    [0.16, 0.25], [0.00, 0.27],
   ].map(([r, y]) => new THREE.Vector2(r, y));
   const body = new THREE.LatheGeometry(pts, 20);
   body.computeVertexNormals();
-  const capH = 0.22;
+  const capH = 0.27;
   const slotD = capH * 0.40;
-  const slotY = 0.93 - slotD * 0.5;
+  const slotY = 0.29 - slotD * 0.5;
   const a = new THREE.BoxGeometry(0.72, slotD, 0.20);
   const b = new THREE.BoxGeometry(0.20, slotD, 0.72);
   a.translate(0, slotY, 0);
@@ -394,6 +394,8 @@ function tryUnscrew(index) {
   if (isBlocked(state, index)) {
     showTip('先拆掉外面的零件');
     shake = 0.12;
+    startPreview(index);
+    setTimeout(() => { if (!ptr) endPreview(); }, 650);
     return;
   }
   const res = doMove(state, index);
@@ -616,6 +618,16 @@ function tick() {
     if (motes[i].material.opacity <= 0) { scene.remove(motes[i]); motes.splice(i, 1); }
   }
   Object.values(parts).forEach(p => {
+    if (p.gone || p.falling != null || !p.screwIdx || p.screwIdx.length < 2) return;
+    const left = p.screwIdx.filter(i => screwState[i] && !screwState[i].hidden);
+    if (left.length === 1) {
+      p.obj.quaternion.copy(p.baseQuat);
+      p.obj.rotateZ(Math.sin(tAll * 10 + p.wobble) * 0.035);
+    } else {
+      p.obj.quaternion.copy(p.baseQuat);
+    }
+  });
+  Object.values(parts).forEach(p => {
     if (p.falling == null || p.falling >= 1) return;
     p.falling = Math.min(1, p.falling + dt / 0.55);
     const e = p.falling * p.falling;
@@ -706,6 +718,8 @@ async function boot() {
       base: obj.position.clone(),
       baseQuat: obj.quaternion.clone(),
       out: new THREE.Vector3().fromArray(def.fall),
+      screwIdx: [],
+      wobble: Math.random() * Math.PI * 2,
     };
   });
   core = byName.core || null;
@@ -742,7 +756,9 @@ async function boot() {
       pos, quat, diameter: s.diameter, hidden: false,
       color: new THREE.Color(COLOR_HEX[s.color]),
       colorName: s.color,
+      part: s.part,
     });
+    if (parts[s.part]) parts[s.part].screwIdx.push(i);
     screwObjs.push(i);
   });
   empties.forEach(o => {
@@ -764,6 +780,7 @@ async function boot() {
     screwCount: n,
     parts: LAYOUT.parts.length,
     midMove: LAYOUT.midMove,
+    revealMove: LAYOUT.revealMove || 0,
     previewScrew: LAYOUT.previewScrew,
     previewCover: LAYOUT.previewCover,
     socketDelta: Math.round(socketDelta * 1000) / 1000,

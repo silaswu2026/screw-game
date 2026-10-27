@@ -95,7 +95,7 @@ while (Date.now() - t0 < 30000) {
   await sleep(200);
 }
 await sleep(500);
-const boot = await ev(`({ sol: (__demo.solution||[]).length, parts: __demo.parts, screws: __demo.screwCount, err: __demo.errors, left: __demo.left, socket: __demo.socketDelta, mid: __demo.midMove })`);
+const boot = await ev(`({ sol: (__demo.solution||[]).length, parts: __demo.parts, screws: __demo.screwCount, err: __demo.errors, left: __demo.left, socket: __demo.socketDelta, mid: __demo.midMove, reveal: __demo.revealMove })`);
 console.log('BOOT', JSON.stringify(boot));
 await shot('rocket_start.png');
 const preview = await ev(`const ids = window.__demo.preview(__demo.previewScrew); window.__demo.clearPreview(); ids`);
@@ -103,6 +103,8 @@ console.log('PREVIEW', JSON.stringify(preview));
 
 const mid = await ev(`const r = window.__demo.jumpTo(__demo.midMove); ({ ...r, up0: __demo.gone('up0') })`);
 console.log('MID', JSON.stringify(mid));
+const reveal = await ev(`({ move: __demo.revealMove, r: __demo.jumpTo(__demo.revealMove), nose: __demo.gone('nose'), band: __demo.gone('band') })`);
+console.log('REVEAL', JSON.stringify(reveal));
 await sleep(300);
 await shot('rocket_mid.png');
 
@@ -133,6 +135,7 @@ console.log('PLAY', JSON.stringify(played));
 console.log('LOGS', logs.slice(0, 30));
 const ok = boot.sol === boot.screws && boot.screws >= 50 && boot.parts >= 25
   && mid.left === boot.screws - boot.mid && mid.up0
+  && reveal.move > 0 && reveal.r.left === boot.screws - reveal.move
   && end.won && played.ok
   && Array.isArray(preview) && preview.includes('band')
   && boot.socket < 0.05
