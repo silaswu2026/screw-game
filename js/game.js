@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as G from './logic.js';
 import { THEMES } from './themes.js';
 import { MODELS } from './models.js';
+import { buildCharacter } from './characters.js';
 import { sfx, buzz, unlock, fx } from './audio.js';
 import { makeDetailedScrew } from './screwMesh.js';
 
@@ -58,7 +58,7 @@ try {
 }
 renderer.setPixelRatio?.(Math.min(devicePixelRatio, 2));
 renderer.setSize?.(innerWidth, innerHeight);
-if (renderer.outputColorSpace!==undefined){ renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.28; }
+if (renderer.outputColorSpace!==undefined){ renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.12; }
 if (renderer.shadowMap){ renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; }
 if (renderer.domElement){ renderer.domElement.style.visibility = 'hidden'; document.body.appendChild(renderer.domElement); }
 
@@ -81,10 +81,10 @@ try {
   }
 } catch (e) { console.warn('PMREM env skipped', e); }
 
-const hemi = new THREE.HemisphereLight(0xfff2e0, 0xb8d4ff, 0.55);
+const hemi = new THREE.HemisphereLight(0xfff4e6, 0xb7c9ea, 0.48);
 scene.add(hemi);
-const key = new THREE.DirectionalLight(0xfff5e6, 1.35);
-key.position.set(3.5, 7, 4);
+const key = new THREE.DirectionalLight(0xfff6ea, 1.7);
+key.position.set(4.2, 8.2, 3.4);
 key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024);
 key.shadow.camera.near = 1; key.shadow.camera.far = 24;
@@ -92,12 +92,31 @@ key.shadow.camera.left = -6; key.shadow.camera.right = 6;
 key.shadow.camera.top = 6; key.shadow.camera.bottom = -6;
 key.shadow.bias = -0.00025; key.shadow.normalBias = 0.02;
 scene.add(key);
-const fill = new THREE.DirectionalLight(0xa8c8ff, 0.42);
-fill.position.set(-4, 2, -2); scene.add(fill);
-const rim = new THREE.DirectionalLight(0xffd9b0, 0.55);
-rim.position.set(-2, 3, 5); scene.add(rim);
-const sparkle = new THREE.PointLight(0xffffff, 0.35, 12, 2);
-sparkle.position.set(1.2, 2.8, 3.5); scene.add(sparkle);
+const fill = new THREE.DirectionalLight(0xb9d0ff, 0.32);
+fill.position.set(-5, 2.2, -2.5); scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffe1c2, 0.85);
+rim.position.set(-2.2, 4.2, 6); scene.add(rim);
+const bounce = new THREE.DirectionalLight(0xffe8d4, 0.28);
+bounce.position.set(0.4, -3.5, 2.2); scene.add(bounce);
+const sparkle = new THREE.PointLight(0xfff8ee, 0.22, 14, 2);
+sparkle.position.set(1.4, 2.6, 3.2); scene.add(sparkle);
+
+function applyLights(sc){
+  hemi.color.set(sc.hemiSky ?? 0xfff4e6);
+  hemi.groundColor.set(sc.hemiGround ?? 0xc5d4ea);
+  hemi.intensity = sc.hemiI ?? 0.48;
+  key.color.set(sc.key ?? 0xfff6ea);
+  key.intensity = sc.keyI ?? 1.7;
+  fill.color.set(sc.fill ?? 0xb9d0ff);
+  fill.intensity = sc.fillI ?? 0.32;
+  rim.color.set(sc.rim ?? 0xffe1c2);
+  rim.intensity = sc.rimI ?? 0.85;
+  bounce.color.set(sc.bounce ?? 0xffe8d4);
+  bounce.intensity = sc.bounceI ?? 0.28;
+  sparkle.color.set(sc.spark ?? 0xfff8ee);
+  sparkle.intensity = sc.sparkI ?? 0.22;
+  if (renderer.toneMappingExposure !== undefined) renderer.toneMappingExposure = sc.exposure ?? 1.12;
+}
 
 const root = new THREE.Group(); scene.add(root);
 let coreMeshes=[], plateVis=[], screwVis=[], falling=[], flying=[], bits=[];
@@ -106,29 +125,72 @@ let combo=0, lastClearT=0, shownCleared=0;
 let holdPreview=null; // { screw, plates:[], t0 }
 let pointerHold=null;
 
-let skyMesh=null, cloudGroup=null, particleSys=null;
+let skyMesh=null, cloudGroup=null, particleSys=null, liveDecor=[];
 
+function cssColor(hex){ return '#'+new THREE.Color(hex).getHexString(); }
 function makeSkyTexture(sc){
-  const c=document.createElement('canvas'); c.width=64; c.height=256;
+  const c=document.createElement('canvas'); c.width=512; c.height=512;
   const g=c.getContext('2d');
-  const grd=g.createLinearGradient(0,0,0,256);
-  const top=new THREE.Color(sc.skyTop), mid=new THREE.Color(sc.skyMid), bot=new THREE.Color(sc.skyBot);
-  grd.addColorStop(0, '#'+top.getHexString());
-  grd.addColorStop(0.45, '#'+mid.getHexString());
-  grd.addColorStop(1, '#'+bot.getHexString());
-  g.fillStyle=grd; g.fillRect(0,0,64,256);
+  const grd=g.createLinearGradient(0,0,0,512);
+  grd.addColorStop(0, cssColor(sc.skyTop));
+  grd.addColorStop(0.42, cssColor(sc.skyMid));
+  grd.addColorStop(1, cssColor(sc.skyBot));
+  g.fillStyle=grd; g.fillRect(0,0,512,512);
   if (sc.stars){
-    for(let i=0;i<110;i++){
-      const x=Math.random()*64, y=Math.random()*170, r=Math.random()*1.3+0.25;
-      g.globalAlpha=0.35+Math.random()*0.6;
-      g.fillStyle='#fff8d0';
+    // soft nebula washes
+    const blobs=[[140,80,180,'rgba(120,90,220,0.45)'],[360,140,200,'rgba(40,140,180,0.28)'],[80,200,140,'rgba(180,80,160,0.22)']];
+    for (const [x,y,r,col] of blobs){
+      const rg=g.createRadialGradient(x,y,10,x,y,r);
+      rg.addColorStop(0, col); rg.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle=rg; g.fillRect(0,0,512,512);
+    }
+    for(let i=0;i<160;i++){
+      const x=Math.random()*512, y=Math.random()*300, r=Math.random()*1.6+0.3;
+      g.globalAlpha=0.35+Math.random()*0.65;
+      g.fillStyle = Math.random()>0.85 ? '#d7e4ff' : '#fff6d0';
       g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill();
+      if (r>1.3){
+        g.globalAlpha *= 0.45;
+        g.fillRect(x-r*2.2, y-0.4, r*4.4, 0.8);
+        g.fillRect(x-0.4, y-r*2.2, 0.8, r*4.4);
+      }
     }
     g.globalAlpha=1;
+  } else {
+    // sun glow + painted cloud puffs (illustration sky, not extra 3D balls)
+    const sun=g.createRadialGradient(150, 78, 6, 160, 110, 230);
+    sun.addColorStop(0, 'rgba(255,252,240,0.95)');
+    sun.addColorStop(0.12, 'rgba(255,226,180,0.55)');
+    sun.addColorStop(0.4, 'rgba(255,210,170,0.12)');
+    sun.addColorStop(1, 'rgba(255,210,170,0)');
+    g.fillStyle=sun; g.fillRect(0,0,512,512);
+    if (sc.clouds){
+      const puffs=[[90,150],[150,140],[210,158],[340,120],[400,132],[450,118],[60,200],[300,190]];
+      for (const [x,y] of puffs){
+        const rg=g.createRadialGradient(x,y,4,x,y,46+((x*3)%20));
+        rg.addColorStop(0, 'rgba(255,255,255,0.55)');
+        rg.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle=rg; g.beginPath(); g.arc(x,y,54,0,Math.PI*2); g.fill();
+      }
+    }
   }
   const tex=new THREE.CanvasTexture(c);
   tex.colorSpace=THREE.SRGBColorSpace; tex.needsUpdate=true;
   return tex;
+}
+function makeFloorTex(sc){
+  const c=document.createElement('canvas'); c.width=256; c.height=256;
+  const g=c.getContext('2d');
+  const hex=new THREE.Color(sc.pedestal ?? 0xfff3e6).getHexString();
+  const R=parseInt(hex.slice(0,2),16), G=parseInt(hex.slice(2,4),16), B=parseInt(hex.slice(4,6),16);
+  const rg=g.createRadialGradient(128,128,20,128,128,126);
+  rg.addColorStop(0, `rgba(${R},${G},${B},0.55)`);
+  rg.addColorStop(0.55, `rgba(${R},${G},${B},0.18)`);
+  rg.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle=rg; g.fillRect(0,0,256,256);
+  g.strokeStyle='rgba(255,255,255,0.35)'; g.lineWidth=3;
+  g.beginPath(); g.arc(128,128,78,0,Math.PI*2); g.stroke();
+  const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace; tex.needsUpdate=true; return tex;
 }
 function makeSoftShadowTex(){
   const c=document.createElement('canvas'); c.width=128; c.height=128;
@@ -154,34 +216,15 @@ function ensureSky(sc){
     skyMesh.material.map=makeSkyTexture(sc);
     skyMesh.material.needsUpdate=true;
   }
-  scene.fog = new THREE.FogExp2(sc.fog, 0.006);
+  scene.fog = new THREE.FogExp2(sc.fog, sc.fogDensity ?? 0.028);
+  applyLights(sc);
   if (renderer.isWebGLRenderer){
     renderer.setClearColor(sc.clear ?? sc.skyBot, 1);
   }
 }
-function ensureClouds(sc){
-  if (cloudGroup){ scene.remove(cloudGroup); cloudGroup.traverse(o=>{ if(o.geometry) o.geometry.dispose?.(); }); cloudGroup=null; }
-  if (!sc.clouds) return;
-  cloudGroup=new THREE.Group();
-  const mat=new THREE.MeshPhysicalMaterial({
-    color:0xfff8f0, roughness:1, metalness:0, transparent:true, opacity:0.72,
-    depthWrite:false, clearcoat:0.05, sheen:0.4, sheenColor:new THREE.Color(0xffffff)
-  });
-  for(let i=0;i<9;i++){
-    const g=new THREE.Group();
-    const n=3+(i%3);
-    for(let k=0;k<n;k++){
-      const m=new THREE.Mesh(new THREE.SphereGeometry(0.55+((i+k)%3)*0.25, 18, 14), mat);
-      m.position.set((k-n/2)*0.7, ((k*17)%10)*0.04, ((k*13)%7)*0.1);
-      m.scale.set(1.4+k*0.2, 0.6, 1.0);
-      g.add(m);
-    }
-    const side = (i%2?1:-1);
-    g.position.set(side*(3.5+(i%4)), 3.2+((i*13)%10)*0.35, -4-((i*11)%5));
-    g.scale.setScalar(1.3+((i*5)%4)*0.3);
-    cloudGroup.add(g);
-  }
-  scene.add(cloudGroup);
+function ensureClouds(){
+  // Clouds are painted into the sky dome so the stage isn't another pile of spheres.
+  if (cloudGroup){ scene.remove(cloudGroup); cloudGroup=null; }
 }
 function ensureParticles(sc){
   if (particleSys){ scene.remove(particleSys); particleSys.geometry.dispose(); particleSys.material.dispose(); particleSys=null; }
@@ -204,21 +247,35 @@ function ensureParticles(sc){
   }));
   scene.add(particleSys);
 }
+let pedestalGeo=null;
+function makePedestalGeo(){
+  if (pedestalGeo) return pedestalGeo;
+  const pts=[
+    [0.02,0],[1.55,0.02],[1.68,0.12],[1.42,0.18],[1.18,0.22],[1.22,0.32],[0.98,0.40],[0.02,0.46],
+  ].map(([r,y])=>new THREE.Vector2(r,y));
+  pedestalGeo=new THREE.LatheGeometry(pts, 64);
+  pedestalGeo.userData.shared=true;
+  return pedestalGeo;
+}
 function buildStage(sc){
-  const ground=new THREE.Mesh(
-    new THREE.PlaneGeometry(5.2, 5.2),
-    new THREE.MeshBasicMaterial({ map:softShadowTex, transparent:true, opacity:0.95, depthWrite:false })
+  const floor=new THREE.Mesh(
+    new THREE.CircleGeometry(4.6, 64),
+    new THREE.MeshBasicMaterial({ map:makeFloorTex(sc), transparent:true, opacity:0.95, depthWrite:false })
   );
-  ground.rotation.x=-Math.PI/2; ground.position.y=-1.88; ground.renderOrder=-1;
+  floor.rotation.x=-Math.PI/2; floor.position.y=-1.96; floor.renderOrder=-2;
+  root.add(floor);
+  const ground=new THREE.Mesh(
+    new THREE.PlaneGeometry(6.4, 6.4),
+    new THREE.MeshBasicMaterial({ map:softShadowTex, transparent:true, opacity:0.85, depthWrite:false })
+  );
+  ground.rotation.x=-Math.PI/2; ground.position.y=-1.84; ground.renderOrder=-1;
   root.add(ground);
-  const pedMat=softMat(sc.pedestal, {roughness:0.48, metalness:0.05, clearcoat:0.7, clearcoatRoughness:0.25, sheen:0.25, envMapIntensity:0.85});
-  const rimMat=softMat(sc.pedestalRim, {roughness:0.4, metalness:0.08, clearcoat:0.75, envMapIntensity:0.9});
-  const base=new THREE.Mesh(new RoundedBoxGeometry(2.8, 0.22, 2.8, 6, 0.1), pedMat);
-  base.position.y=-1.72; base.castShadow=true; base.receiveShadow=true; root.add(base);
-  const rim=new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.05, 12, 48), rimMat);
-  rim.rotation.x=Math.PI/2; rim.position.y=-1.58; root.add(rim);
-  const top=new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.15, 0.08, 48), pedMat);
-  top.position.y=-1.58; top.receiveShadow=true; root.add(top);
+  const pedMat=softMat(sc.pedestal, {roughness:0.42, metalness:0.04, clearcoat:0.65, clearcoatRoughness:0.28, sheen:0.35, envMapIntensity:0.9});
+  const rimMat=softMat(sc.pedestalRim, {roughness:0.32, metalness:0.12, clearcoat:0.85, clearcoatRoughness:0.2, envMapIntensity:1});
+  const base=new THREE.Mesh(makePedestalGeo(), pedMat);
+  base.position.y=-1.98; base.castShadow=true; base.receiveShadow=true; root.add(base);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.045, 14, 64), rimMat);
+  rim.rotation.x=Math.PI/2; rim.position.y=-1.50; root.add(rim);
 }
 
 addEventListener('resize', ()=>{
@@ -305,35 +362,13 @@ function makeScrew(color){
   return makeDetailedScrew(color, COLORS);
 }
 
-// Optional: preload GLB cores (visual refinement); anchors still from MODELS
-const gltfCache = {};
-const gltfLoader = new GLTFLoader();
-function loadModelGltf(key){
-  if (gltfCache[key]) return gltfCache[key];
-  gltfCache[key] = new Promise(res=>{
-    gltfLoader.load(`assets/${key}.glb`, (gltf)=>{
-      gltf.scene.traverse(o=>{
-        if (o.isMesh){
-          o.castShadow = true; o.receiveShadow = true;
-          // Upgrade shipped materials toward candy plastic
-          if (o.material){
-            const c = o.material.color ? o.material.color.getHex() : 0xffffff;
-            o.material = softMat(c, {roughness:0.4, metalness:0.08, clearcoat:0.5, envMapIntensity:0.9});
-          }
-        }
-      });
-      res(gltf.scene);
-    }, undefined, ()=>res(null));
-  });
-  return gltfCache[key];
-}
-// Kick off preloads (non-blocking)
-['cat','bear','robot','car','cake','popsicle','rocket','ufo'].forEach(k=>loadModelGltf(k));
-
 function clearScene(){
-  while(root.children.length){ const c=root.children[0]; root.remove(c); c.traverse?.(o=>{ if(o.geometry) o.geometry.dispose?.(); }); }
+  while(root.children.length){
+    const c=root.children[0]; root.remove(c);
+    c.traverse?.(o=>{ if(o.geometry && !o.geometry.userData.shared) o.geometry.dispose?.(); });
+  }
   falling.forEach(f=>scene.remove(f.m)); flying.forEach(f=>scene.remove(f.v.group)); bits.forEach(b=>scene.remove(b));
-  falling=[]; flying=[]; bits=[]; coreMeshes=[]; plateVis=[]; screwVis=[];
+  falling=[]; flying=[]; bits=[]; coreMeshes=[]; plateVis=[]; screwVis=[]; liveDecor=[];
   endHoldPreview();
 }
 
@@ -344,18 +379,29 @@ function buildLevel(level, modelKey){
   const sc = th.scene || THEMES.pets.scene;
   ensureSky(sc); ensureClouds(sc); ensureParticles(sc); buildStage(sc);
 
-  // Prefer refined procedural core (RoundedBox + high segs); GLB is shipped for asset pipeline / future swap
-  model.core.forEach(part=>{
-    const mesh = new THREE.Mesh(makeGeo(part), softMat(part.c, {
-      roughness: part.roughness ?? 0.36, metalness: part.metalness ?? 0.04,
-      clearcoat: 0.65, clearcoatRoughness: 0.22, envMapIntensity: 1.05,
-      sheen: 0.55, emissive: part.em ?? 0x000000, ei: part.ei ?? 0
-    }));
-    mesh.position.fromArray(part.p);
-    if (part.r) mesh.rotation.fromArray(part.r);
-    mesh.castShadow = true; mesh.receiveShadow = true;
-    root.add(mesh); coreMeshes.push(mesh);
-  });
+  try {
+    const character = buildCharacter(modelKey);
+    character.traverse(o=>{
+      if (!o.isMesh) return;
+      if (o.userData.noShadow){ o.castShadow=false; o.receiveShadow=false; }
+      else { o.castShadow=true; o.receiveShadow=true; }
+      if (o.userData.anim) liveDecor.push(o);
+      coreMeshes.push(o);
+    });
+    root.add(character);
+  } catch (err) {
+    console.error('character build failed', err);
+    window.__charErr = String(err && (err.stack || err));
+    model.core.forEach(part=>{
+      const mesh = new THREE.Mesh(makeGeo(part), softMat(part.c, {
+        roughness: 0.36, clearcoat: 0.65, sheen: 0.55, emissive: part.em ?? 0, ei: part.ei ?? 0
+      }));
+      mesh.position.fromArray(part.p);
+      if (part.r) mesh.rotation.fromArray(part.r);
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      root.add(mesh); coreMeshes.push(mesh);
+    });
+  }
 
   const anchors = {};
   model.anchors.forEach(a=>{
@@ -896,6 +942,15 @@ renderer.setAnimationLoop(()=>{
     particleSys.rotation.y += dt*0.04;
   }
   if (cloudGroup) cloudGroup.rotation.y += dt*0.015;
+  const tNow = performance.now()*0.001;
+  for (const d of liveDecor){
+    if (d.userData.anim==='flame'){
+      const s = 1+Math.sin(tNow*14 + d.position.x)*0.08;
+      d.scale.set(s, 1+Math.sin(tNow*11)*0.12, s);
+    } else if (d.userData.anim==='lamp' && d.material){
+      d.material.emissiveIntensity = 0.45+0.4*Math.sin(tNow*3 + (d.userData.phase||0));
+    }
+  }
   updateHand();
   renderer.render(scene,camera);
 });

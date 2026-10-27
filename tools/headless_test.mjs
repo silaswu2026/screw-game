@@ -10,7 +10,7 @@ try { WebSocket = require('/tmp/wspkg/node_modules/ws'); }
 catch { WebSocket = (await import('ws')).default; }
 
 const ROOT = resolve(fileURLToPath(import.meta.url), '../..');
-const OUT = '/workspace';
+const OUT = '/opt/cursor/artifacts';
 const PORT = 8766;
 const MIME = {
   '.html':'text/html', '.js':'text/javascript', '.css':'text/css',
@@ -29,7 +29,9 @@ await new Promise(r => server.listen(PORT, '127.0.0.1', r));
 console.log('serve', ROOT, PORT);
 
 const chrome = spawn('google-chrome', [
-  '--headless=new', '--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage',
+  '--headless=new', '--no-sandbox', '--disable-dev-shm-usage',
+  '--enable-unsafe-swiftshader', '--use-angle=swiftshader',
+  '--user-data-dir=/tmp/chrome-screw-profile',
   '--window-size=390,844', '--remote-debugging-port=9230',
   `http://127.0.0.1:${PORT}/`
 ], { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -156,7 +158,7 @@ const chars = [
 ];
 for (const [theme, model] of chars) {
   await ev(`window.__game.showModel('${theme}','${model}')`);
-  await sleep(600);
+  await sleep(1100);
   await shot(`s4_char_${model}.png`);
 }
 
@@ -173,6 +175,7 @@ await ev(`(() => {
 await sleep(250);
 await shot('s4_scene.png');
 
+results.charErr = await ev(`window.__charErr || ''`);
 results.pageErrors = await ev(`window.__errs || []`);
 writeFileSync(join(OUT, 's4_test_results.json'), JSON.stringify(results, null, 2));
 console.log('RESULTS', JSON.stringify(results, null, 2));

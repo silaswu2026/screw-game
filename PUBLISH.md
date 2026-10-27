@@ -1,25 +1,23 @@
 # Publish note
 
-Visual upgrade v4: organic character silhouettes, candy MeshPhysicalMaterial, themed sky/clouds/stars, stage pedestal, soft contact shadow, ambient particles. Screws kept from prior polish.
-
-## Paths
-- Source: `/workspace/screw3d-v2/`
-- Zip: `/workspace/screw3d-v2.zip`
-- Publish-ready: `/workspace/pub/screw3d/` → `silaswu2026/screw-game`
-- Assets: `/workspace/screw3d-v2/assets/*.glb` (code-authored; Blender not available)
+Visual upgrade v5: characters are single organic shells (SDF marching cubes, lathe, extrude) instead of stacked rounded boxes. Plush/candy MeshPhysicalMaterial, ink silhouette, painted sky, lathe stage, contact shadow. Screws and anchors unchanged.
 
 ## GitHub Pages
 https://silaswu2026.github.io/screw-game/
 
 ## How models were made
-- **Screws:** unchanged this pass — LatheGeometry head + TubeGeometry helical thread (`js/screwMesh.js`); matching `assets/screw.glb`.
-- **Characters:** original procedural polish in `models.js` (higher RoundedBox bevel, cheek/limb spheres, capsules, emissive eye/light accents). Matching softer GLBs via `tools/gen_glb_assets.py` (rounded_box + denser spheres). No CC0 downloads — Blender unavailable.
-- **Scene:** canvas-gradient sky dome (fog-free), soft clouds or stars per theme, radial soft shadow, rounded pedestal + rim, floating Points particles. RoomEnvironment PMREM + soft key/fill/rim retained/tuned.
+- **Characters (runtime):** `js/characters.js`
+  - Cat, bear, robot, car body: smooth-union SDF (ellipsoid / capsule) meshed with marching cubes (`js/sculpt.js`). Vertex colors for belly, muzzle, inner ear, limbs. Eye sockets are subtracted; eyes, lids, blush, nose, and smile are separate meshes.
+  - Cake: displaced cylinder tiers (lip, drips, dome) plus cherry, pearls, sprinkles.
+  - Popsicle: one beveled extrude with stripe vertex colors and a wood capsule stick.
+  - Rocket and UFO: lathe profiles, glass accents, fins / rim lights.
+- **Tables:** `js/mcTables.js` is the public-domain Bourke/Bloyd marching-cubes table set, copied from three.js r160 (MIT). No downloaded character meshes. Blender was not available; nothing was scraped from Screwdom.
+- **Legacy GLBs** in `assets/` are from an earlier pass and are not loaded.
+- **Screws:** unchanged (`js/screwMesh.js`).
+- **Scene:** 512² painted sky (sun, clouds or nebula/stars), soft floor disc, lathe pedestal, radial contact shadow, theme key/fill/rim/bounce. Fog stays light so the characters stay readable on a phone.
 
 ## Limitations
-- Still assembled primitives (no true organic remesh / subdivision surface / sculpt). Joint seams remain visible vs a Disney film hero mesh.
-- No subsurface scattering texture maps; SSS approximated via sheen + emissive accents.
-- Screws deliberately left as previous high-detail meshes.
-
-## Save key
-`lscc3d`
+- SDF shells are smooth clay/vinyl, not film-resolution sculpted fur. Ears and limbs blend into the body on purpose.
+- No texture maps or subsurface scattering. Plush is sheen + clearcoat.
+- Transmission (windshield, dome, visor, porthole) costs an extra render pass; only one character is on screen.
+- Screw plates still cover the torso. Faces are placed above that band so they stay visible.

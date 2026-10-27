@@ -8,8 +8,10 @@ export const THEMES = {
     plates:[0xfff7ea,0xd9f2e6,0xdcecff,0xfff0c2,0xffe1d6,0xe6f5d0],
     models:[{name:'小猫咪',m:'cat'},{name:'小熊',m:'bear'}],
     figures:[['🐱','橘猫'],['🐶','柴犬'],['🐰','垂耳兔'],['🐻','泰迪熊'],['🐼','熊猫'],['🦊','小狐狸'],['🐹','仓鼠'],['🐧','企鹅'],['🐨','考拉'],['🦄','独角兽']],
-    scene:{ skyTop:0xffe0a8, skyMid:0xb8e8d8, skyBot:0x8ec8f0, fog:0xd8eef8, pedestal:0xffe4c8, pedestalRim:0xffc89a,
-      particle:0xffb0c8, particle2:0xffe08a, stars:false, clouds:true, clear:0xc8e4f5 }
+    scene:{ skyTop:0xfff3d4, skyMid:0xc9eadc, skyBot:0x8ec8ee, fog:0xd5eef6, pedestal:0xfff6ee, pedestalRim:0xf0b089,
+      particle:0xffc4d4, particle2:0xffe7a8, stars:false, clouds:true, clear:0xc5e4f4,
+      hemiSky:0xfff6e4, hemiGround:0xc7e6d4, key:0xfff4e2, keyI:1.75, fill:0xb7d2ff, fillI:0.28,
+      rim:0xffd8b0, rimI:0.95, exposure:1.14, fogDensity:0.022 }
   },
   mech: {
     name:'机械工坊', icon:'🤖', desc:'可爱机器人与小车',
@@ -19,8 +21,10 @@ export const THEMES = {
     plates:[0xf2f6fa,0xfff1c9,0xdaf0ff,0xe1f7e4,0xffe2cc,0xe8e4f7],
     models:[{name:'机器人',m:'robot'},{name:'小汽车',m:'car'}],
     figures:[['🤖','小铁'],['🚗','小车车'],['🚜','拖拉机'],['🚂','蒸汽火车'],['🚁','直升机'],['🦾','机械臂'],['🚒','消防车'],['🛵','小摩托'],['🚧','工程队'],['🛸','飞碟机甲']],
-    scene:{ skyTop:0xc8ebe4, skyMid:0xd5dce8, skyBot:0xffe6a8, fog:0xd8e4e8, pedestal:0xd5e4ea, pedestalRim:0x9ec4c8,
-      particle:0xffc15e, particle2:0x7ef9ff, stars:false, clouds:true, clear:0xd0e0e8 }
+    scene:{ skyTop:0xd8f4ee, skyMid:0xe4eaf2, skyBot:0xffe6b0, fog:0xd5e6ea, pedestal:0xe7f1f4, pedestalRim:0x8fbfc4,
+      particle:0xffc15e, particle2:0x7ef9ff, stars:false, clouds:true, clear:0xd0e2ea,
+      hemiSky:0xf2fffb, hemiGround:0xc5d4e4, key:0xf7fffc, keyI:1.65, fill:0xc9d6ee, fillI:0.36,
+      rim:0xffe3b0, rimI:0.72, exposure:1.12, fogDensity:0.02 }
   },
   sweets: {
     name:'甜品屋', icon:'🧁', desc:'蛋糕冰淇淋的香甜世界',
@@ -30,8 +34,10 @@ export const THEMES = {
     plates:[0xfffaf0,0xffe9f0,0xe3f7e8,0xfff0c4,0xf3e6ff,0xffe4d1],
     models:[{name:'草莓蛋糕',m:'cake'},{name:'薄荷冰棍',m:'popsicle'}],
     figures:[['🍰','草莓蛋糕'],['🧁','纸杯蛋糕'],['🍩','甜甜圈'],['🍦','甜筒'],['🍮','布丁'],['🍪','曲奇'],['🍫','巧克力'],['🍭','棒棒糖'],['🥞','松饼'],['🎂','生日蛋糕']],
-    scene:{ skyTop:0xffd8b8, skyMid:0xffc0d4, skyBot:0xb8e8d0, fog:0xffe4dc, pedestal:0xffe0d0, pedestalRim:0xffb3c6,
-      particle:0xff8fab, particle2:0xffd93d, stars:false, clouds:true, clear:0xffd8e0 }
+    scene:{ skyTop:0xffe7c8, skyMid:0xffe0d2, skyBot:0xd5f0e4, fog:0xffefe6, pedestal:0xfff1e6, pedestalRim:0xf0b0c0,
+      particle:0xffb3c4, particle2:0xffd98a, stars:false, clouds:true, clear:0xffe4d8,
+      hemiSky:0xfff3e6, hemiGround:0xf0d8cc, key:0xfff2e4, keyI:1.7, fill:0xd5eadf, fillI:0.3,
+      rim:0xffd0c4, rimI:0.7, exposure:1.12, fogDensity:0.02 }
   },
   space: {
     name:'太空冒险', icon:'🚀', desc:'星空火箭与小星球',
@@ -41,7 +47,10 @@ export const THEMES = {
     plates:[0xf4f0ff,0xdff6ff,0xfff3d6,0xe2ffe9,0xffe6ef,0xe6e6ff],
     models:[{name:'小火箭',m:'rocket'},{name:'飞碟',m:'ufo'}],
     figures:[['🚀','火箭'],['👽','小外星人'],['🛸','飞碟'],['🪐','土星'],['🌙','月亮'],['👩‍🚀','宇航员'],['🛰️','卫星'],['☄️','彗星'],['🌍','地球'],['🌟','超新星']],
-    scene:{ skyTop:0x080a22, skyMid:0x2e2870, skyBot:0x0e5a78, fog:0x121230, pedestal:0x3a3478, pedestalRim:0x9b87ff,
-      particle:0xfff6b0, particle2:0xb8a9ff, stars:true, clouds:false, clear:0x121430 }
+    scene:{ skyTop:0x070818, skyMid:0x2a2468, skyBot:0x0c4e6e, fog:0x12142e, pedestal:0x3a3478, pedestalRim:0xb3a4ff,
+      particle:0xfff6b0, particle2:0xc8b8ff, stars:true, clouds:false, clear:0x101228,
+      hemiSky:0x6d66c0, hemiGround:0x1a2048, hemiI:0.38, key:0xd6defe, keyI:1.2, fill:0x3a3c88, fillI:0.22,
+      rim:0xcbb8ff, rimI:1.2, bounce:0x3a2860, bounceI:0.18, spark:0xd2c6ff, sparkI:0.4,
+      exposure:1.02, fogDensity:0.032 }
   },
 };
