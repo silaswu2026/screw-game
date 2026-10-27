@@ -1,7 +1,7 @@
 
 (function () {
   const SALT = 'shuyang_ai_gate_v1';
-  const HASH = 'b6a7c7ff525d0b61306439c88b8edc5fac0322eb0bd815ce5fbbf34b7801ba92';
+  const HASH = '379977ce03b938e937361332f967a34fd7ab601b17643edbc7a364cc5b73867c';
   const KEY = 'shuyang_ai_unlocked_v1';
   async function sha(text) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(SALT + text));
