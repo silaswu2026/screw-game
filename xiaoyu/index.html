@@ -1,0 +1,17 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>小雨姐姐</title>
+<style>html,body{margin:0;height:100%;background:#1b1f4a;font-family:-apple-system,"PingFang SC",sans-serif;color:#fff;overflow:hidden}
+#s{position:fixed;inset:0}.w{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;box-sizing:border-box}
+.p{width:min(94vw,640px);aspect-ratio:16/9;border-radius:22px;background:url(xiaoyu.jpg) center/cover;box-shadow:0 0 50px #ffe9a055;animation:b 4s ease-in-out infinite}
+@keyframes b{50%{transform:translateY(-6px) scale(1.01)}}h1{margin:0;font-size:28px;color:#ffe9a0}
+.bub{background:#fff;color:#334;border-radius:18px;padding:12px 18px;max-width:90vw;font-size:18px;text-align:center;min-height:24px}
+button{font-size:18px;border:0;border-radius:30px;padding:12px 22px;background:#5fb36b;color:#fff;margin:4px;box-shadow:0 4px 0 #3c7f46}</style></head>
+<body><canvas id="s"></canvas><div class="w"><h1>🌙 小雨姐姐</h1><div class="p"></div><div class="bub" id="t">嗨，叔杨！我是小雨姐姐，点下面的按钮，我说给你听～</div>
+<div><button onclick="say(0)">打招呼</button><button onclick="say(1)">讲个小故事</button><button onclick="say(2)">我怕黑</button></div></div>
+<script>
+const L=[["嗨，叔杨！我是小雨姐姐。今天玩忍者游戏开心吗？月亮都在对你笑呢。"],
+["从前，森林里有一只小萤火虫，它觉得自己的光太小了。可是有一天，迷路的小兔子就是跟着它小小的光，找到了回家的路。所以呀，再小的光，也能帮到别人。晚安。"],
+["怕黑没关系，姐姐小时候也怕。黑黑的时候，月亮和星星一直在天上守着你，爸爸妈妈就在旁边。深深吸一口气，再慢慢吐出来，想想今天最开心的事，姐姐陪着你。"]];
+function say(i){const x=L[i][0];document.getElementById('t').textContent=x;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(x);u.lang='zh-CN';u.rate=.9;u.pitch=1.3;speechSynthesis.speak(u)}catch(e){}}
+const c=document.getElementById('s'),g=c.getContext('2d');let S=[];function r(){c.width=innerWidth;c.height=innerHeight;S=Array.from({length:80},()=>[Math.random()*c.width,Math.random()*c.height,Math.random()*6])}r();onresize=r;
+(function f(t){g.clearRect(0,0,c.width,c.height);for(const s of S){g.fillStyle='rgba(255,240,180,'+(.3+.7*Math.abs(Math.sin(t/900+s[2])))+')';g.fillRect(s[0],s[1],2,2)}requestAnimationFrame(f)})(0);
+</script></body></html>
