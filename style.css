@@ -16,6 +16,7 @@ canvas{position:fixed;inset:0;display:block;touch-action:none;z-index:0}
 #map{overflow-y:auto;touch-action:pan-y}
 #path{display:flex;flex-direction:column-reverse;align-items:center;padding:12px 0 80px;gap:18px}
 .demoLink{display:block;margin:8px auto 0;width:max-content;background:linear-gradient(#ffe38a,#ffb703);color:#6a3b00;font-weight:900;text-decoration:none;padding:8px 16px;border-radius:999px;border:3px solid #fff;box-shadow:0 4px 0 #e09a00,0 8px 14px #0001}
+.demoLink.ninja{background:linear-gradient(#ff9b9b,#e23b3b);color:#fff;box-shadow:0 4px 0 #b42323,0 8px 14px #0001}
 .node{width:74px;height:74px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;font-size:22px;background:#fff;border:5px solid var(--card);box-shadow:0 5px 0 var(--btnS),0 8px 16px #0001;position:relative;cursor:pointer}
 .node.cur{animation:bob 1.2s infinite;border-color:var(--acc)}
 .node.lock{background:#eee;border-color:#ccc;box-shadow:0 5px 0 #bbb;color:#aaa;cursor:default}

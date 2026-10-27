@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#7ec8ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>忍者水管工 Ninja Plumber</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="hud" class="hidden">
+  <div class="names">
+    <div id="lvlName">第1关</div>
+    <div id="lvlEn">Level 1</div>
+  </div>
+  <div class="stats"><span id="coinN">🪙 0</span><span id="starN">⭐ 0</span></div>
+  <button id="retry" type="button">重来 Retry</button>
+</div>
+<div id="hint" class="hidden"></div>
+<div id="toast"></div>
+<div id="menu">
+  <h1>忍者水管工 <span>Ninja Plumber</span></h1>
+  <p class="lead">跑、跳、蹬墙、扔手里剑</p>
+  <button id="play" type="button">开始 Start</button>
+  <div class="picks">
+    <button type="button" data-lv="0">第1关</button>
+    <button type="button" data-lv="1">第2关</button>
+    <button type="button" data-lv="2">第3关</button>
+  </div>
+  <p class="keys">方向键 / AD 移动 · 空格跳 · J 投掷</p>
+</div>
+<div id="panel" class="hidden">
+  <div class="card">
+    <h2 id="panelTitle">过关了!</h2>
+    <p id="panelSub">Level clear!</p>
+    <button id="panelBtn" type="button">下一关 Next</button>
+  </div>
+</div>
+<div id="touch" class="hidden">
+  <div class="cluster">
+    <button id="btnL" type="button" aria-label="左 Left">◀</button>
+    <button id="btnR" type="button" aria-label="右 Right">▶</button>
+  </div>
+  <div class="cluster">
+    <button id="btnJ" type="button" aria-label="跳 Jump">跳<small>Jump</small></button>
+    <button id="btnT" type="button" aria-label="投掷手里剑 Throw">投<small>Throw</small></button>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
