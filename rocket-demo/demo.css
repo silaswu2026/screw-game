@@ -1,5 +1,5 @@
 :root {
-  --top: 196px;
+  --top: 188px;
   --bot: 96px;
   --ink: #3a2a55;
 }
@@ -50,10 +50,10 @@ header {
   z-index: 3; display: flex; justify-content: center; gap: 10px; padding: 0 8px;
 }
 .box {
-  position: relative; width: 68px; height: 62px; border-radius: 16px;
+  position: relative; width: 58px; height: 52px; border-radius: 14px;
   border: 3px solid #fff;
-  background: linear-gradient(#fff, var(--c));
-  box-shadow: 0 6px 0 var(--d), 0 10px 14px rgba(50, 20, 80, .16), inset 0 3px 0 rgba(255,255,255,.7);
+  background: linear-gradient(180deg, #fff 0%, var(--c) 46%, var(--d) 100%);
+  box-shadow: 0 5px 0 var(--d), 0 9px 12px rgba(50, 20, 80, .16), inset 0 2px 0 rgba(255,255,255,.85);
   display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px;
 }
 .box::before, .box::after {
@@ -87,7 +87,7 @@ header {
 .box.empty { visibility: hidden; }
 
 #slots {
-  position: fixed; top: calc(env(safe-area-inset-top) + 142px); left: 0; right: 0;
+  position: fixed; top: calc(env(safe-area-inset-top) + 128px); left: 0; right: 0;
   z-index: 3; display: flex; justify-content: center; gap: 8px;
 }
 .slot {
@@ -124,6 +124,7 @@ header {
   background: radial-gradient(circle at 35% 30%, #fff, #c48a55);
   box-shadow: 0 1px 0 #a86c38;
 }
+.banner .mascot { width: 44px; height: 44px; flex: none; }
 #tip {
   position: fixed; left: 50%; top: calc(var(--top) + 8px); transform: translateX(-50%);
   z-index: 4; background: #fff; color: #5a3b78; font-weight: 700;

@@ -18,7 +18,11 @@ const server = createServer((req, res) => {
   if (u.endsWith('/')) u += 'index.html';
   const fp = join(ROOT, u);
   if (!fp.startsWith(ROOT) || !existsSync(fp) || statSync(fp).isDirectory()) { res.writeHead(404); res.end('no ' + u); return; }
-  const type = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' }[extname(fp)] || 'application/octet-stream';
+  const type = {
+    '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
+    '.json': 'application/json', '.glb': 'model/gltf-binary',
+    '.png': 'image/png', '.webp': 'image/webp',
+  }[extname(fp)] || 'application/octet-stream';
   res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store' });
   res.end(readFileSync(fp));
 });
@@ -27,7 +31,7 @@ await new Promise(r => server.listen(PORT, '127.0.0.1', r));
 const chrome = spawn('google-chrome', [
   '--headless=new', '--no-sandbox', '--disable-dev-shm-usage',
   '--enable-unsafe-swiftshader', '--use-angle=swiftshader',
-  '--user-data-dir=/tmp/chrome-rocket-demo',
+  '--user-data-dir=/tmp/chrome-rocket-demo-b',
   '--window-size=390,844', '--remote-debugging-port=9341',
   `http://127.0.0.1:${PORT}/rocket-demo/`,
 ], { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -86,32 +90,34 @@ async function shot(name) {
 }
 
 const t0 = Date.now();
-while (Date.now() - t0 < 20000) {
+while (Date.now() - t0 < 30000) {
   if (await ev('!!(window.__demo && window.__demo.ready)')) break;
   await sleep(200);
 }
-await sleep(400);
-const boot = await ev(`({ sol: (__demo.solution||[]).length, err: __demo.errors, left: __demo.left })`);
+await sleep(500);
+const boot = await ev(`({ sol: (__demo.solution||[]).length, parts: __demo.parts, screws: __demo.screwCount, err: __demo.errors, left: __demo.left, socket: __demo.socketDelta, mid: __demo.midMove })`);
 console.log('BOOT', JSON.stringify(boot));
 await shot('rocket_start.png');
-const preview = await ev(`const ids = window.__demo.preview(5); window.__demo.clearPreview(); ids`);
+const preview = await ev(`const ids = window.__demo.preview(__demo.previewScrew); window.__demo.clearPreview(); ids`);
 console.log('PREVIEW', JSON.stringify(preview));
 
-const mid = await ev(`window.__demo.jumpTo(16)`);
+const mid = await ev(`const r = window.__demo.jumpTo(__demo.midMove); ({ ...r, up0: __demo.gone('up0') })`);
 console.log('MID', JSON.stringify(mid));
-await sleep(250);
+await sleep(300);
 await shot('rocket_mid.png');
 
-const end = await ev(`window.__demo.jumpTo(24); window.__demo.launch(); ({ won: __demo.won, left: __demo.left, err: __demo.errors })`);
+const end = await ev(`window.__demo.jumpTo(__demo.screwCount); window.__demo.launch(); ({ won: __demo.won, left: __demo.left, err: __demo.errors })`);
 console.log('END', JSON.stringify(end));
-await sleep(900);
+await sleep(1000);
 await shot('rocket_win.png');
+await sleep(1200);
+const fps = await ev('__demo.fps');
+console.log('FPS', fps);
 
-// Play the real tap path from a reload to confirm moves animate without exceptions.
 await ev('location.reload()');
 await sleep(700);
 const t1 = Date.now();
-while (Date.now() - t1 < 15000) {
+while (Date.now() - t1 < 30000) {
   if (await ev('!!(window.__demo && window.__demo.ready)')) break;
   await sleep(200);
 }
@@ -124,7 +130,12 @@ const played = await ev(`(async () => {
   return { ok: true, won: __demo.won, left: __demo.left, err: __demo.errors };
 })()`);
 console.log('PLAY', JSON.stringify(played));
-console.log('LOGS', logs.slice(0, 20));
-const ok = boot.sol === 24 && mid.left === 8 && end.won && played.ok && Array.isArray(preview) && preview.includes('band') && !(boot.err || []).length && !(end.err || []).length;
+console.log('LOGS', logs.slice(0, 30));
+const ok = boot.sol === boot.screws && boot.screws >= 50 && boot.parts >= 25
+  && mid.left === boot.screws - boot.mid && mid.up0
+  && end.won && played.ok
+  && Array.isArray(preview) && preview.includes('band')
+  && boot.socket < 0.05
+  && !(boot.err || []).length && !(end.err || []).length && !(played.err || []).length;
 ws.close(); chrome.kill(); server.close();
 process.exit(ok ? 0 : 2);

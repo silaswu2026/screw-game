@@ -5,7 +5,20 @@ Characters are clean chibi forms with a tighter finish: lathe bodies, painted ir
 ## Rocket demo
 A separate quality sample, not a replacement for the main game: https://silaswu2026.github.io/screw-game/rocket-demo/
 
-All geometry is original and procedural (lathe, extrude, rounded boxes) in `rocket-demo/demo.js`. No downloaded meshes. 11 removable parts, 24 candy screws, a launch-pad diorama, and a hand-solved puzzle.
+30 removable parts, 72 candy screws (18 pink, 18 yellow, 18 lime, 18 cyan). The download is `rocket-demo/assets/rocket.glb` (1.7 MB) plus `layout.json`. Nothing here replaces the main game.
+
+## How the rocket was made
+Original geometry only, from `tools/blender/rocket.py` in Blender 4.2 LTS. No downloaded meshes.
+
+- Parts sit on an 8-sector grid. Removal order comes from layer, sector, and ring, so shells do not interpenetrate and do not need a hand-written overlap list.
+- One vinyl material. A shared palette texture holds eleven color cells, each a vertical light-to-dark gradient. A part picks its cell with the first UV. That is the color and a fake top light. Adjacent parts use different cells. Cycles bakes ambient occlusion and a tangent normal (seams, rivets, grass, a light plastic grain) into the second UV. Both maps ship as WebP inside the GLB. There is no KTX2: the vendored loader has no Basis transcoder.
+- Screws are one three.js template, placed from the layout table (part, position, normal, color) with InstancedMesh. The cap is about 30% of that part's edge, a low dome, with a cross slot 40% of the cap height and a shank that shows two thread rings. A screw's color is never its part's color. The static pad, grass, flowers, rocks, and the small astronaut are one merged mesh. Removable parts stay separate so they can fall.
+- The solution is generated with the layout and replayed by the page. Four 3-hole boxes, five holding slots, hold-to-preview, then launch.
+
+## Limitations
+- Denser than the old 11-part rocket, still not castle-brick density. The astronaut is a simple original figure, not a sculpted character.
+- Headless Chrome throttles animation frames (the on-screen counter sat near 4). A flushed redraw of this scene in the same SwiftShader process was not the limiter. A real phone GPU was not measured.
+- Toaster and castle reference boards were not in this workspace. The comparison image is against the previous procedural rocket.
 
 ## How models were made
 - Cat and bear: one lathe silhouette, sculpted ears with a contrasting inner ear, cream muzzle and belly, short limbs. Cat wears a collar and bell.
