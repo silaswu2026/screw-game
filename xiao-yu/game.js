@@ -2161,18 +2161,43 @@
     netPeer.on('open', () => {
       const conn = netPeer.connect(netPeerId(netCode), { reliable: true });
       netBindConn(conn, false);
+      // PeerJS: missing host often fires peer-unavailable on the connection
+      conn.on('error', (err) => {
+        const t = String(err && err.type || err || '');
+        if (netLinked) return;
+        if (t.indexOf('peer-unavailable') >= 0 || t.indexOf('Unavailable') >= 0) {
+          document.getElementById('joinWait').textContent = '房间 ' + netCode + ' 不存在或房主没开，换个两位数字';
+          toast('房间码不对');
+          netJoinBusy = false;
+          if (waitTimer) clearTimeout(waitTimer);
+        }
+      });
       waitTimer = setTimeout(failHint, NET_JOIN_WAIT_MS);
-      // one quiet retry midway
       setTimeout(() => {
         if (netLinked) return;
         try {
           const again = netPeer.connect(netPeerId(netCode), { reliable: true });
           netBindConn(again, false);
+          again.on('error', (err) => {
+            const t = String(err && err.type || err || '');
+            if (netLinked) return;
+            if (t.indexOf('peer-unavailable') >= 0 || t.indexOf('Unavailable') >= 0) {
+              document.getElementById('joinWait').textContent = '房间 ' + netCode + ' 不存在或房主没开，换个两位数字';
+              toast('房间码不对');
+              netJoinBusy = false;
+              if (waitTimer) clearTimeout(waitTimer);
+            }
+          });
         } catch (e) {}
       }, Math.floor(NET_JOIN_WAIT_MS / 2));
     });
-    netPeer.on('error', () => {
-      document.getElementById('joinWait').textContent = '连接失败，再试两位数字';
+    netPeer.on('error', (err) => {
+      const t = String(err && err.type || err || '');
+      if (t.indexOf('peer-unavailable') >= 0) {
+        document.getElementById('joinWait').textContent = '房间码不对，这个房间不存在';
+      } else {
+        document.getElementById('joinWait').textContent = '连接失败，再试两位数字';
+      }
       toast('加入失败');
       netJoinBusy = false;
       if (waitTimer) clearTimeout(waitTimer);
