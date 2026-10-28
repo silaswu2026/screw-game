@@ -1,5 +1,5 @@
 /* 伍澍暘 · 第 1 月 · 异地微信语音课 */
-const V = '8';
+const V = '9';
 const STORE = 'shuyang_ai_month_v1';
 const REWARD_STORE = 'shuyang_ai_rewards_v1';
 const PEOPLE = {
@@ -611,7 +611,7 @@ function replyTo(text) {
     return day ? `今天的原理是：${day.principle} 你用自己的话说一遍，爸爸帮你记在「我的原理」里。` : '这个月不是一次讲完。先看画面怎么动，再看时间和立体，再看声音，最后收成你的一关。';
   }
   if (/方法|怎么学|怎么上课/.test(t)) {
-    return day ? `今天的学法是：${day.method} 动手的时候就用它。` : '上课用微信语音。每节先讲原理、学法和要做的事，再看一小段动画，然后动手，最后打卡同步。';
+    return day ? `今天的学法是：${day.method} 动手的时候就用它。` : '三个角色：家长陪着问，孩子动手，AI 带路。家长暂时不在，这一页仍然带着做、打卡、攒星星。每节先讲原理、学法和要做的事，再看一小段动画，然后动手。';
   }
   if (/下一步|接着|然后/.test(t)) {
     if (!day) return '先点「今天从 Day 几开始」，打开那一课。';
@@ -696,7 +696,8 @@ function homeHtml() {
   <section class="card tip">
     <h3>每节怎么上</h3>
     <ol class="caps"><li>讲清今天的原理、学法、要做的事</li><li>看约 1 分钟小动画</li><li>动手做完剩下的时间</li><li>打卡，并把同步链接发到微信</li></ol>
-    <p>${esc(META.how)}</p>
+    <p>三个角色：<b>家长</b>陪着问，<b>孩子</b>动手并看见自己做成了什么，<b>AI</b>把课带下去。家长暂时不在，孩子仍然能学、能打卡、能攒星星。内容围着游戏和孩子的兴趣。</p>
+    <p>${esc(META.how)} 这一家：爸爸妈妈是家长，澍暘是孩子，小雨是 AI。</p>
   </section>
   <section class="weeks">${WEEKS.map((w) => `<article class="week-card">
       <h2>第 ${w.id} 周 · ${esc(w.name)} <small>${weekCount(data, w.id)}/7</small>${weekCount(data, w.id) === 7 ? `<em class="badge">${BADGES.find((b) => b.w === w.id).emoji}</em>` : ''}</h2>
@@ -728,12 +729,16 @@ function guideHtml() {
     <p><strong>月末交出</strong> ${esc(META.showcase)}</p>
     <p><strong>第 ${MONTH2.id} 月</strong> ${esc(MONTH2.name)}。${esc(MONTH2.note)}</p>
   </section>
+  <section class="card"><h3>三个角色</h3>
+    <p>以后换一家，仍然是这三个人：<b>家长</b>陪着问和记，<b>孩子</b>动手并得到成就感，<b>AI</b>把课带下去。家长暂时不在，孩子仍然能学、能打卡、能看见自己做成了什么。内容围着游戏和孩子自己的兴趣，不围着课文。</p>
+    <p>这一家就套在这三个角色上：爸爸和妈妈是家长，澍暘是孩子，小雨是 AI。</p>
+  </section>
   <section class="card"><h3>谁在上课</h3>
     <div class="roles">
-      <div>${faceImg('澍暘', 'inline-face')}<b>澍暘</b> 出主意、动手、大声说结果。</div>
-      <div>${faceImg('爸爸', 'inline-face')}<b>爸爸伍欣</b> 在另一个城市开语音、打字、把同步链接发到微信。</div>
-      <div>${faceImg('妈妈', 'inline-face')}<b>妈妈祝春燕</b> 可以一起听、一起看成果、夸一件做成的事。不在也能上课。</div>
-      <div>${faceImg('小雨', 'inline-face')}<b>小雨</b> 这一页带流程。爸爸也可以把做游戏的 AI 拉进语音，用每课的提示词。</div>
+      <div>${faceImg('澍暘', 'inline-face')}<b>澍暘 · 孩子</b> 出主意、动手、大声说结果。做成了就有星星。</div>
+      <div>${faceImg('爸爸', 'inline-face')}<b>爸爸伍欣 · 家长</b> 在另一个城市开语音、打字、把同步链接发到微信。</div>
+      <div>${faceImg('妈妈', 'inline-face')}<b>妈妈祝春燕 · 家长</b> 可以一起听、一起看成果、夸一件做成的事。不在也能上课。</div>
+      <div>${faceImg('小雨', 'inline-face')}<b>小雨 · AI</b> 家长不在旁边时，这一页仍带着做。语音里也可以再拉一个 AI，用每课的提示词。</div>
     </div>
   </section>
   <section class="card"><h3>人在两个城市</h3>
