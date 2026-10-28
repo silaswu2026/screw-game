@@ -798,7 +798,7 @@
       else if (inp.right) desired = 270;
     } else if (inp.left && !inp.right) desired = -240;
     else if (inp.right && !inp.left) desired = 270;
-    else if (n.grounded) desired = 200;
+    else if (n.grounded) desired = netRole ? 0 : 200;
     const accel = (n.grounded ? 2400 : 1400) * dt;
     const dv = desired - n.vx;
     n.vx += Math.max(-accel, Math.min(accel, dv));
@@ -1867,14 +1867,14 @@
   function netBindConn(conn, asHost) {
     netConn = conn;
     const onReady = () => {
-      if (netLinked && netConn === conn) return;
+      if (netConn !== conn) return;
       netLinked = true;
       netConn = conn;
       if (asHost) {
         netSetWait('配对成功！马上开始');
         toast('玩家B来了！');
-        netSend({ t: 'hello', code: netCode, role: 'host' });
-        setTimeout(() => { if (netRole === 'host' && netLinked) netHostStart(); }, 400);
+        try { netSend({ t: 'hello', code: netCode, role: 'host' }); } catch (e) {}
+        setTimeout(() => { if (netRole === 'host' && netLinked) netHostStart(); }, 500);
       } else {
         netSetWait('配对成功！等一下就开打');
         toast('已连上玩家A');
@@ -1883,26 +1883,30 @@
     conn.on('open', onReady);
     if (conn.open) onReady();
     conn.on('data', (msg) => netOnMsg(msg, asHost));
-    conn.on('close', () => netOnDisconnect());
-    conn.on('error', () => netOnDisconnect());
+    conn.on('close', () => {
+      if (netConn === conn) netOnDisconnect();
+    });
+    // ICE blips must not tear down the match UI
+    conn.on('error', () => {});
   }
   function netOnDisconnect() {
     const was = netRole;
+    const wasPlaying = (mode === 'play' || mode === 'clear' || mode === 'win' || mode === 'over');
     netLinked = false;
-    toast('连接断开了，可重新加入');
-    if (mode === 'play' || mode === 'clear' || mode === 'win' || mode === 'over') {
-      mode = 'title';
+    netConn = null;
+    if (wasPlaying) {
+      toast('联网断开，改为本地继续');
+      netRole = null;
       syncChrome();
+      return;
     }
+    toast('连接断开了，可重新配对');
     if (was === 'guest') {
       netShowRoom('join');
-      document.getElementById('roomInput').value = netCode;
-      document.getElementById('joinWait').textContent = '断开了。房主还在的话，再点加入';
+      document.getElementById('joinWait').textContent = '断开了。请取消后重新点玩家B';
     } else if (was === 'host') {
-      document.getElementById('roomWait').textContent = '好友断开了，等待重新加入…';
-      document.getElementById('roomStart').disabled = true;
+      netSetWait('好友断开了，可取消后重试');
       netShowRoom('host');
-      // keep peer alive so guest can rejoin same code
     }
   }
   function netPackNinja(n) {
@@ -2084,10 +2088,22 @@
       coop = true;
       wantCoop = true;
       netRole = 'guest';
+      netLinked = true;
       start(msg.lv | 0, true);
-      // start() would try to netSend as host — guest role already set, start only sends if host
+      syncChrome();
       toast('开始！你是蓝色忍者');
     } else if (msg.t === 'snap') {
+      if (mode === 'title') {
+        netHideRoom();
+        unlock();
+        coop = true;
+        wantCoop = true;
+        netRole = 'guest';
+        netLinked = true;
+        mode = 'play';
+        loadLevel(typeof msg.lv === 'number' ? msg.lv : 0);
+        syncChrome();
+      }
       netApplySnap(msg);
     } else if (msg.t === 'mode') {
       netApplySnap({ t: 'snap', m: msg.m, lv: msg.lv, c: msg.coins, s: msg.stars, p1: netPackNinja(player), p2: netPackNinja(p2) });
@@ -2179,7 +2195,7 @@
         if (!ok) { try { if (conn) conn.close(); } catch (e) {} }
         resolve(ok ? conn : null);
       };
-      try { conn = peer.connect(id, { reliable: true, serialization: 'json' }); }
+      try { conn = peer.connect(id, { reliable: true }); }
       catch (e) { resolve(null); return; }
       conn.on('open', () => finish(true));
       conn.on('error', () => finish(false));
@@ -2242,6 +2258,7 @@
     unlock();
     netHideRoom();
     start(netPickLv, true);
+    syncChrome();
     toast('开始！你是绿色忍者');
   }
   function netBackMenu() {
