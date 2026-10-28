@@ -18,6 +18,7 @@
       title: '人怎么动',
       with: ['小雨', '爸爸', '澍暘'],
       principle: '2D 是很多张画一张一张换；3D 是骨头架子在摆，皮跟着动。',
+      skeleton: { url: 'learn/skeleton.html', label: '看3D骨头图' },
       // Tonight's 2D/3D explainer (relative to kid.html).
       video: { url: 'videos/how-characters-move-2d-3d.mp4' },
       guess: {
@@ -133,6 +134,13 @@
   function dots(n) {
     return `<div class="dots" aria-hidden="true">${[1, 2, 3].map((i) => `<i class="${i === n ? 'on' : ''}"></i>`).join('')}</div>`;
   }
+  function skeletonBtn(day) {
+    const s = day && day.skeleton;
+    if (!s || !s.url) return '';
+    const href = esc(String(s.url));
+    const label = esc(s.label || '看3D骨头图');
+    return `<p class="skel"><a class="big" href="${href}">${label}</a></p>`;
+  }
   function videoSlot(url) {
     const src = safeVideo(url);
     if (!src) return '<div class="slot soon" id="slot"><div class="emoji">🎬</div><p>视频马上到</p></div>';
@@ -163,6 +171,7 @@
       <div class="stage">
         <p class="kicker">知识点</p>
         <p class="huge">${esc(day.principle)}</p>
+        ${skeletonBtn(day)}
       </div>
       ${dots(1)}
       <div class="dock">

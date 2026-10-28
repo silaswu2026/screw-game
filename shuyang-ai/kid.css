@@ -209,3 +209,16 @@ button.primary:active, a.primary:active { box-shadow: 0 2px 0 #2f6d3a; }
 @media (prefers-reduced-motion: reduce) {
   .star.pop, .slot.ping { animation: none; }
 }
+
+.skel { margin: 18px 0 0; text-align: center; }
+.skel a.big {
+  display: inline-block;
+  padding: 14px 22px;
+  border-radius: 999px;
+  background: #2f7a45;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.05rem;
+  text-decoration: none;
+  box-shadow: 0 6px 0 #1d4e38;
+}

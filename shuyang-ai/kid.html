@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#12162f"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <title>今晚 · 人怎么动</title>
-  <link rel="stylesheet" href="kid.css?v=1"/>
+  <link rel="stylesheet" href="kid.css?v=skel1"/>
 </head>
 <body>
   <div id="app"></div>
@@ -29,7 +29,7 @@
       try {
         if (!(await window.__shuyangGate())) return;
         await load('sync.js?v=9');
-        await load('kid.js?v=1');
+        await load('kid.js?v=skel1');
       } catch (e) {
         fail(e && e.message ? e.message : '脚本');
       }
