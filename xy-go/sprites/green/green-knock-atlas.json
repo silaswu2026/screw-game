@@ -1,0 +1,71 @@
+{
+  "frames": {
+    "idle": {
+      "x": 0,
+      "y": 0,
+      "w": 256,
+      "h": 256
+    },
+    "knock_0": {
+      "x": 256,
+      "y": 0,
+      "w": 256,
+      "h": 256
+    },
+    "knock_1": {
+      "x": 512,
+      "y": 0,
+      "w": 256,
+      "h": 256
+    },
+    "crawl_0": {
+      "x": 768,
+      "y": 0,
+      "w": 256,
+      "h": 256
+    },
+    "crawl_1": {
+      "x": 1024,
+      "y": 0,
+      "w": 256,
+      "h": 256
+    },
+    "getup": {
+      "x": 1280,
+      "y": 0,
+      "w": 256,
+      "h": 256
+    },
+    "hurt_skeleton": {
+      "x": 1536,
+      "y": 0,
+      "w": 256,
+      "h": 256
+    }
+  },
+  "meta": {
+    "image": "green-knock-sheet.png",
+    "size": {
+      "w": 1792,
+      "h": 256
+    },
+    "frameSize": 256,
+    "format": "RGBA8888",
+    "scale": 1,
+    "fps": 10,
+    "style": "cocos2d-html5-spriteframe",
+    "sequence": {
+      "knockdown": [
+        "knock_0",
+        "knock_1",
+        "crawl_0",
+        "crawl_1",
+        "crawl_0",
+        "getup"
+      ],
+      "idle": [
+        "idle"
+      ]
+    }
+  }
+}

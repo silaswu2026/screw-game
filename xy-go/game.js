@@ -1,5 +1,5 @@
-// Forest parkour. Green ninja (and a blue-scarf partner) drawn with canvas vectors.
-// Plain metal headband plate, no leaf mark. Blue afterimages stay blue.
+// Forest parkour. Knockdown uses Cocos-style sprite frames (sprites/green sheet).
+// Portraits for run/idle; plain metal headband plate. Blue afterimages stay blue.
 (function () {
   const T = 40;
   const GRAV = 1650;
@@ -127,7 +127,7 @@
       anim: 'idle', phase: 0, palette: palette,
       hp: MAX_HP, down: false, downT: 0, springCd: 0, springLock: 0,
       shake: 0, flash: 0, glow: 0, bones: 0, spikeMsgCd: 0,
-      knockT: 0, knockPhase: null,
+      knockT: 0, knockPhase: null, knockAnimT: 0,
     };
   }
   const player = makeNinja('green');
@@ -165,6 +165,100 @@
       NINJA_IMG[c] = im;
     });
   })();
+
+  // Cocos2d-html5 style: SpriteFrameCache + Animation (sheet + JSON atlas)
+  const SPRITE_FPS = 10;
+  const SPRITE_DELAY = 1 / SPRITE_FPS;
+  const KNOCK_SEQ = ['knock_0', 'knock_1', 'crawl_0', 'crawl_1', 'crawl_0', 'getup'];
+  const FRAME_CACHE = {
+    sheet: null,
+    atlas: null,
+    frames: Object.create(null), // name -> {img|sheetRect}
+    ready: false,
+  };
+  (function loadSpriteFrames() {
+    const base = 'sprites/green/';
+    const sheet = new Image();
+    sheet.decoding = 'async';
+    sheet.src = base + 'green-knock-sheet.png';
+    FRAME_CACHE.sheet = sheet;
+    fetch(base + 'green-knock-atlas.json')
+      .then((r) => r.json())
+      .then((atlas) => {
+        FRAME_CACHE.atlas = atlas;
+        const names = Object.keys(atlas.frames || {});
+        names.forEach((name) => {
+          const rect = atlas.frames[name];
+          FRAME_CACHE.frames[name] = { sheet: true, x: rect.x, y: rect.y, w: rect.w, h: rect.h };
+        });
+        // also preload discrete PNGs as fallback
+        names.forEach((name) => {
+          const im = new Image();
+          im.decoding = 'async';
+          im.src = base + name + '.png';
+          FRAME_CACHE.frames[name + '_png'] = { img: im };
+        });
+        FRAME_CACHE.ready = true;
+      })
+      .catch(() => {
+        ['idle', 'knock_0', 'knock_1', 'crawl_0', 'crawl_1', 'getup', 'hurt_skeleton'].forEach((name) => {
+          const im = new Image();
+          im.decoding = 'async';
+          im.src = base + name + '.png';
+          FRAME_CACHE.frames[name] = { img: im };
+          FRAME_CACHE.frames[name + '_png'] = { img: im };
+        });
+        FRAME_CACHE.ready = true;
+      });
+  })();
+
+  function getFrameEntry(name) {
+    const e = FRAME_CACHE.frames[name];
+    if (e && e.sheet && FRAME_CACHE.sheet && FRAME_CACHE.sheet.complete && FRAME_CACHE.sheet.naturalWidth) return e;
+    const p = FRAME_CACHE.frames[name + '_png'];
+    if (p && p.img && p.img.complete && p.img.naturalWidth) return p;
+    if (e && e.img && e.img.complete && e.img.naturalWidth) return e;
+    return null;
+  }
+
+  function drawSpriteFrame(name, face, alpha, drawH) {
+    const entry = getFrameEntry(name);
+    if (!entry) return false;
+    const h = drawH || 78;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.scale(face, 1);
+    if (entry.sheet) {
+      const sh = FRAME_CACHE.sheet;
+      const w = h * (entry.w / entry.h);
+      ctx.drawImage(sh, entry.x, entry.y, entry.w, entry.h, -w / 2, -h + 2, w, h);
+    } else {
+      const im = entry.img;
+      const w = h * (im.naturalWidth / im.naturalHeight);
+      ctx.drawImage(im, -w / 2, -h + 2, w, h);
+    }
+    ctx.restore();
+    return true;
+  }
+
+  function knockFrameName(n) {
+    // Map knock phases to sequenced frames (~10 fps flipbook)
+    const phase = n.knockPhase;
+    if (phase === 'air') return 'knock_0';
+    if (phase === 'prone') return 'knock_1';
+    if (phase === 'crawl') {
+      const i = Math.floor((n.knockAnimT || 0) / SPRITE_DELAY);
+      return (i % 2 === 0) ? 'crawl_0' : 'crawl_1';
+    }
+    if (phase === 'rise') return 'getup';
+    // time-index through full KNOCK_SEQ if knockAnimT set
+    if (n.knockAnimT != null && n.knockPhase) {
+      const i = Math.min(KNOCK_SEQ.length - 1, Math.floor(n.knockAnimT / SPRITE_DELAY));
+      return KNOCK_SEQ[i];
+    }
+    return 'idle';
+  }
+
   function drawHeroSprite(face, alpha, palette, bob) {
     const im = NINJA_IMG[palette] || NINJA_IMG.green;
     if (!im || !im.complete || !im.naturalWidth) return false;
@@ -433,7 +527,7 @@
     n.anim = 'idle'; n.hp = MAX_HP; n.down = false; n.downT = 0;
     n.springCd = 0; n.springLock = 0;
     n.shake = 0; n.flash = 0; n.glow = 0; n.bones = 0; n.spikeMsgCd = 0;
-    n.knockT = 0; n.knockPhase = null;
+    n.knockT = 0; n.knockPhase = null; n.knockAnimT = 0;
   }
 
   function loadLevel(i) {
@@ -860,10 +954,12 @@
     // enter knockdown after short airborne beat via knockArm
     n.knockPhase = 'air';
     n.knockT = 0.28;
+    n.knockAnimT = 0;
     if (n.hp <= 0) {
       n.hp = 0;
       n.knockPhase = null;
       n.knockT = 0;
+      n.knockAnimT = 0;
       downOrOver(n);
     }
   }
@@ -894,6 +990,7 @@
   }
   function tickKnock(n, dt) {
     if (!n || !n.knockPhase) return false;
+    n.knockAnimT = (n.knockAnimT || 0) + dt;
     n.knockT -= dt;
     n.shake = Math.max(0, (n.shake || 0) - dt);
     n.flash = Math.max(0, (n.flash || 0) - dt);
@@ -936,6 +1033,7 @@
       if (n.knockT <= 0) {
         n.knockPhase = null;
         n.knockT = 0;
+        n.knockAnimT = 0;
         n.anim = 'idle';
         n.vx = 0;
       }
@@ -1818,6 +1916,7 @@
     ctx.restore();
   }
   function drawKnockNinja(n) {
+    // Flipbook knockdown: sprite frames (Cocos Animation style), not rotated portrait
     ctx.save();
     ctx.translate(n.x, n.y);
     const shakeX = (n.shake > 0) ? Math.sin(sim * 70) * 5 * Math.min(1, n.shake / 0.2) : 0;
@@ -1827,32 +1926,40 @@
     ctx.ellipse(0, -2, 18, 5, 0, 0, Math.PI * 2);
     ctx.fill();
     const pal = PALETTE[n.palette] || PALETTE.green;
-    const phase = n.knockPhase;
-    ctx.save();
-    if (phase === 'prone' || phase === 'air') {
-      ctx.translate(0, -10);
-      ctx.rotate((n.face || 1) * -1.15);
-    } else if (phase === 'crawl') {
-      ctx.translate(0, -8);
-      ctx.rotate((n.face || 1) * -0.55);
-      ctx.translate(Math.sin(n.phase) * 2, 0);
-    } else if (phase === 'rise') {
-      ctx.translate(0, -18);
-      ctx.rotate((n.face || 1) * -0.25);
-    }
     if (n.glow > 0) {
       ctx.shadowColor = pal.scarf;
       ctx.shadowBlur = 18;
     }
     const alpha = (n.flash > 0 && Math.sin(sim * 55) > 0) ? 0.55 : 1;
-    const ok = drawHeroSprite(n.face || 1, alpha, n.palette || 'green', 0);
-    if (!ok) drawHero(n.phase || 0, 'idle', n.face || 1, alpha, n.palette, 0);
-    if (n.bones > 0) {
-      ctx.globalAlpha = Math.min(1, n.bones / 0.2);
-      drawBoneOverlay(n.face || 1);
-      ctx.globalAlpha = 1;
+    const fname = knockFrameName(n);
+    // green authored; blue/red reuse green knockdown frames (same sequence)
+    let ok = drawSpriteFrame(fname, n.face || 1, alpha, 82);
+    if (!ok) {
+      // fallback: old portrait lean only if frames not loaded yet
+      ctx.save();
+      const phase = n.knockPhase;
+      if (phase === 'prone' || phase === 'air') {
+        ctx.translate(0, -10);
+        ctx.rotate((n.face || 1) * -1.15);
+      } else if (phase === 'crawl') {
+        ctx.translate(0, -8);
+        ctx.rotate((n.face || 1) * -0.55);
+      } else if (phase === 'rise') {
+        ctx.translate(0, -18);
+        ctx.rotate((n.face || 1) * -0.25);
+      }
+      ok = drawHeroSprite(n.face || 1, alpha, n.palette || 'green', 0);
+      if (!ok) drawHero(n.phase || 0, 'idle', n.face || 1, alpha, n.palette, 0);
+      ctx.restore();
     }
-    ctx.restore();
+    if (n.bones > 0) {
+      const sk = drawSpriteFrame('hurt_skeleton', n.face || 1, Math.min(0.85, n.bones / 0.2), 82);
+      if (!sk) {
+        ctx.globalAlpha = Math.min(1, n.bones / 0.2);
+        drawBoneOverlay(n.face || 1);
+        ctx.globalAlpha = 1;
+      }
+    }
     ctx.restore();
   }
   function drawNinja(n) {
