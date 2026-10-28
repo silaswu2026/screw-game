@@ -95,6 +95,8 @@
   let crates = [];
   let checks = [];
   let springs = [];
+  let spikes = [];
+  let bombs = [];
   let boss = null;
   let goal = { x: 0, y: 0 };
   let spawn = { x: 80, y: 200 };
@@ -124,6 +126,8 @@
       throwT: 0, wallJumpT: 0, cool: 0, squash: 0, invuln: 0, justSpawn: 0,
       anim: 'idle', phase: 0, palette: palette,
       hp: MAX_HP, down: false, downT: 0, springCd: 0, springLock: 0,
+      shake: 0, flash: 0, glow: 0, bones: 0, spikeMsgCd: 0,
+      knockT: 0, knockPhase: null,
     };
   }
   const player = makeNinja('green');
@@ -350,10 +354,12 @@
   const LEVELS = [
     {
       name: '林间晨跑', en: 'Forest Jog',
-      hint: '跳过空隙，手里剑打史莱姆  Jump the gaps',
+      hint: '前方草地上有炸弹！踩上去会爆炸  Bomb on the grass',
       cols: 80, rows: 14, spawn: [3, 11], goal: [75, 11],
       checks: [[41, 11]],
       slimes: [[28, 11]], crates: [[22, 11]], walls: [], springs: [],
+      spikes: [[12, 14]],
+      bombs: [[7, 11]],
       boss: { c: 68, name: '史莱姆王', kind: 'slime', hp: 5 },
       coins: [[4, 9], [6, 9], [8, 9], [10, 9], [12, 9], [15, 8], [16, 7], [17, 8], [21, 9], [25, 9], [30, 9], [34, 9], [37, 8], [38, 7], [39, 8], [43, 9], [47, 9], [55, 9], [59, 8], [60, 7], [61, 8], [65, 9], [69, 9], [73, 9]],
       stars: [[50, 8]],
@@ -426,6 +432,8 @@
     n.throwT = 0; n.wallJumpT = 0; n.cool = 0; n.squash = 0; n.invuln = 0.4; n.justSpawn = 0.25;
     n.anim = 'idle'; n.hp = MAX_HP; n.down = false; n.downT = 0;
     n.springCd = 0; n.springLock = 0;
+    n.shake = 0; n.flash = 0; n.glow = 0; n.bones = 0; n.spikeMsgCd = 0;
+    n.knockT = 0; n.knockPhase = null;
   }
 
   function loadLevel(i) {
@@ -455,6 +463,14 @@
     });
     checks = def.checks.map(([c, r]) => Object.assign({ on: false }, feet(c, r)));
     springs = (def.springs || []).map(([c, r]) => Object.assign({ squish: 0 }, feet(c, r)));
+    spikes = (def.spikes || []).map((s) => {
+      const c0 = s[0], c1 = s[1], row = s.length > 2 ? s[2] : ground;
+      return { c0, c1, x0: c0 * T, x1: (c1 + 1) * T, y: row * T };
+    });
+    bombs = (def.bombs || []).map(([c, r]) => {
+      const p = feet(c, r);
+      return { x: p.x, y: p.y, armed: true, boomT: 0, cd: 0, fuse: 0 };
+    });
     goal = feet(def.goal[0], def.goal[1]);
     spawn = feet(def.spawn[0], def.spawn[1]);
     checkpoint = { x: spawn.x, y: spawn.y };
@@ -805,6 +821,128 @@
       downOrOver(n);
     }
   }
+  function hurtSpike(n) {
+    // Spikes decorative tonight — explosion is the demo trap.
+    void n;
+  }
+  function touchSpikes(n) {
+    void n;
+  }
+  function startKnockdown(n) {
+    n.knockPhase = 'prone';
+    n.knockT = 1.55;
+    n.vx = 0;
+    n.vy = 0;
+    n.grounded = true;
+    n.anim = 'prone';
+  }
+  function hurtBomb(n, bomb) {
+    if (!n || n.down || mode !== 'play') return;
+    if (n.knockPhase) return;
+    if (n.invuln > 0) return;
+    n.hp -= 1;
+    n.invuln = 0.9;
+    n.bones = 0.32;
+    n.flash = 0.18;
+    n.shake = 0.35;
+    n.glow = 0.4;
+    // shockwave fling then knockdown
+    const dir = n.x >= bomb.x ? 1 : -1;
+    n.vx = dir * 260;
+    n.vy = -320;
+    n.grounded = false;
+    n.face = -dir;
+    sfx.bump();
+    buzz(28);
+    toast('爆炸！-1');
+    puff(bomb.x, bomb.y - 10, '#ff9a3a', 14);
+    puff(n.x, n.y - 20, '#fff3a0', 8);
+    // enter knockdown after short airborne beat via knockArm
+    n.knockPhase = 'air';
+    n.knockT = 0.28;
+    if (n.hp <= 0) {
+      n.hp = 0;
+      n.knockPhase = null;
+      n.knockT = 0;
+      downOrOver(n);
+    }
+  }
+  function touchBombs(n) {
+    if (!n || n.down || n.knockPhase || !bombs.length) return;
+    for (let i = 0; i < bombs.length; i++) {
+      const b = bombs[i];
+      if (!b.armed || b.cd > 0) continue;
+      if (Math.abs(n.x - b.x) < 22 && n.y > b.y - 8 && n.y < b.y + 14) {
+        b.armed = false;
+        b.boomT = 0.55;
+        b.cd = 2.4;
+        hurtBomb(n, b);
+        return;
+      }
+    }
+  }
+  function updateBombs(dt) {
+    for (let i = 0; i < bombs.length; i++) {
+      const b = bombs[i];
+      if (b.boomT > 0) b.boomT = Math.max(0, b.boomT - dt);
+      if (b.cd > 0) {
+        b.cd = Math.max(0, b.cd - dt);
+        if (b.cd <= 0) b.armed = true;
+      }
+      b.fuse = (b.fuse || 0) + dt;
+    }
+  }
+  function tickKnock(n, dt) {
+    if (!n || !n.knockPhase) return false;
+    n.knockT -= dt;
+    n.shake = Math.max(0, (n.shake || 0) - dt);
+    n.flash = Math.max(0, (n.flash || 0) - dt);
+    n.glow = Math.max(0, (n.glow || 0) - dt);
+    n.bones = Math.max(0, (n.bones || 0) - dt);
+    n.invuln = Math.max(0, n.invuln - dt);
+    if (n.knockPhase === 'air') {
+      // let physics continue briefly; when timer ends or grounded, go prone
+      if (n.knockT <= 0 || n.grounded) {
+        startKnockdown(n);
+      }
+      return false; // still allow physics this frame via normal path if air+grounded handled
+    }
+    if (n.knockPhase === 'prone') {
+      n.vx = 0;
+      n.vy = 0;
+      n.anim = 'prone';
+      if (n.knockT <= 0.95) {
+        n.knockPhase = 'crawl';
+        n.anim = 'crawl';
+      }
+      return true;
+    }
+    if (n.knockPhase === 'crawl') {
+      n.vx = (n.face || 1) * 55;
+      n.vy = 0;
+      n.anim = 'crawl';
+      n.phase += dt * 10;
+      if (n.knockT <= 0.35) {
+        n.knockPhase = 'rise';
+        n.anim = 'rise';
+        n.vx = 0;
+      }
+      return true;
+    }
+    if (n.knockPhase === 'rise') {
+      n.vx = 0;
+      n.vy = 0;
+      n.anim = 'rise';
+      if (n.knockT <= 0) {
+        n.knockPhase = null;
+        n.knockT = 0;
+        n.anim = 'idle';
+        n.vx = 0;
+      }
+      return true;
+    }
+    return false;
+  }
   function dropTrail(n) {
     const speed = Math.hypot(n.vx, n.vy);
     if (speed <= 150) return;
@@ -839,6 +977,30 @@
       }
       return;
     }
+    // Explosion knockdown: prone → crawl → rise (blocks input)
+    if (n.knockPhase === 'prone' || n.knockPhase === 'crawl' || n.knockPhase === 'rise') {
+      tickKnock(n, dt);
+      n.vy += GRAV * dt;
+      if (n.vy > 980) n.vy = 980;
+      moveX(n, dt);
+      moveY(n, dt);
+      return;
+    }
+    if (n.knockPhase === 'air') {
+      tickKnock(n, dt);
+      if (n.knockPhase === 'prone' || n.knockPhase === 'crawl' || n.knockPhase === 'rise') {
+        moveX(n, dt);
+        moveY(n, dt);
+        return;
+      }
+      n.vy += GRAV * dt;
+      if (n.vy > 980) n.vy = 980;
+      moveX(n, dt);
+      moveY(n, dt);
+      if (n.grounded || n.knockT <= 0) startKnockdown(n);
+      n.anim = 'jump';
+      return;
+    }
     n.coyote = Math.max(0, n.coyote - dt);
     n.jumpBuf = Math.max(0, n.jumpBuf - dt);
     n.wallLock = Math.max(0, n.wallLock - dt);
@@ -850,6 +1012,11 @@
     n.justSpawn = Math.max(0, n.justSpawn - dt);
     n.springCd = Math.max(0, n.springCd - dt);
     n.springLock = Math.max(0, n.springLock - dt);
+    n.shake = Math.max(0, (n.shake || 0) - dt);
+    n.flash = Math.max(0, (n.flash || 0) - dt);
+    n.glow = Math.max(0, (n.glow || 0) - dt);
+    n.bones = Math.max(0, (n.bones || 0) - dt);
+    n.spikeMsgCd = Math.max(0, (n.spikeMsgCd || 0) - dt);
 
     let desired = n.vx;
     if (n.wallLock > 0) desired = n.vx;
@@ -1087,6 +1254,9 @@
     }
     controlNinja(player, input, dt);
     if (coop && mode === 'play') controlNinja(p2, input2, dt);
+    updateBombs(dt);
+    touchBombs(player);
+    if (coop) touchBombs(p2);
 
     for (let i = 0; i < trails.length; i++) if (trails[i].on) {
       trails[i].life -= dt;
@@ -1561,10 +1731,140 @@
       ctx.fillRect(b.x - 26, b.y - 74, 52 * Math.max(0, b.hp / b.max), 6);
     }
   }
-  function drawNinja(n) {
-    if (!n || n.down) return;
+  function drawBombPad(b) {
+    const x = b.x, y = b.y;
+    // warning pad on grass
+    ctx.fillStyle = '#1a1a1a';
+    for (let i = -1; i <= 1; i++) {
+      for (let j = 0; j < 2; j++) {
+        const px = x + i * 12 - 6;
+        const py = y - 2 + j * 6;
+        ctx.fillStyle = ((i + j) & 1) ? '#f2f2f2' : '#e23b3b';
+        ctx.fillRect(px, py - 6, 12, 6);
+      }
+    }
+    // bomb body sitting in / on dirt face just under grass
+    const bob = Math.sin((b.fuse || 0) * 8) * 1.5;
+    ctx.save();
+    ctx.translate(x, y + 18 + bob);
+    ctx.fillStyle = '#1b1b1b';
+    ctx.beginPath();
+    ctx.arc(0, 0, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(-3, -3, 3, 0, Math.PI * 2);
+    ctx.fill();
+    // fuse
+    ctx.strokeStyle = '#c4894a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -10);
+    ctx.quadraticCurveTo(6, -18, 4, -24);
+    ctx.stroke();
+    if (b.armed) {
+      ctx.fillStyle = '#ffd166';
+      ctx.beginPath();
+      ctx.arc(4, -24, 2.5 + Math.sin((b.fuse || 0) * 20), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    // shockwave ring
+    if (b.boomT > 0) {
+      const u = 1 - b.boomT / 0.55;
+      const R = 20 + u * 70;
+      ctx.strokeStyle = 'rgba(255,140,40,' + (1 - u) + ')';
+      ctx.lineWidth = 6 * (1 - u);
+      ctx.beginPath();
+      ctx.arc(x, y - 8, R, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,220,120,' + (0.45 * (1 - u)) + ')';
+      ctx.beginPath();
+      ctx.arc(x, y - 8, 18 + u * 28, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  function drawBoneOverlay(face) {
+    ctx.save();
+    ctx.scale(face, 1);
+    ctx.strokeStyle = '#ffffff';
+    ctx.fillStyle = '#ffffffcc';
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    // skull
+    ctx.beginPath();
+    ctx.arc(0, -52, 9, 0, Math.PI * 2);
+    ctx.fill();
+    // spine
+    ctx.beginPath();
+    ctx.moveTo(0, -42);
+    ctx.lineTo(0, -18);
+    ctx.stroke();
+    // ribs
+    for (let i = 0; i < 3; i++) {
+      const y = -38 + i * 6;
+      ctx.beginPath();
+      ctx.moveTo(-10, y);
+      ctx.quadraticCurveTo(0, y + 3, 10, y);
+      ctx.stroke();
+    }
+    // arms + legs
+    ctx.beginPath();
+    ctx.moveTo(0, -34); ctx.lineTo(-14, -22);
+    ctx.moveTo(0, -34); ctx.lineTo(14, -22);
+    ctx.moveTo(0, -18); ctx.lineTo(-10, -2);
+    ctx.moveTo(0, -18); ctx.lineTo(10, -2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  function drawKnockNinja(n) {
     ctx.save();
     ctx.translate(n.x, n.y);
+    const shakeX = (n.shake > 0) ? Math.sin(sim * 70) * 5 * Math.min(1, n.shake / 0.2) : 0;
+    ctx.translate(shakeX, 0);
+    ctx.fillStyle = '#00000022';
+    ctx.beginPath();
+    ctx.ellipse(0, -2, 18, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const pal = PALETTE[n.palette] || PALETTE.green;
+    const phase = n.knockPhase;
+    ctx.save();
+    if (phase === 'prone' || phase === 'air') {
+      ctx.translate(0, -10);
+      ctx.rotate((n.face || 1) * -1.15);
+    } else if (phase === 'crawl') {
+      ctx.translate(0, -8);
+      ctx.rotate((n.face || 1) * -0.55);
+      ctx.translate(Math.sin(n.phase) * 2, 0);
+    } else if (phase === 'rise') {
+      ctx.translate(0, -18);
+      ctx.rotate((n.face || 1) * -0.25);
+    }
+    if (n.glow > 0) {
+      ctx.shadowColor = pal.scarf;
+      ctx.shadowBlur = 18;
+    }
+    const alpha = (n.flash > 0 && Math.sin(sim * 55) > 0) ? 0.55 : 1;
+    const ok = drawHeroSprite(n.face || 1, alpha, n.palette || 'green', 0);
+    if (!ok) drawHero(n.phase || 0, 'idle', n.face || 1, alpha, n.palette, 0);
+    if (n.bones > 0) {
+      ctx.globalAlpha = Math.min(1, n.bones / 0.2);
+      drawBoneOverlay(n.face || 1);
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+    ctx.restore();
+  }
+  function drawNinja(n) {
+    if (!n) return;
+    if (n.down) return;
+    if (n.knockPhase) {
+      drawKnockNinja(n);
+      return;
+    }
+    ctx.save();
+    const shakeX = (n.shake > 0) ? Math.sin(sim * 70) * 4 * Math.min(1, n.shake / 0.2) : 0;
+    ctx.translate(n.x + shakeX, n.y);
     ctx.fillStyle = '#00000022';
     ctx.beginPath();
     ctx.ellipse(0, -2, 16, 5, 0, 0, Math.PI * 2);
@@ -1583,8 +1883,20 @@
     ctx.scale(sx, sy);
     const blink = n.invuln > 0 && Math.sin(sim * 40) > 0;
     const bob = n.anim === 'run' ? Math.abs(Math.sin(n.phase)) * 2.2 : (n.anim === 'jump' ? 3 : 0);
-    const ok = drawHeroSprite(n.face, blink ? 0.45 : 1, n.palette || 'green', bob);
-    if (!ok) drawHero(n.phase, n.anim, n.face, blink ? 0.45 : 1, n.palette, Math.abs(n.vx));
+    const pal = PALETTE[n.palette] || PALETTE.green;
+    if (n.glow > 0) {
+      ctx.shadowColor = pal.scarf;
+      ctx.shadowBlur = 16;
+    }
+    let alpha = blink ? 0.45 : 1;
+    if (n.flash > 0 && Math.sin(sim * 55) > 0) alpha = 0.5;
+    const ok = drawHeroSprite(n.face, alpha, n.palette || 'green', bob);
+    if (!ok) drawHero(n.phase, n.anim, n.face, alpha, n.palette, Math.abs(n.vx));
+    if (n.bones > 0) {
+      ctx.globalAlpha = Math.min(1, n.bones / 0.2);
+      drawBoneOverlay(n.face);
+      ctx.globalAlpha = 1;
+    }
     ctx.restore();
   }
   function drawWorld() {
@@ -1618,6 +1930,27 @@
       }
     }
     for (let i = 0; i < springs.length; i++) drawSpring(springs[i]);
+    // decorative spike tips on grass (non-damaging tonight)
+    for (let i = 0; i < spikes.length; i++) {
+      const s = spikes[i];
+      for (let c = s.c0; c <= s.c1; c++) {
+        for (let k = 0; k < 3; k++) {
+          const x = c * T + 6 + k * 12;
+          const y = s.y;
+          ctx.fillStyle = '#c5d0dc';
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + 5, y - 14);
+          ctx.lineTo(x + 10, y);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = '#7a8794';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+    }
+    for (let i = 0; i < bombs.length; i++) drawBombPad(bombs[i]);
     for (let i = 0; i < crates.length; i++) {
       const c = crates[i];
       if (c.dead) continue;
@@ -1984,6 +2317,12 @@
       face: n.face, anim: n.anim, phase: Math.round(n.phase * 100) / 100,
       hp: n.hp, down: !!n.down, inv: Math.round((n.invuln || 0) * 100) / 100,
       sq: Math.round((n.squash || 0) * 100) / 100,
+      kp: n.knockPhase || null,
+      kt: Math.round((n.knockT || 0) * 100) / 100,
+      sk: Math.round((n.shake || 0) * 100) / 100,
+      fl: Math.round((n.flash || 0) * 100) / 100,
+      gl: Math.round((n.glow || 0) * 100) / 100,
+      bn: Math.round((n.bones || 0) * 100) / 100,
     };
   }
   function netApplyNinja(n, s) {
@@ -1991,6 +2330,8 @@
     n.x = s.x; n.y = s.y; n.vx = s.vx; n.vy = s.vy;
     n.face = s.face; n.anim = s.anim; n.phase = s.phase;
     n.hp = s.hp; n.down = !!s.down; n.invuln = s.inv || 0; n.squash = s.sq || 0;
+    n.knockPhase = s.kp || null; n.knockT = s.kt || 0;
+    n.shake = s.sk || 0; n.flash = s.fl || 0; n.glow = s.gl || 0; n.bones = s.bn || 0;
   }
   function netBuildSnap() {
     const slimeBits = slimes.map((m) => (m.dead ? 1 : 0));
@@ -2016,12 +2357,17 @@
         ron: !!(boss.roller),
       };
     }
+    const bombBits = bombs.map((bb) => [
+      bb.armed ? 1 : 0,
+      Math.round((bb.boomT || 0) * 100) / 100,
+      Math.round((bb.cd || 0) * 100) / 100,
+    ]);
     return {
       t: 'snap', m: mode, lv: levelIndex, sim: Math.round(sim * 60) / 60,
       c: gotCoins, s: gotStars,
       p1: netPackNinja(player), p2: netPackNinja(p2),
       sl: slimeBits, co: coinBits, st: starBits, cr: crateBits, ck: checkBits,
-      sh, b,
+      sh, b, bm: bombBits,
       cx: Math.round(checkpoint.x), cy: Math.round(checkpoint.y),
     };
   }
@@ -2065,6 +2411,14 @@
     if (msg.st) for (let i = 0; i < stars.length && i < msg.st.length; i++) stars[i].got = !!msg.st[i];
     if (msg.cr) for (let i = 0; i < crates.length && i < msg.cr.length; i++) crates[i].dead = !!msg.cr[i];
     if (msg.ck) for (let i = 0; i < checks.length && i < msg.ck.length; i++) checks[i].on = !!msg.ck[i];
+    if (msg.bm) {
+      for (let i = 0; i < bombs.length && i < msg.bm.length; i++) {
+        const a = msg.bm[i];
+        bombs[i].armed = !!a[0];
+        bombs[i].boomT = a[1] || 0;
+        bombs[i].cd = a[2] || 0;
+      }
+    }
     for (let i = 0; i < shurikens.length; i++) shurikens[i].on = 0;
     if (msg.sh) {
       for (let i = 0; i < msg.sh.length && i < shurikens.length; i++) {
@@ -2088,8 +2442,17 @@
   function updateGuestNet(dt) {
     // guest: no world authority — camera + cosmetics only
     for (let i = 0; i < springs.length; i++) springs[i].squish = Math.max(0, springs[i].squish - dt);
+    updateBombs(dt);
     player.phase += dt * 8;
     p2.phase += dt * 8;
+    // local decay of cosmetic knock FX between snaps
+    [player, p2].forEach((n) => {
+      n.shake = Math.max(0, (n.shake || 0) - dt);
+      n.flash = Math.max(0, (n.flash || 0) - dt);
+      n.glow = Math.max(0, (n.glow || 0) - dt);
+      n.bones = Math.max(0, (n.bones || 0) - dt);
+      if (n.knockT > 0) n.knockT = Math.max(0, n.knockT - dt);
+    });
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
       if (!p.on) continue;
