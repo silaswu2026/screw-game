@@ -136,16 +136,45 @@
   };
   let pickColor = 'green';
   function applyPickColors() {
-    if (netRole === 'host' || netRole === 'guest') {
+    if (netRole === 'host') {
       player.palette = 'green';
       p2.palette = 'blue';
       return;
     }
+    if (netRole === 'guest') {
+      // 本机操纵的角色：B蓝或C红；对方主机仍是绿+蓝权威里的对应位
+      player.palette = 'green';
+      p2.palette = pickColor === 'red' ? 'red' : 'blue';
+      return;
+    }
     player.palette = pickColor;
-    p2.palette = pickColor === 'blue' ? 'green' : 'blue';
-    if (pickColor === 'red') p2.palette = 'blue';
+    p2.palette = pickColor === 'blue' ? 'green' : (pickColor === 'red' ? 'blue' : 'blue');
   }
 
+  const NINJA_IMG = { green: null, blue: null, red: null };
+  (function loadNinjaArt() {
+    ['green', 'blue', 'red'].forEach((c) => {
+      const im = new Image();
+      im.decoding = 'async';
+      im.src = 'ninjas/ninja-' + c + '.jpg';
+      im.onload = () => { NINJA_IMG[c] = im; };
+      NINJA_IMG[c] = im;
+    });
+  })();
+  function drawHeroSprite(face, alpha, palette, bob) {
+    const im = NINJA_IMG[palette] || NINJA_IMG.green;
+    if (!im || !im.complete || !im.naturalWidth) return false;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.scale(face, 1);
+    const h = 78;
+    const w = h * (im.naturalWidth / im.naturalHeight);
+    // portraits are full-body; draw feet at origin
+    ctx.translate(0, -bob);
+    ctx.drawImage(im, -w / 2, -h + 2, w, h);
+    ctx.restore();
+    return true;
+  }
   const brick = document.createElement('canvas');
   brick.width = brick.height = 40;
   {
@@ -1538,7 +1567,7 @@
     ctx.translate(n.x, n.y);
     ctx.fillStyle = '#00000022';
     ctx.beginPath();
-    ctx.ellipse(0, -2, 14, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -2, 16, 5, 0, 0, Math.PI * 2);
     ctx.fill();
     let sx = 1;
     let sy = 1;
@@ -1548,10 +1577,14 @@
       sx = 1 + 0.14 * u;
     } else if (n.vy < -40) {
       sy = 1.08; sx = 0.92;
+    } else if (n.anim === 'run') {
+      sy = 1 + Math.sin(n.phase * 2) * 0.03;
     }
     ctx.scale(sx, sy);
     const blink = n.invuln > 0 && Math.sin(sim * 40) > 0;
-    drawHero(n.phase, n.anim, n.face, blink ? 0.45 : 1, n.palette, Math.abs(n.vx));
+    const bob = n.anim === 'run' ? Math.abs(Math.sin(n.phase)) * 2.2 : (n.anim === 'jump' ? 3 : 0);
+    const ok = drawHeroSprite(n.face, blink ? 0.45 : 1, n.palette || 'green', bob);
+    if (!ok) drawHero(n.phase, n.anim, n.face, blink ? 0.45 : 1, n.palette, Math.abs(n.vx));
     ctx.restore();
   }
   function drawWorld() {
@@ -1756,7 +1789,9 @@
     ctx.save();
     ctx.translate(land ? viewW * 0.72 : viewW * 0.5, hy - 18);
     ctx.scale(sc, sc);
-    drawHero(sim * 10, 'run', 1, 1, pickColor || 'green', 180);
+    if (!drawHeroSprite(1, 1, pickColor || 'green', Math.abs(Math.sin(sim * 8)) * 3)) {
+      drawHero(sim * 10, 'run', 1, 1, pickColor || 'green', 180);
+    }
     ctx.restore();
   }
   function draw() {
@@ -2397,8 +2432,15 @@
       if (netRole === 'host') netSend({ t: 'cmd', a: 'again', lv: 0 });
     }
   });
-  document.getElementById('netHost').addEventListener('click', () => netOpenHost());
-  document.getElementById('netJoin').addEventListener('click', () => netOpenJoin());
+  document.getElementById('netHost').addEventListener('click', () => { pickColor = 'green'; netOpenHost(); });
+  document.getElementById('netJoin').addEventListener('click', () => { pickColor = 'blue'; netOpenJoin(); });
+  const netJoinCBtn = document.getElementById('netJoinC');
+  if (netJoinCBtn) netJoinCBtn.addEventListener('click', () => {
+    pickColor = 'red';
+    // 三人房：先按玩家B通道加入，进房后显示红忍者；完整三人同步下一轮补齐
+    toast('玩家C · 红忍者小宇');
+    netOpenJoin();
+  });
   document.getElementById('roomClose').addEventListener('click', () => netBackMenu());
   const roomStartBtn = document.getElementById('roomStart');
   if (roomStartBtn) roomStartBtn.addEventListener('click', () => netHostStart());

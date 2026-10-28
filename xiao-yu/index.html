@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1d4e38">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>小宇 / Xiao Yu</title>
-<link rel="stylesheet" href="style.css?v=2940">
+<link rel="stylesheet" href="style.css?v=2950">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -33,15 +33,15 @@
   <div class="castRow" id="castRow">
     <button type="button" class="cast on" data-color="green" aria-label="绿色忍者">
       <img src="ninjas/ninja-green.jpg" alt="绿忍者">
-      <span>绿 · 玩家A</span>
+      <span>绿 · 玩家A 芃芃</span>
     </button>
     <button type="button" class="cast" data-color="blue" aria-label="蓝色忍者">
       <img src="ninjas/ninja-blue.jpg" alt="蓝忍者">
-      <span>蓝 · 玩家B</span>
+      <span>蓝 · 玩家B 爸爸</span>
     </button>
     <button type="button" class="cast" data-color="red" aria-label="红色忍者">
       <img src="ninjas/ninja-red.jpg" alt="红忍者">
-      <span>红 · 可选</span>
+      <span>红 · 玩家C 小宇</span>
     </button>
   </div>
   <div class="modes" id="modes">
@@ -49,9 +49,22 @@
     <button id="mode2" type="button">同机双人</button>
   </div>
   <button id="play" type="button">开始 Start</button>
-  <div class="netRow">
-    <button id="netHost" type="button">玩家A</button>
-    <button id="netJoin" type="button">玩家B</button>
+  <div class="netRow netCast" id="netRow">
+    <button id="netHost" type="button" class="netCastBtn" aria-label="玩家A 绿色忍者">
+      <img src="ninjas/ninja-green.jpg" alt="绿忍者">
+      <span>玩家A</span>
+      <small>芃芃 · 绿</small>
+    </button>
+    <button id="netJoin" type="button" class="netCastBtn" aria-label="玩家B 蓝色忍者">
+      <img src="ninjas/ninja-blue.jpg" alt="蓝忍者">
+      <span>玩家B</span>
+      <small>爸爸 · 蓝</small>
+    </button>
+    <button id="netJoinC" type="button" class="netCastBtn" aria-label="玩家C 红色忍者">
+      <img src="ninjas/ninja-red.jpg" alt="红忍者">
+      <span>玩家C</span>
+      <small>小宇 · 红</small>
+    </button>
   </div>
   <div class="picks">
     <button type="button" data-lv="0">第1关</button>
@@ -60,7 +73,7 @@
   </div>
   <p class="keys">方向键 / AD 移动 · W / 空格跳 · F / J 投掷</p>
   <p class="netHint" style="background:#1a3a2a;padding:8px;border-radius:8px">新地址（无缓存）：<a href="../xiaoyu-play/" style="color:#7dffb3">打开最新小宇</a></p>
-  <p class="netHint">联网：两台打开本页 → 先A后B。左右跳投手动控制。微信请用右上角浏览器打开</p>
+  <p class="netHint">联网：点头像加入 — A绿芃芃 / B蓝爸爸 / C红小宇。微信请用右上角浏览器打开</p>
 </div>
 <div id="roomPanel" class="hidden" aria-hidden="true">
   <div class="roomCard">
@@ -118,6 +131,6 @@
   </div>
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="game.js?v=2940"></script>
+<script src="game.js?v=2950"></script>
 </body>
 </html>

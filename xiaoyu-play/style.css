@@ -103,3 +103,12 @@ button{font:inherit;font-weight:900;border:0;cursor:pointer}
 .cast.on{border-color:#3ecf6e;box-shadow:0 4px 0 #1f9d49}
 .cast[data-color="blue"].on{border-color:#3aa6ff;box-shadow:0 4px 0 #1868c4}
 .cast[data-color="red"].on{border-color:#ff5a5a;box-shadow:0 4px 0 #c62828}
+
+.netCast{gap:10px;align-items:stretch}
+.netCastBtn{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:108px;padding:8px 10px 10px!important;border-radius:18px!important;font-size:15px!important;line-height:1.15}
+.netCastBtn img{width:72px;height:72px;object-fit:cover;object-position:center top;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 0 #0002;background:#dff5e8}
+#netHost.netCastBtn{background:linear-gradient(#b8f2c8,#3ecf6e);color:#0d3b16;box-shadow:0 5px 0 #1f9d49}
+#netJoin.netCastBtn{background:linear-gradient(#9be7ff,#3db7e8);color:#083044;box-shadow:0 5px 0 #1d7eab}
+#netJoinC.netCastBtn{background:linear-gradient(#ffb4b4,#e53935);color:#4a0000;box-shadow:0 5px 0 #c62828}
+.netCastBtn small{font-size:11px;font-weight:800;opacity:.9}
+.cast img{object-position:center top}
