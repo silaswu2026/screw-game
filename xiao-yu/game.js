@@ -54,8 +54,11 @@
   let netPickLv = 0;
   let netGuestPrev = { left: false, right: false, jump: false, throw: false };
   let netOutAcc = 0;
-  const NET_PREFIX = 'shuyang-xy-';
-  const NET_JOIN_WAIT_MS = 28000;
+  const NET_PREFIX = 'shuyang-xy-ab-';
+  const NET_SLOTS = 24;
+  const NET_PROBE_MS = 1600;
+  const NET_JOIN_WAIT_MS = 32000;
+  let netMatchAbort = false;
 
   let cols = 1;
   let rows = 1;
@@ -1781,15 +1784,13 @@
 
   // ========== 联网双人 helpers ==========
   function netOnline() { return !!netRole; }
-  function netPeerId(code) { return NET_PREFIX + String(code || '').replace(/\D/g, '').slice(0, 2); }
-  function netMakeCode() {
-    const n = (Math.random() * 100) | 0;
-    return (n < 10 ? '0' : '') + n;
+  function netSlotId(i) {
+    const n = Math.max(0, Math.min(NET_SLOTS - 1, i | 0));
+    return NET_PREFIX + (n < 10 ? '0' : '') + n;
   }
-  function netJoinUrl(code) {
-    const base = location.origin + location.pathname.replace(/index\.html?$/, '');
-    return base + (base.endsWith('/') ? '' : '/') + '?room=' + encodeURIComponent(code);
-  }
+  function netPeerId(code) { return netSlotId(Number(code) || 0); }
+  function netMakeCode() { return '0'; }
+  function netJoinUrl() { return location.origin + location.pathname.replace(/index\.html?$/, ''); }
   function netSend(obj) {
     if (!netConn || !netLinked) return;
     try { netConn.send(obj); } catch (e) { /* drop */ }
@@ -1806,16 +1807,13 @@
   }
   function netShowRoom(kind) {
     const panel = document.getElementById('roomPanel');
-    const hostBox = document.getElementById('roomHostBox');
-    const joinBox = document.getElementById('roomJoinBox');
     panel.classList.remove('hidden');
     panel.setAttribute('aria-hidden', 'false');
-    hostBox.classList.toggle('hidden', kind !== 'host');
-    joinBox.classList.toggle('hidden', kind !== 'join');
-    document.getElementById('roomTitle').textContent = kind === 'host' ? '联网开房' : '加入房间';
+    document.getElementById('roomTitle').textContent = kind === 'host' ? '玩家A' : '玩家B';
     document.getElementById('roomSub').textContent = kind === 'host'
-      ? '你是绿色忍者 P1 · 好友是蓝色 P2'
-      : '输入两位数字，输对就直接进';
+      ? '你是绿色忍者 · 等待玩家B自动配对'
+      : '你是蓝色忍者 · 正在寻找玩家A';
+    document.getElementById('roomWait').textContent = kind === 'host' ? '等待玩家B…' : '正在配对…';
     document.getElementById('joinWait').textContent = '';
   }
   function netHideRoom() {
@@ -1842,13 +1840,13 @@
     conn.on('open', () => {
       netLinked = true;
       if (asHost) {
-        document.getElementById('roomWait').textContent = '好友已加入！选关后点开始';
-        document.getElementById('roomStart').disabled = false;
-        toast('好友来了！');
+        document.getElementById('roomWait').textContent = '配对成功！马上开始';
+        toast('玩家B来了！');
         netSend({ t: 'hello', code: netCode, role: 'host' });
+        setTimeout(() => { if (netRole === 'host' && netLinked) netHostStart(); }, 350);
       } else {
-        document.getElementById('joinWait').textContent = '已连上！等房主开始…';
-        toast('已加入房间 ' + netCode);
+        document.getElementById('roomWait').textContent = '配对成功！等一下就开打';
+        toast('已连上玩家A');
       }
     });
     conn.on('data', (msg) => netOnMsg(msg, asHost));
@@ -2076,133 +2074,119 @@
     }
     return true;
   }
+  function netClaimSlot(slot, onOk, onBusy) {
+    const id = netSlotId(slot);
+    let peer;
+    try { peer = new Peer(id, { debug: 0 }); } catch (e) { onBusy(slot); return; }
+    let settled = false;
+    const fail = () => {
+      if (settled) return;
+      settled = true;
+      try { peer.destroy(); } catch (e) {}
+      onBusy(slot);
+    };
+    peer.on('open', () => {
+      if (settled || netMatchAbort) return;
+      settled = true;
+      onOk(peer, slot);
+    });
+    peer.on('error', (err) => {
+      const t = String(err && err.type || err || '');
+      if (t.indexOf('unavailable') >= 0 || t.indexOf('taken') >= 0 || t.indexOf('ID') >= 0) fail();
+      else fail();
+    });
+    setTimeout(() => { if (!settled) fail(); }, 2500);
+  }
   function netOpenHost() {
     if (!netEnsurePeerJs()) return;
     unlock();
+    netMatchAbort = false;
     netDestroy();
     netRole = 'host';
-    netCode = netMakeCode();
     netPickLv = 0;
-    document.getElementById('roomCode').textContent = netCode;
-    document.getElementById('roomWait').textContent = '正在开房…';
-    document.getElementById('roomStart').disabled = true;
-    document.querySelectorAll('.roomLv button').forEach((b) => {
-      b.classList.toggle('on', Number(b.dataset.nlv) === netPickLv);
-    });
-    netDrawQr(netCode);
     netShowRoom('host');
-    const id = netPeerId(netCode);
-    try {
-      netPeer = new Peer(id, { debug: 0 });
-    } catch (e) {
-      toast('开房失败');
-      netDestroy();
-      return;
-    }
-    netPeer.on('open', () => {
-      document.getElementById('roomWait').textContent = '等待好友扫码加入…';
-    });
-    netPeer.on('connection', (conn) => {
-      if (netConn && netLinked) {
-        try { conn.close(); } catch (e) {}
+    document.getElementById('roomWait').textContent = '正在占座…';
+    let slot = 0;
+    const tryNext = () => {
+      if (netMatchAbort || netRole !== 'host') return;
+      if (slot >= NET_SLOTS) {
+        document.getElementById('roomWait').textContent = '座位满了，稍后再试';
+        toast('稍后再当玩家A');
         return;
       }
-      netBindConn(conn, true);
-    });
-    netPeer.on('error', (err) => {
-      const t = String(err && err.type || err || '');
-      if (t.indexOf('unavailable-id') >= 0 || t.indexOf('ID is taken') >= 0 || t.indexOf('taken') >= 0) {
-        toast('房间号被占用，换一个…');
-        setTimeout(() => netOpenHost(), 400);
-      } else {
-        toast('开房出错：' + t);
-      }
-    });
-    netPeer.on('disconnected', () => {
-      try { netPeer.reconnect(); } catch (e) {}
+      document.getElementById('roomWait').textContent = '等待玩家B…（座位' + (slot + 1) + '）';
+      const cur = slot;
+      slot += 1;
+      netClaimSlot(cur, (peer, s) => {
+        netPeer = peer;
+        netCode = String(s);
+        netPeer.on('connection', (conn) => {
+          if (netConn && netLinked) { try { conn.close(); } catch (e) {} return; }
+          netBindConn(conn, true);
+        });
+        netPeer.on('disconnected', () => { try { netPeer.reconnect(); } catch (e) {} });
+        document.getElementById('roomWait').textContent = '等待玩家B自动配对…';
+      }, () => tryNext());
+    };
+    tryNext();
+  }
+  function netProbeSlot(peer, slot) {
+    return new Promise((resolve) => {
+      if (netMatchAbort) { resolve(null); return; }
+      let done = false;
+      let conn;
+      const finish = (ok) => {
+        if (done) return;
+        done = true;
+        if (!ok) { try { if (conn) conn.close(); } catch (e) {} }
+        resolve(ok ? conn : null);
+      };
+      try {
+        conn = peer.connect(netSlotId(slot), { reliable: true });
+      } catch (e) { resolve(null); return; }
+      conn.on('open', () => finish(true));
+      conn.on('error', () => finish(false));
+      setTimeout(() => finish(false), NET_PROBE_MS);
     });
   }
-  let netJoinBusy = false;
-  function netOpenJoin(prefill) {
+  function netOpenJoin() {
     if (!netEnsurePeerJs()) return;
     unlock();
+    netMatchAbort = false;
     netDestroy();
-    netJoinBusy = false;
     netRole = 'guest';
     netShowRoom('join');
-    const inp = document.getElementById('roomInput');
-    const digits = String(prefill || '').replace(/\D/g, '').slice(0, 2);
-    inp.value = digits;
-    inp.focus();
-    if (digits.length === 2) setTimeout(() => netDoJoin(), 120);
-  }
-  function netDoJoin() {
-    if (!netEnsurePeerJs()) return;
-    if (netJoinBusy || netLinked) return;
-    const raw = (document.getElementById('roomInput').value || '').replace(/\D/g, '').slice(0, 2);
-    document.getElementById('roomInput').value = raw;
-    if (raw.length !== 2) {
-      document.getElementById('joinWait').textContent = '请输入两位数字';
+    document.getElementById('roomWait').textContent = '正在寻找玩家A…';
+    let peer;
+    try { peer = new Peer({ debug: 0 }); } catch (e) {
+      toast('联网失败');
       return;
     }
-    unlock();
-    netJoinBusy = true;
-    netCode = raw;
-    document.getElementById('joinWait').textContent = '正在连接，请稍等…';
-    try { if (netPeer) netPeer.destroy(); } catch (e) {}
-    netPeer = new Peer({ debug: 0 });
-    let waitTimer = null;
-    const failHint = () => {
+    netPeer = peer;
+    peer.on('error', () => {
       if (!netLinked) {
-        document.getElementById('joinWait').textContent = '还在等…确认房主开着，或再输一次两位数字';
-        netJoinBusy = false;
+        document.getElementById('roomWait').textContent = '配对失败，再点玩家B试试';
+        netMatchAbort = false;
       }
-    };
-    netPeer.on('open', () => {
-      const conn = netPeer.connect(netPeerId(netCode), { reliable: true });
-      netBindConn(conn, false);
-      // PeerJS: missing host often fires peer-unavailable on the connection
-      conn.on('error', (err) => {
-        const t = String(err && err.type || err || '');
-        if (netLinked) return;
-        if (t.indexOf('peer-unavailable') >= 0 || t.indexOf('Unavailable') >= 0) {
-          document.getElementById('joinWait').textContent = '房间 ' + netCode + ' 不存在或房主没开，换个两位数字';
-          toast('房间码不对');
-          netJoinBusy = false;
-          if (waitTimer) clearTimeout(waitTimer);
-        }
-      });
-      waitTimer = setTimeout(failHint, NET_JOIN_WAIT_MS);
-      setTimeout(() => {
-        if (netLinked) return;
-        try {
-          const again = netPeer.connect(netPeerId(netCode), { reliable: true });
-          netBindConn(again, false);
-          again.on('error', (err) => {
-            const t = String(err && err.type || err || '');
-            if (netLinked) return;
-            if (t.indexOf('peer-unavailable') >= 0 || t.indexOf('Unavailable') >= 0) {
-              document.getElementById('joinWait').textContent = '房间 ' + netCode + ' 不存在或房主没开，换个两位数字';
-              toast('房间码不对');
-              netJoinBusy = false;
-              if (waitTimer) clearTimeout(waitTimer);
-            }
-          });
-        } catch (e) {}
-      }, Math.floor(NET_JOIN_WAIT_MS / 2));
     });
-    netPeer.on('error', (err) => {
-      const t = String(err && err.type || err || '');
-      if (t.indexOf('peer-unavailable') >= 0) {
-        document.getElementById('joinWait').textContent = '房间码不对，这个房间不存在';
-      } else {
-        document.getElementById('joinWait').textContent = '连接失败，再试两位数字';
+    peer.on('open', async () => {
+      for (let s = 0; s < NET_SLOTS; s++) {
+        if (netMatchAbort || netLinked) return;
+        document.getElementById('roomWait').textContent = '正在寻找玩家A…（' + (s + 1) + '/' + NET_SLOTS + '）';
+        const conn = await netProbeSlot(peer, s);
+        if (conn) {
+          netCode = String(s);
+          netBindConn(conn, false);
+          document.getElementById('roomWait').textContent = '配对成功！马上开始';
+          return;
+        }
       }
-      toast('加入失败');
-      netJoinBusy = false;
-      if (waitTimer) clearTimeout(waitTimer);
+      document.getElementById('roomWait').textContent = '没找到玩家A，请让对方先点玩家A，再点玩家B';
+      toast('先让一边点玩家A');
     });
   }
+  function netDoJoin() { netOpenJoin(); }
+
   function netHostStart() {
     if (netRole !== 'host' || !netLinked) {
       toast('等好友加入后再开始');
@@ -2214,6 +2198,7 @@
     toast('开始！你是绿色忍者');
   }
   function netBackMenu() {
+    netMatchAbort = true;
     netDestroy();
     netHideRoom();
     mode = 'title';
@@ -2271,7 +2256,7 @@
         netPickLv = Number(b.dataset.lv);
         document.querySelectorAll('.roomLv button').forEach((x) => x.classList.toggle('on', Number(x.dataset.nlv) === netPickLv));
         if (netLinked) netHostStart();
-        else toast('先等好友加入，或点联网开房');
+        else toast('先点玩家A等待配对');
         return;
       }
       unlock(); start(Number(b.dataset.lv), wantCoop);
@@ -2295,24 +2280,10 @@
     }
   });
   document.getElementById('netHost').addEventListener('click', () => netOpenHost());
-  document.getElementById('netJoin').addEventListener('click', () => netOpenJoin(''));
+  document.getElementById('netJoin').addEventListener('click', () => netOpenJoin());
   document.getElementById('roomClose').addEventListener('click', () => netBackMenu());
-  document.getElementById('roomStart').addEventListener('click', () => netHostStart());
-  document.getElementById('roomJoinGo').addEventListener('click', () => netDoJoin());
-  document.getElementById('roomInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); netDoJoin(); }
-  });
-  document.getElementById('roomInput').addEventListener('input', () => {
-    const inp = document.getElementById('roomInput');
-    inp.value = String(inp.value || '').replace(/\D/g, '').slice(0, 2);
-    if (inp.value.length === 2) netDoJoin();
-  });
-  document.querySelectorAll('.roomLv button').forEach((b) => {
-    b.addEventListener('click', () => {
-      netPickLv = Number(b.dataset.nlv);
-      document.querySelectorAll('.roomLv button').forEach((x) => x.classList.toggle('on', Number(x.dataset.nlv) === netPickLv));
-    });
-  });
+  const roomStartBtn = document.getElementById('roomStart');
+  if (roomStartBtn) roomStartBtn.addEventListener('click', () => netHostStart());
   const P1K = {
     KeyA: 'left', KeyD: 'right', ArrowLeft: 'left', ArrowRight: 'right',
     KeyW: 'jump', ArrowUp: 'jump', Space: 'jump',
@@ -2339,9 +2310,12 @@
   syncChrome();
   requestAnimationFrame(frame);
   try {
-    const q = new URLSearchParams(location.search).get('room');
-    if (q) {
-      setTimeout(() => netOpenJoin(q), 200);
+    // A/B matchmaking: no room codes. Optional ?b=1 opens as player B.
+    const q = new URLSearchParams(location.search);
+    if (q.get('b') === '1' || q.get('as') === 'b') {
+      setTimeout(() => netOpenJoin(), 200);
+    } else if (q.get('a') === '1' || q.get('as') === 'a') {
+      setTimeout(() => netOpenHost(), 200);
     }
   } catch (e) { /* ignore */ }
 

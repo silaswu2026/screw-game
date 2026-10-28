@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1d4e38">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>小宇 / Xiao Yu</title>
-<link rel="stylesheet" href="style.css?v=2806">
+<link rel="stylesheet" href="style.css?v=2807">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -36,8 +36,8 @@
   </div>
   <button id="play" type="button">开始 Start</button>
   <div class="netRow">
-    <button id="netHost" type="button">联网开房</button>
-    <button id="netJoin" type="button">加入房间</button>
+    <button id="netHost" type="button">玩家A</button>
+    <button id="netJoin" type="button">玩家B</button>
   </div>
   <div class="picks">
     <button type="button" data-lv="0">第1关</button>
@@ -45,31 +45,28 @@
     <button type="button" data-lv="2">第3关</button>
   </div>
   <p class="keys">方向键 / AD 移动 · W / 空格跳 · F / J 投掷</p>
-  <p class="netHint">联网：房主开房出两位数字，好友扫码或输入两位数字即进</p>
+  <p class="netHint">联网：一人点玩家A，另一人点玩家B，自动配对开打</p>
 </div>
 <div id="roomPanel" class="hidden" aria-hidden="true">
   <div class="roomCard">
-    <h2 id="roomTitle">联网双人</h2>
-    <p id="roomSub">开房或加入</p>
-    <div id="roomHostBox" class="hidden">
-      <div class="roomCodeWrap">房间码 <b id="roomCode">--</b></div>
-      <canvas id="roomQr" width="160" height="160" aria-label="加入二维码"></canvas>
-      <p class="roomWait" id="roomWait">等待好友扫码加入…</p>
-      <div class="roomLv">
-        <button type="button" data-nlv="0">第1关</button>
-        <button type="button" data-nlv="1">第2关</button>
-        <button type="button" data-nlv="2">第3关</button>
-      </div>
-      <button id="roomStart" type="button" disabled>好友到齐后开始</button>
-    </div>
+    <h2 id="roomTitle">联网配对</h2>
+    <p id="roomSub">自动寻找搭档</p>
+    <p class="roomWait" id="roomWait">请稍等…</p>
+    <p class="roomWait hidden" id="joinWait"></p>
+    <div id="roomHostBox" class="hidden"></div>
     <div id="roomJoinBox" class="hidden">
-      <label class="roomLab">输入房间码
-        <input id="roomInput" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" spellcheck="false" placeholder="两位数字">
-      </label>
-      <button id="roomJoinGo" type="button" class="hidden" aria-hidden="true">加入</button>
-      <p class="roomWait" id="joinWait"></p>
+      <input id="roomInput" class="hidden" aria-hidden="true" tabindex="-1">
+      <button id="roomJoinGo" class="hidden" type="button" aria-hidden="true">加入</button>
     </div>
-    <button id="roomClose" class="roomClose" type="button">返回菜单</button>
+    <canvas id="roomQr" class="hidden" width="1" height="1" aria-hidden="true"></canvas>
+    <b id="roomCode" class="hidden" aria-hidden="true"></b>
+    <button id="roomStart" class="hidden" type="button" aria-hidden="true">开始</button>
+    <div class="roomLv hidden" aria-hidden="true">
+      <button type="button" data-nlv="0">第1关</button>
+      <button type="button" data-nlv="1">第2关</button>
+      <button type="button" data-nlv="2">第3关</button>
+    </div>
+    <button id="roomClose" class="roomClose" type="button">取消</button>
   </div>
 </div>
 <div id="panel" class="hidden">
@@ -106,7 +103,6 @@
   </div>
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
-<script src="game.js?v=2806"></script>
+<script src="game.js?v=2807"></script>
 </body>
 </html>
