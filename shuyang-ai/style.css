@@ -155,6 +155,7 @@ input[type=range]{width:100%;height:36px}
   .day-links{grid-template-columns:1fr}
   .cast-caption{font-size:12px}
 }
+a.kid-entry{display:flex;align-items:center;justify-content:center;margin-top:10px;min-height:48px;border-radius:999px;border:1px solid #ffe9a066;color:var(--gold);font-weight:700;text-decoration:none}
 @media (prefers-reduced-motion:reduce){
   .talking,.cube{animation:none;transition:none}
 }
