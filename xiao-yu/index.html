@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1d4e38">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>小宇 / Xiao Yu</title>
-<link rel="stylesheet" href="style.css?v=2804">
+<link rel="stylesheet" href="style.css?v=2805">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -45,14 +45,14 @@
     <button type="button" data-lv="2">第3关</button>
   </div>
   <p class="keys">方向键 / AD 移动 · W / 空格跳 · F / J 投掷</p>
-  <p class="netHint">联网：房主开房出码/二维码，好友扫码或输入房间码</p>
+  <p class="netHint">联网：房主开房出两位数字，好友扫码或输入两位数字即进</p>
 </div>
 <div id="roomPanel" class="hidden" aria-hidden="true">
   <div class="roomCard">
     <h2 id="roomTitle">联网双人</h2>
     <p id="roomSub">开房或加入</p>
     <div id="roomHostBox" class="hidden">
-      <div class="roomCodeWrap">房间码 <b id="roomCode">----</b></div>
+      <div class="roomCodeWrap">房间码 <b id="roomCode">--</b></div>
       <canvas id="roomQr" width="160" height="160" aria-label="加入二维码"></canvas>
       <p class="roomWait" id="roomWait">等待好友扫码加入…</p>
       <div class="roomLv">
@@ -64,9 +64,9 @@
     </div>
     <div id="roomJoinBox" class="hidden">
       <label class="roomLab">输入房间码
-        <input id="roomInput" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="例如 A3K9">
+        <input id="roomInput" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" spellcheck="false" placeholder="两位数字">
       </label>
-      <button id="roomJoinGo" type="button">加入</button>
+      <button id="roomJoinGo" type="button" class="hidden" aria-hidden="true">加入</button>
       <p class="roomWait" id="joinWait"></p>
     </div>
     <button id="roomClose" class="roomClose" type="button">返回菜单</button>
@@ -107,6 +107,6 @@
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
-<script src="game.js?v=2804"></script>
+<script src="game.js?v=2805"></script>
 </body>
 </html>

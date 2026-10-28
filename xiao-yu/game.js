@@ -54,8 +54,8 @@
   let netPickLv = 0;
   let netGuestPrev = { left: false, right: false, jump: false, throw: false };
   let netOutAcc = 0;
-  const NET_ALPH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const NET_PREFIX = 'shuyang-gn-';
+  const NET_PREFIX = 'shuyang-xy-';
+  const NET_JOIN_WAIT_MS = 28000;
 
   let cols = 1;
   let rows = 1;
@@ -1781,11 +1781,10 @@
 
   // ========== 联网双人 helpers ==========
   function netOnline() { return !!netRole; }
-  function netPeerId(code) { return NET_PREFIX + String(code || '').toUpperCase(); }
+  function netPeerId(code) { return NET_PREFIX + String(code || '').replace(/\D/g, '').slice(0, 2); }
   function netMakeCode() {
-    let s = '';
-    for (let i = 0; i < 5; i++) s += NET_ALPH[(Math.random() * NET_ALPH.length) | 0];
-    return s;
+    const n = (Math.random() * 100) | 0;
+    return (n < 10 ? '0' : '') + n;
   }
   function netJoinUrl(code) {
     const base = location.origin + location.pathname.replace(/index\.html?$/, '');
@@ -1816,7 +1815,7 @@
     document.getElementById('roomTitle').textContent = kind === 'host' ? '联网开房' : '加入房间';
     document.getElementById('roomSub').textContent = kind === 'host'
       ? '你是绿色忍者 P1 · 好友是蓝色 P2'
-      : '输入房间码，或扫房主二维码';
+      : '输入两位数字，输对就直接进';
     document.getElementById('joinWait').textContent = '';
   }
   function netHideRoom() {
@@ -2112,10 +2111,9 @@
     });
     netPeer.on('error', (err) => {
       const t = String(err && err.type || err || '');
-      if (t.indexOf('unavailable-id') >= 0 || t.indexOf('ID is taken') >= 0) {
-        toast('房间码撞车，再开一次');
-        netDestroy();
-        netHideRoom();
+      if (t.indexOf('unavailable-id') >= 0 || t.indexOf('ID is taken') >= 0 || t.indexOf('taken') >= 0) {
+        toast('房间号被占用，换一个…');
+        setTimeout(() => netOpenHost(), 400);
       } else {
         toast('开房出错：' + t);
       }
@@ -2124,38 +2122,60 @@
       try { netPeer.reconnect(); } catch (e) {}
     });
   }
+  let netJoinBusy = false;
   function netOpenJoin(prefill) {
     if (!netEnsurePeerJs()) return;
     unlock();
     netDestroy();
+    netJoinBusy = false;
     netRole = 'guest';
     netShowRoom('join');
     const inp = document.getElementById('roomInput');
-    if (prefill) inp.value = String(prefill).toUpperCase();
+    const digits = String(prefill || '').replace(/\D/g, '').slice(0, 2);
+    inp.value = digits;
     inp.focus();
+    if (digits.length === 2) setTimeout(() => netDoJoin(), 120);
   }
   function netDoJoin() {
     if (!netEnsurePeerJs()) return;
-    const raw = (document.getElementById('roomInput').value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (raw.length < 4) {
-      document.getElementById('joinWait').textContent = '房间码太短啦';
+    if (netJoinBusy || netLinked) return;
+    const raw = (document.getElementById('roomInput').value || '').replace(/\D/g, '').slice(0, 2);
+    document.getElementById('roomInput').value = raw;
+    if (raw.length !== 2) {
+      document.getElementById('joinWait').textContent = '请输入两位数字';
       return;
     }
     unlock();
+    netJoinBusy = true;
     netCode = raw;
-    document.getElementById('joinWait').textContent = '正在连接…';
+    document.getElementById('joinWait').textContent = '正在连接，请稍等…';
     try { if (netPeer) netPeer.destroy(); } catch (e) {}
     netPeer = new Peer({ debug: 0 });
+    let waitTimer = null;
+    const failHint = () => {
+      if (!netLinked) {
+        document.getElementById('joinWait').textContent = '还在等…确认房主开着，或再输一次两位数字';
+        netJoinBusy = false;
+      }
+    };
     netPeer.on('open', () => {
       const conn = netPeer.connect(netPeerId(netCode), { reliable: true });
       netBindConn(conn, false);
+      waitTimer = setTimeout(failHint, NET_JOIN_WAIT_MS);
+      // one quiet retry midway
       setTimeout(() => {
-        if (!netLinked) document.getElementById('joinWait').textContent = '连不上？请确认房主还开着，或再试一次';
-      }, 8000);
+        if (netLinked) return;
+        try {
+          const again = netPeer.connect(netPeerId(netCode), { reliable: true });
+          netBindConn(again, false);
+        } catch (e) {}
+      }, Math.floor(NET_JOIN_WAIT_MS / 2));
     });
-    netPeer.on('error', (err) => {
-      document.getElementById('joinWait').textContent = '连接失败，检查房间码';
+    netPeer.on('error', () => {
+      document.getElementById('joinWait').textContent = '连接失败，再试两位数字';
       toast('加入失败');
+      netJoinBusy = false;
+      if (waitTimer) clearTimeout(waitTimer);
     });
   }
   function netHostStart() {
@@ -2256,6 +2276,11 @@
   document.getElementById('roomJoinGo').addEventListener('click', () => netDoJoin());
   document.getElementById('roomInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); netDoJoin(); }
+  });
+  document.getElementById('roomInput').addEventListener('input', () => {
+    const inp = document.getElementById('roomInput');
+    inp.value = String(inp.value || '').replace(/\D/g, '').slice(0, 2);
+    if (inp.value.length === 2) netDoJoin();
   });
   document.querySelectorAll('.roomLv button').forEach((b) => {
     b.addEventListener('click', () => {
