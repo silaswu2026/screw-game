@@ -18,9 +18,8 @@
       title: '人怎么动',
       with: ['小雨', '爸爸', '澍暘'],
       principle: '2D 是很多张画一张一张换；3D 是骨头架子在摆，皮跟着动。',
-      // TODO: set video.url to a YouTube link or a local mp4 when tonight's explainer is ready.
-      // Empty url shows the kid state 「视频马上到」 and does not block 下一步.
-      video: { url: '' },
+      // Relative to kid.html. An empty url still shows 「视频马上到」 and does not block 下一步.
+      video: { url: 'media/how-characters-move-2d-3d.mp4' },
       guess: {
         prompt: '玩绿忍者时，爸爸喊暂停，你猜：换画还是摆骨头？',
         options: [
@@ -139,7 +138,9 @@
   function videoSlot(url) {
     const src = safeVideo(url);
     if (!src) return '<div class="slot soon" id="slot"><div class="emoji">🎬</div><p>视频马上到</p></div>';
-    if (src.kind === 'file') return `<div class="slot" id="slot"><video id="clip" controls playsinline src="${esc(src.href)}"></video></div>`;
+    if (src.kind === 'file') {
+      return `<div class="slot slot-file" id="slot"><video id="clip" controls playsinline webkit-playsinline="true" x5-playsinline="true" x5-video-player-type="h5" preload="metadata" src="${esc(src.href)}"></video></div>`;
+    }
     return `<div class="slot" id="slot"><iframe id="clip" title="小视频" src="${esc(src.href)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>`;
   }
 
