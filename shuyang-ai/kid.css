@@ -1,0 +1,211 @@
+:root {
+  --bg0: #0f1230;
+  --bg1: #1b2152;
+  --text: #f7f4ff;
+  --gold: #ffe7a0;
+  --line: #4a5290;
+  --green: #4ea85c;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  min-height: 100dvh;
+  color: var(--text);
+  font-family: -apple-system, "PingFang SC", "Noto Sans SC", sans-serif;
+  background:
+    radial-gradient(900px 420px at 80% -10%, #5a3d9a55, transparent 60%),
+    radial-gradient(700px 380px at 10% 0%, #2f6f8f44, transparent 55%),
+    linear-gradient(180deg, var(--bg0), var(--bg1) 48%, #24305f);
+}
+#app {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: calc(18px + env(safe-area-inset-top)) 18px calc(16px + env(safe-area-inset-bottom));
+}
+.screen {
+  min-height: calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 8px 0 12px;
+}
+.kicker {
+  margin: 0;
+  color: var(--gold);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(32px, 9vw, 44px);
+  line-height: 1.15;
+  font-weight: 800;
+}
+.huge {
+  margin: 0;
+  font-size: clamp(28px, 7.4vw, 40px);
+  line-height: 1.35;
+  font-weight: 800;
+}
+.prompt {
+  margin: 0;
+  font-size: clamp(24px, 6.4vw, 32px);
+  line-height: 1.4;
+  font-weight: 800;
+}
+.line {
+  margin: 0;
+  font-size: clamp(22px, 5.8vw, 28px);
+  line-height: 1.4;
+  font-weight: 800;
+}
+.miss {
+  margin: 0;
+  color: var(--gold);
+  font-size: 22px;
+  font-weight: 800;
+}
+.hello {
+  margin: 0;
+  color: var(--gold);
+  font-size: 18px;
+  font-weight: 800;
+}
+.faces {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin: 0;
+}
+.faces figure { margin: 0; width: 96px; }
+.faces img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  border: 3px solid #ffe9a088;
+  background: #1a2048;
+}
+.faces figcaption {
+  margin-top: 8px;
+  color: var(--gold);
+  font-size: 16px;
+  font-weight: 800;
+}
+.face.xiaoyu { object-position: 32% 34%; }
+.face.dad, .face.son { object-position: center 16%; }
+.star {
+  font-size: 72px;
+  line-height: 1;
+  margin: 0;
+}
+.star.pop { animation: pop 0.45s ease; }
+@keyframes pop {
+  0% { transform: scale(0.4); }
+  70% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+.dots i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff33;
+  display: block;
+}
+.dots i.on { background: var(--gold); }
+.dock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: auto;
+}
+button, a.btn {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 76px;
+  padding: 16px 18px;
+  border: 0;
+  border-radius: 22px;
+  background: #3f4780;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+button.primary, a.primary {
+  background: linear-gradient(180deg, #78d484, #4ea85c);
+  box-shadow: 0 4px 0 #2f6d3a;
+}
+button.choice {
+  background: #161c44;
+  border: 2px solid #ffe9a066;
+  min-height: 84px;
+}
+button:active, a.btn:active { transform: translateY(2px); }
+button.primary:active, a.primary:active { box-shadow: 0 2px 0 #2f6d3a; }
+.slot {
+  width: 100%;
+  min-height: 180px;
+  border-radius: 24px;
+  border: 2px solid #ffffff22;
+  background: #12183acc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+}
+.slot .emoji { font-size: 48px; line-height: 1; }
+.slot p { margin: 0; font-size: 28px; font-weight: 800; }
+.slot.ping { animation: ping 0.6s ease; }
+@keyframes ping {
+  50% { border-color: var(--gold); transform: scale(1.02); }
+}
+.slot video, .slot iframe {
+  width: 100%;
+  height: min(38dvh, 220px);
+  border: 0;
+  background: #000;
+}
+.sharebox {
+  width: 100%;
+  min-height: 72px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: #121633;
+  color: var(--text);
+  font-size: 14px;
+  padding: 10px;
+}
+.boom { padding: 24px; color: #ffb4b4; font-size: 18px; }
+@media (prefers-reduced-motion: reduce) {
+  .star.pop, .slot.ping { animation: none; }
+}
