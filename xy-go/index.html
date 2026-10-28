@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1d4e38">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>小宇 / Xiao Yu</title>
-<link rel="stylesheet" href="style.css?v=2930">
+<link rel="stylesheet" href="style.css?v=2940">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -30,6 +30,20 @@
 <div id="menu">
   <h1>小宇 <span>Xiao Yu</span></h1>
   <p class="lead">跑、跳、蹬墙、扔手里剑</p>
+  <div class="castRow" id="castRow">
+    <button type="button" class="cast on" data-color="green" aria-label="绿色忍者">
+      <img src="ninjas/ninja-green.jpg" alt="绿忍者">
+      <span>绿 · 玩家A</span>
+    </button>
+    <button type="button" class="cast" data-color="blue" aria-label="蓝色忍者">
+      <img src="ninjas/ninja-blue.jpg" alt="蓝忍者">
+      <span>蓝 · 玩家B</span>
+    </button>
+    <button type="button" class="cast" data-color="red" aria-label="红色忍者">
+      <img src="ninjas/ninja-red.jpg" alt="红忍者">
+      <span>红 · 可选</span>
+    </button>
+  </div>
   <div class="modes" id="modes">
     <button id="mode1" class="on" type="button">单人</button>
     <button id="mode2" type="button">同机双人</button>
@@ -103,6 +117,6 @@
   </div>
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="game.js?v=2930"></script>
+<script src="game.js?v=2940"></script>
 </body>
 </html>

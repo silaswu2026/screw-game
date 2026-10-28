@@ -132,7 +132,19 @@
   const PALETTE = {
     green: { scarf: '#1fa85a', sash: '#2fbe62', band: '#178a45', eye: '#7dff6a', plate: '#e6ebf0' },
     blue: { scarf: '#1f7de0', sash: '#3aa6ff', band: '#1868c4', eye: '#8fd4ff', plate: '#e6ebf0' },
+    red: { scarf: '#e53935', sash: '#ff5252', band: '#c62828', eye: '#ff8a80', plate: '#e6ebf0' },
   };
+  let pickColor = 'green';
+  function applyPickColors() {
+    if (netRole === 'host' || netRole === 'guest') {
+      player.palette = 'green';
+      p2.palette = 'blue';
+      return;
+    }
+    player.palette = pickColor;
+    p2.palette = pickColor === 'blue' ? 'green' : 'blue';
+    if (pickColor === 'red') p2.palette = 'blue';
+  }
 
   const brick = document.createElement('canvas');
   brick.width = brick.height = 40;
@@ -461,6 +473,10 @@
     hp1.style.width = Math.max(0, player.hp) * 20 + '%';
     hp2.style.width = Math.max(0, p2.hp) * 20 + '%';
     bar2.classList.toggle('hidden', !coop && !netRole);
+    const b1 = document.querySelector('#bars .bar span');
+    const b2 = document.querySelector('#bar2 span');
+    if (b1) b1.textContent = netRole === 'guest' ? 'A绿' : (player.palette === 'red' ? '红' : player.palette === 'blue' ? '蓝' : '绿');
+    if (b2) b2.textContent = netRole ? 'B蓝' : (p2.palette === 'red' ? '红' : '蓝');
   }
   function syncChrome() {
     menu.classList.toggle('hidden', mode !== 'title');
@@ -493,6 +509,7 @@
     wantCoop = coop;
     mode1.classList.toggle('on', !coop);
     mode2.classList.toggle('on', coop);
+    applyPickColors();
     mode = 'play';
     loadLevel(i);
     syncChrome();
@@ -1739,7 +1756,7 @@
     ctx.save();
     ctx.translate(land ? viewW * 0.72 : viewW * 0.5, hy - 18);
     ctx.scale(sc, sc);
-    drawHero(sim * 10, 'run', 1, 1, 'green', 180);
+    drawHero(sim * 10, 'run', 1, 1, pickColor || 'green', 180);
     ctx.restore();
   }
   function draw() {
@@ -2324,6 +2341,15 @@
   hold(document.getElementById('p2R'), 'right', press2);
   hold(document.getElementById('p2J'), 'jump', press2);
   hold(document.getElementById('p2T'), 'throw', press2);
+  document.querySelectorAll('#castRow .cast').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (netRole) return;
+      pickColor = btn.getAttribute('data-color') || 'green';
+      document.querySelectorAll('#castRow .cast').forEach((b) => b.classList.toggle('on', b === btn));
+      applyPickColors();
+      toast(pickColor === 'green' ? '绿忍者（玩家A）' : pickColor === 'blue' ? '蓝忍者（玩家B）' : '红忍者（可选）');
+    });
+  });
   mode1.addEventListener('click', () => {
     if (netRole) return;
     wantCoop = false;

@@ -96,3 +96,10 @@ button{font:inherit;font-weight:900;border:0;cursor:pointer}
   .roomCard{padding:12px;width:min(70vw,420px)}
   #roomQr{width:110px;height:110px}
 }
+
+.castRow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0 6px;pointer-events:auto;max-width:96vw}
+.cast{pointer-events:auto;background:#ffffffee;border:3px solid #fff;border-radius:16px;padding:6px;width:104px;box-shadow:0 4px 0 #0002;color:#1d3557;font-weight:800;font-size:12px}
+.cast img{display:block;width:100%;height:88px;object-fit:cover;border-radius:10px;margin-bottom:4px}
+.cast.on{border-color:#3ecf6e;box-shadow:0 4px 0 #1f9d49}
+.cast[data-color="blue"].on{border-color:#3aa6ff;box-shadow:0 4px 0 #1868c4}
+.cast[data-color="red"].on{border-color:#ff5a5a;box-shadow:0 4px 0 #c62828}
