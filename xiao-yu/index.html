@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1d4e38">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>小宇 / Xiao Yu</title>
+<link rel="stylesheet" href="style.css?v=2804">
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="hud" class="hidden">
+  <div class="names">
+    <div id="lvlName">第1关</div>
+    <div id="lvlEn">Level 1</div>
+    <div id="bars">
+      <div class="bar"><span>P1</span><div class="track"><i id="hp1"></i></div></div>
+      <div class="bar" id="bar2"><span>P2</span><div class="track"><i id="hp2"></i></div></div>
+    </div>
+  </div>
+  <div class="stats"><span id="coinN">🪙 0</span><span id="starN">⭐ 0</span></div>
+  <div class="hudBtns">
+    <button id="mute" type="button" aria-label="静音 Mute">音</button>
+    <button id="retry" type="button">重来 Retry</button>
+  </div>
+</div>
+<div id="hint" class="hidden"></div>
+<div id="toast"></div>
+<div id="menu">
+  <h1>小宇 <span>Xiao Yu</span></h1>
+  <p class="lead">跑、跳、蹬墙、扔手里剑</p>
+  <div class="modes" id="modes">
+    <button id="mode1" class="on" type="button">单人</button>
+    <button id="mode2" type="button">同机双人</button>
+  </div>
+  <button id="play" type="button">开始 Start</button>
+  <div class="netRow">
+    <button id="netHost" type="button">联网开房</button>
+    <button id="netJoin" type="button">加入房间</button>
+  </div>
+  <div class="picks">
+    <button type="button" data-lv="0">第1关</button>
+    <button type="button" data-lv="1">第2关</button>
+    <button type="button" data-lv="2">第3关</button>
+  </div>
+  <p class="keys">方向键 / AD 移动 · W / 空格跳 · F / J 投掷</p>
+  <p class="netHint">联网：房主开房出码/二维码，好友扫码或输入房间码</p>
+</div>
+<div id="roomPanel" class="hidden" aria-hidden="true">
+  <div class="roomCard">
+    <h2 id="roomTitle">联网双人</h2>
+    <p id="roomSub">开房或加入</p>
+    <div id="roomHostBox" class="hidden">
+      <div class="roomCodeWrap">房间码 <b id="roomCode">----</b></div>
+      <canvas id="roomQr" width="160" height="160" aria-label="加入二维码"></canvas>
+      <p class="roomWait" id="roomWait">等待好友扫码加入…</p>
+      <div class="roomLv">
+        <button type="button" data-nlv="0">第1关</button>
+        <button type="button" data-nlv="1">第2关</button>
+        <button type="button" data-nlv="2">第3关</button>
+      </div>
+      <button id="roomStart" type="button" disabled>好友到齐后开始</button>
+    </div>
+    <div id="roomJoinBox" class="hidden">
+      <label class="roomLab">输入房间码
+        <input id="roomInput" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="例如 A3K9">
+      </label>
+      <button id="roomJoinGo" type="button">加入</button>
+      <p class="roomWait" id="joinWait"></p>
+    </div>
+    <button id="roomClose" class="roomClose" type="button">返回菜单</button>
+  </div>
+</div>
+<div id="panel" class="hidden">
+  <div class="card">
+    <h2 id="panelTitle">过关了!</h2>
+    <p id="panelSub">Level clear!</p>
+    <button id="panelBtn" type="button">下一关 Next</button>
+  </div>
+</div>
+<div id="touch" class="hidden">
+  <div class="cluster">
+    <button id="btnL" type="button" aria-label="左 Left">◀</button>
+    <button id="btnR" type="button" aria-label="右 Right">▶</button>
+  </div>
+  <div class="cluster">
+    <button id="btnJ" type="button" aria-label="跳 Jump">跳<small>Jump</small></button>
+    <button id="btnT" type="button" aria-label="投掷手里剑 Throw">投<small>Throw</small></button>
+  </div>
+</div>
+<div id="coopTouch" class="hidden">
+  <div class="half">
+    <b>P1</b>
+    <button id="p1L" type="button" aria-label="P1 左">◀</button>
+    <button id="p1R" type="button" aria-label="P1 右">▶</button>
+    <button id="p1J" type="button" aria-label="P1 跳">跳</button>
+    <button id="p1T" type="button" aria-label="P1 投掷">投</button>
+  </div>
+  <div class="half">
+    <b>P2</b>
+    <button id="p2L" type="button" aria-label="P2 左">◀</button>
+    <button id="p2R" type="button" aria-label="P2 右">▶</button>
+    <button id="p2J" type="button" aria-label="P2 跳">跳</button>
+    <button id="p2T" type="button" aria-label="P2 投掷">投</button>
+  </div>
+</div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+<script src="game.js?v=2804"></script>
+</body>
+</html>

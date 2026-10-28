@@ -377,7 +377,7 @@
     stars = def.stars.map(([c, r]) => Object.assign({ got: false, bob: r }, cell(c, r)));
     slimes = def.slimes.map(([c, r]) => {
       const p = feet(c, r);
-      return { x: p.x, y: p.y, w: 34, h: 26, vx: 0, vy: 0, dir: 1, hop: 0.5, dead: false, grounded: true };
+      return { x: p.x, y: p.y, w: 34, h: 26, vx: 0, vy: 0, dir: 1, hop: 0.5, dead: false, grounded: true, hp: 2, max: 2, hurtCd: 0 };
     });
     crates = def.crates.map(([c, r]) => {
       const p = feet(c, r);
@@ -947,9 +947,31 @@
       boss.grounded = true;
       boss.state = 'walk';
     }
+    if (boss.hurtCd == null) boss.hurtCd = 0;
+    if (boss.hurtCd > 0) boss.hurtCd -= dt;
     const touchOne = (n) => {
       if (!n || n.down || (n !== player && !coop)) return;
-      if (Math.abs(n.x - boss.x) < 38 && n.y > boss.y - 56 && n.y - n.h < boss.y + 4) hurt(n, boss.x);
+      if (Math.abs(n.x - boss.x) < 38 && n.y > boss.y - 56 && n.y - n.h < boss.y + 4) {
+        const stomping = n.vy > 80 && (n.y - n.h) < boss.y - 20;
+        if (stomping && boss.alive) {
+          if (boss.hurtCd <= 0) {
+            boss.hurtCd = 0.35;
+            boss.hp = Math.max(0, boss.hp - 1);
+            n.vy = -Math.min(JUMP_V * 0.75, 560);
+            n.grounded = false;
+            puff(boss.x, boss.y - 30, '#ffd166', 7);
+            sfx.bump();
+            if (boss.hp <= 0) {
+              boss.hp = 0;
+              boss.alive = false;
+              boss.deadT = 0;
+              puff(boss.x, boss.y - 24, '#ffe14a', 12);
+            }
+          }
+        } else if (n.invuln <= 0) {
+          hurt(n, boss.x);
+        }
+      }
       if (boss.state === 'shock' && n.grounded && Math.abs(Math.abs(n.x - boss.x) - boss.wave) < 18 && Math.abs(n.y - boss.y) < 24) hurt(n, boss.x);
       if (boss.roller && n.grounded && Math.abs(n.x - boss.roller.x) < 22 && Math.abs(n.y - boss.roller.y) < 24) hurt(n, boss.roller.x);
     };
@@ -1011,11 +1033,15 @@
           const m = slimes[k];
           if (m.dead) continue;
           if (Math.abs(s.x - m.x) < 26 && Math.abs(s.y - (m.y - 16)) < 26) {
-            m.dead = true;
+            m.hp = Math.max(0, (m.hp || 1) - 1);
             die = true;
-            gotCoins++;
             puff(m.x, m.y - 12, '#8ee88a', 8);
             sfx.slime();
+            if (m.hp <= 0) {
+              m.dead = true;
+              gotCoins++;
+              puff(m.x, m.y - 12, '#ffe14a', 8);
+            }
           }
         }
       }
@@ -1071,9 +1097,27 @@
           m.hop = 0.85;
         }
       }
+      if (m.hurtCd > 0) m.hurtCd -= dt;
       const poke = (n) => {
         if (!n || n.down || (n !== player && !coop)) return;
-        if (n.invuln <= 0 && Math.abs(n.x - m.x) < 26 && n.y > m.y - 30 && n.y - n.h < m.y) hurt(n, m.x);
+        if (!(Math.abs(n.x - m.x) < 26 && n.y > m.y - 30 && n.y - n.h < m.y)) return;
+        const stomping = n.vy > 80 && (n.y - n.h) < m.y - 8;
+        if (stomping) {
+          if (m.hurtCd > 0) return;
+          m.hurtCd = 0.25;
+          m.hp = Math.max(0, (m.hp || 1) - 1);
+          n.vy = -Math.min(JUMP_V * 0.72, 520);
+          n.grounded = false;
+          puff(m.x, m.y - 12, '#8ee88a', 6);
+          sfx.slime();
+          if (m.hp <= 0) {
+            m.dead = true;
+            gotCoins++;
+            puff(m.x, m.y - 12, '#ffe14a', 8);
+          }
+          return;
+        }
+        if (n.invuln <= 0) hurt(n, m.x);
       };
       poke(player);
       if (coop) poke(p2);

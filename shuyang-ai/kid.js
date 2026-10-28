@@ -22,7 +22,7 @@
       // Tonight's 2D/3D explainer (relative to kid.html).
       video: { url: 'videos/how-characters-move-2d-3d.mp4' },
       guess: {
-        prompt: '玩绿忍者时，爸爸喊暂停，你猜：换画还是摆骨头？',
+        prompt: '玩小宇时，爸爸喊暂停，你猜：换画还是摆骨头？',
         options: [
           { id: '2d', t: '换画（2D）', ok: true },
           { id: '3d', t: '摆骨头（3D）', ok: false },
@@ -30,8 +30,8 @@
         then: '3D 游戏里走路弯腿 = 骨头在摆',
       },
       dessert: {
-        line: '接着玩绿忍者：一人开房出码/二维码，另一人扫码或输入房间码，一起闯关',
-        play: '../green-ninja/',
+        line: '接着玩小宇：一人开房出码/二维码，另一人扫码或输入房间码，一起闯关',
+        play: '../xiao-yu/',
         label: '去玩联网双人',
       },
       star: '知道 2D 换画、3D 摆骨头',
