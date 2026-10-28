@@ -29,11 +29,9 @@
         then: '3D 游戏里走路弯腿 = 骨头在摆',
       },
       dessert: {
-        line: '接着玩超人：先单人热身 → 再开局域网对战',
-        // TODO: point this at Superman solo + LAN pages when those URLs exist in the repo.
-        // The only character game checked in tonight is green-ninja.
+        line: '接着玩绿忍者：一人开房出码/二维码，另一人扫码或输入房间码，一起闯关',
         play: '../green-ninja/',
-        label: '去玩',
+        label: '去玩联网双人',
       },
       star: '知道 2D 换画、3D 摆骨头',
     },

@@ -65,3 +65,34 @@ button{font:inherit;font-weight:900;border:0;cursor:pointer}
   #coopTouch button{width:60px;height:60px;font-size:16px}
   #hint{top:52px}
 }
+
+/* —— 联网双人 UI —— */
+.modes{display:flex;gap:8px;margin-bottom:10px}
+.modes.hidden{display:none!important}
+.netRow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center}
+.netRow button{pointer-events:auto;background:linear-gradient(#b8f2c8,#3ecf6e);color:#0d3b16;border-radius:999px;padding:12px 18px;font-size:16px;box-shadow:0 5px 0 #1f9d49;min-width:120px}
+.netRow button:active{transform:translateY(3px);box-shadow:0 2px 0 #1f9d49}
+#netJoin{background:linear-gradient(#9be7ff,#3db7e8);color:#083044;box-shadow:0 5px 0 #1d7eab}
+.netHint{margin:8px 0 0;color:#fff;font-weight:800;font-size:12px;text-shadow:0 2px 0 #1d355788;max-width:92vw}
+#roomPanel{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:#0006;padding:16px;pointer-events:auto}
+#roomPanel.hidden{display:none!important}
+.roomCard{background:#fff;border-radius:24px;padding:18px 16px;width:min(92vw,360px);text-align:center;border:5px solid #ffd166;box-shadow:0 8px 0 #e09a00;max-height:92vh;overflow:auto}
+.roomCard h2{margin:0 0 4px;color:#e23b3b;font-size:26px}
+#roomSub{margin:0 0 12px;font-weight:800;font-size:14px;opacity:.85}
+.roomCodeWrap{font-size:18px;font-weight:900;margin:6px 0 10px}
+.roomCodeWrap b{font-size:32px;letter-spacing:.18em;color:#1d4e38;background:#e8fff0;padding:4px 12px;border-radius:12px}
+#roomQr{display:block;margin:0 auto 8px;border-radius:12px;background:#fff}
+.roomWait{font-weight:800;font-size:14px;margin:6px 0 10px;color:#1d3557}
+.roomLv{display:flex;gap:6px;justify-content:center;margin-bottom:10px}
+.roomLv button{background:#fff;color:#1d3557;border-radius:14px;padding:8px 10px;min-width:64px;box-shadow:0 3px 0 #c9e6ff;font-size:14px;border:3px solid #e8f4ff}
+.roomLv button.on{background:linear-gradient(#ffe14a,#ffb703);box-shadow:0 3px 0 #e09a00;border-color:#fff}
+#roomStart,#roomJoinGo{background:linear-gradient(#ffe14a,#ffb703);color:#6a3b00;border-radius:999px;padding:12px 22px;font-size:18px;box-shadow:0 5px 0 #e09a00;width:100%;margin-top:4px}
+#roomStart:disabled{opacity:.45;box-shadow:0 5px 0 #bbb;background:#ddd;color:#666}
+.roomLab{display:block;font-weight:900;text-align:left;margin:8px 0}
+.roomLab input{display:block;width:100%;margin-top:6px;font:inherit;font-weight:900;font-size:22px;letter-spacing:.2em;text-align:center;text-transform:uppercase;padding:12px;border-radius:14px;border:3px solid #c9e6ff;box-sizing:border-box}
+.roomClose{margin-top:12px;background:#eee;color:#555;border-radius:999px;padding:10px 18px;box-shadow:0 3px 0 #bbb;width:100%}
+@media (orientation:landscape) and (max-height:460px){
+  .netRow button{padding:8px 14px;font-size:14px;min-width:96px}
+  .roomCard{padding:12px;width:min(70vw,420px)}
+  #roomQr{width:110px;height:110px}
+}

@@ -44,6 +44,19 @@
   let coop = false;
   let wantCoop = false;
   let levelIndex = 0;
+  // —— 联网双人 (PeerJS) ——
+  let netRole = null; // null | 'host' | 'guest'
+  let netCode = '';
+  let netPeer = null;
+  let netConn = null;
+  let netLinked = false;
+  let netSnapAcc = 0;
+  let netPickLv = 0;
+  let netGuestPrev = { left: false, right: false, jump: false, throw: false };
+  let netOutAcc = 0;
+  const NET_ALPH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const NET_PREFIX = 'shuyang-gn-';
+
   let cols = 1;
   let rows = 1;
   let solid = new Uint8Array(1);
@@ -418,15 +431,20 @@
     starN.textContent = '⭐ ' + gotStars;
     hp1.style.width = Math.max(0, player.hp) * 20 + '%';
     hp2.style.width = Math.max(0, p2.hp) * 20 + '%';
-    bar2.classList.toggle('hidden', !coop);
+    bar2.classList.toggle('hidden', !coop && !netRole);
   }
   function syncChrome() {
     menu.classList.toggle('hidden', mode !== 'title');
     hud.classList.toggle('hidden', mode === 'title');
     const playing = mode === 'play';
-    touch.classList.toggle('hidden', !playing || coop);
-    coopTouch.classList.toggle('hidden', !playing || !coop);
+    const online = !!netRole;
+    // 联网：每人一台机，用普通单手触摸，不拆屏
+    touch.classList.toggle('hidden', !playing || (coop && !online));
+    coopTouch.classList.toggle('hidden', !playing || !coop || online);
     panel.classList.toggle('hidden', mode !== 'clear' && mode !== 'win' && mode !== 'over');
+    if (online && (mode === 'clear' || mode === 'win' || mode === 'over') && netRole === 'guest') {
+      panelBtn.textContent = '等房主…';
+    }
   }
   function toast(s) {
     toastEl.textContent = s;
@@ -441,6 +459,7 @@
   function start(i, coopFlag) {
     clearInput(input);
     clearInput(input2);
+    netGuestPrev = { left: false, right: false, jump: false, throw: false };
     coop = !!coopFlag;
     wantCoop = coop;
     mode1.classList.toggle('on', !coop);
@@ -448,6 +467,10 @@
     mode = 'play';
     loadLevel(i);
     syncChrome();
+    if (netRole === 'host' && netConn && netLinked) {
+      netSend({ t: 'go', lv: levelIndex });
+      netSnapAcc = 0;
+    }
   }
   function reachGoal() {
     const total = '🪙 ' + gotCoins + '   ⭐ ' + gotStars;
@@ -455,24 +478,26 @@
       mode = 'win';
       panelTitle.textContent = '你做到了!';
       panelSub.textContent = 'You did it!  ' + total;
-      panelBtn.textContent = '再玩一次 Play again';
+      panelBtn.textContent = netRole === 'guest' ? '等房主…' : '再玩一次 Play again';
     } else {
       mode = 'clear';
       panelTitle.textContent = '过关了!';
       panelSub.textContent = 'Level clear!  ' + total;
-      panelBtn.textContent = '下一关 Next';
+      panelBtn.textContent = netRole === 'guest' ? '等房主…' : '下一关 Next';
     }
     sfx.win();
     buzz(20);
     syncChrome();
+    if (netRole === 'host') netSend({ t: 'mode', m: mode, lv: levelIndex, coins: gotCoins, stars: gotStars });
   }
   function gameOver() {
     if (mode !== 'play') return;
     mode = 'over';
     panelTitle.textContent = 'Game Over';
     panelSub.textContent = '再来一次';
-    panelBtn.textContent = '再来一次';
+    panelBtn.textContent = netRole === 'guest' ? '等房主…' : '再来一次';
     syncChrome();
+    if (netRole === 'host') netSend({ t: 'mode', m: mode, lv: levelIndex, coins: gotCoins, stars: gotStars });
   }
   function resetBoss() {
     if (!boss) return;
@@ -497,6 +522,7 @@
     mode = 'play';
     cam.snap = true;
     syncChrome();
+    if (netRole === 'host') netSend({ t: 'cmd', a: 'cont', lv: levelIndex });
     syncHUD();
   }
   function downOrOver(n) {
@@ -951,10 +977,15 @@
       toastUntil = 0;
     }
     if (hintUntil && sim > hintUntil) hintEl.classList.add('hidden');
+    if (netRole === 'guest') {
+      updateGuestNet(dt);
+      return;
+    }
     for (let i = 0; i < springs.length; i++) springs[i].squish = Math.max(0, springs[i].squish - dt);
     if (mode !== 'play') {
       updateWhoosh(0, dt);
       player.phase += dt * 8;
+      if (netRole === 'host') netMaybeSnap(dt);
       return;
     }
     controlNinja(player, input, dt);
@@ -1131,6 +1162,7 @@
     const sp = Math.max(Math.hypot(player.vx, player.vy), coop ? Math.hypot(p2.vx, p2.vy) : 0);
     updateWhoosh(sp, dt);
     syncHUD();
+    if (netRole === 'host') netMaybeSnap(dt);
   }
 
   function rr(x, y, w, h, r) {
@@ -1702,6 +1734,408 @@
     draw();
   }
 
+
+  // ========== 联网双人 helpers ==========
+  function netOnline() { return !!netRole; }
+  function netPeerId(code) { return NET_PREFIX + String(code || '').toUpperCase(); }
+  function netMakeCode() {
+    let s = '';
+    for (let i = 0; i < 5; i++) s += NET_ALPH[(Math.random() * NET_ALPH.length) | 0];
+    return s;
+  }
+  function netJoinUrl(code) {
+    const base = location.origin + location.pathname.replace(/index\.html?$/, '');
+    return base + (base.endsWith('/') ? '' : '/') + '?room=' + encodeURIComponent(code);
+  }
+  function netSend(obj) {
+    if (!netConn || !netLinked) return;
+    try { netConn.send(obj); } catch (e) { /* drop */ }
+  }
+  function netDestroy() {
+    try { if (netConn) netConn.close(); } catch (e) {}
+    try { if (netPeer) netPeer.destroy(); } catch (e) {}
+    netConn = null;
+    netPeer = null;
+    netLinked = false;
+    netRole = null;
+    netCode = '';
+    netSnapAcc = 0;
+  }
+  function netShowRoom(kind) {
+    const panel = document.getElementById('roomPanel');
+    const hostBox = document.getElementById('roomHostBox');
+    const joinBox = document.getElementById('roomJoinBox');
+    panel.classList.remove('hidden');
+    panel.setAttribute('aria-hidden', 'false');
+    hostBox.classList.toggle('hidden', kind !== 'host');
+    joinBox.classList.toggle('hidden', kind !== 'join');
+    document.getElementById('roomTitle').textContent = kind === 'host' ? '联网开房' : '加入房间';
+    document.getElementById('roomSub').textContent = kind === 'host'
+      ? '你是绿色忍者 P1 · 好友是蓝色 P2'
+      : '输入房间码，或扫房主二维码';
+    document.getElementById('joinWait').textContent = '';
+  }
+  function netHideRoom() {
+    const panel = document.getElementById('roomPanel');
+    panel.classList.add('hidden');
+    panel.setAttribute('aria-hidden', 'true');
+  }
+  function netDrawQr(code) {
+    const canvas = document.getElementById('roomQr');
+    const url = netJoinUrl(code);
+    if (typeof QRCode === 'undefined') {
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, 160, 160);
+      ctx.fillStyle = '#1d3557';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(code, 50, 80);
+      return;
+    }
+    QRCode.toCanvas(canvas, url, { width: 160, margin: 1, color: { dark: '#1d3557', light: '#ffffff' } }, function () {});
+  }
+  function netBindConn(conn, asHost) {
+    netConn = conn;
+    conn.on('open', () => {
+      netLinked = true;
+      if (asHost) {
+        document.getElementById('roomWait').textContent = '好友已加入！选关后点开始';
+        document.getElementById('roomStart').disabled = false;
+        toast('好友来了！');
+        netSend({ t: 'hello', code: netCode, role: 'host' });
+      } else {
+        document.getElementById('joinWait').textContent = '已连上！等房主开始…';
+        toast('已加入房间 ' + netCode);
+      }
+    });
+    conn.on('data', (msg) => netOnMsg(msg, asHost));
+    conn.on('close', () => netOnDisconnect());
+    conn.on('error', () => netOnDisconnect());
+  }
+  function netOnDisconnect() {
+    const was = netRole;
+    netLinked = false;
+    toast('连接断开了，可重新加入');
+    if (mode === 'play' || mode === 'clear' || mode === 'win' || mode === 'over') {
+      mode = 'title';
+      syncChrome();
+    }
+    if (was === 'guest') {
+      netShowRoom('join');
+      document.getElementById('roomInput').value = netCode;
+      document.getElementById('joinWait').textContent = '断开了。房主还在的话，再点加入';
+    } else if (was === 'host') {
+      document.getElementById('roomWait').textContent = '好友断开了，等待重新加入…';
+      document.getElementById('roomStart').disabled = true;
+      netShowRoom('host');
+      // keep peer alive so guest can rejoin same code
+    }
+  }
+  function netPackNinja(n) {
+    return {
+      x: Math.round(n.x * 10) / 10, y: Math.round(n.y * 10) / 10,
+      vx: Math.round(n.vx), vy: Math.round(n.vy),
+      face: n.face, anim: n.anim, phase: Math.round(n.phase * 100) / 100,
+      hp: n.hp, down: !!n.down, inv: Math.round((n.invuln || 0) * 100) / 100,
+      sq: Math.round((n.squash || 0) * 100) / 100,
+    };
+  }
+  function netApplyNinja(n, s) {
+    if (!s) return;
+    n.x = s.x; n.y = s.y; n.vx = s.vx; n.vy = s.vy;
+    n.face = s.face; n.anim = s.anim; n.phase = s.phase;
+    n.hp = s.hp; n.down = !!s.down; n.invuln = s.inv || 0; n.squash = s.sq || 0;
+  }
+  function netBuildSnap() {
+    const slimeBits = slimes.map((m) => (m.dead ? 1 : 0));
+    const coinBits = coins.map((c) => (c.got ? 1 : 0));
+    const starBits = stars.map((s) => (s.got ? 1 : 0));
+    const crateBits = crates.map((c) => (c.dead ? 1 : 0));
+    const checkBits = checks.map((k) => (k.on ? 1 : 0));
+    const sh = [];
+    for (let i = 0; i < shurikens.length; i++) {
+      const s = shurikens[i];
+      if (!s.on) continue;
+      sh.push([Math.round(s.x), Math.round(s.y), Math.round(s.vx), Math.round(s.spin * 10)]);
+      if (sh.length >= 6) break;
+    }
+    let b = null;
+    if (boss) {
+      b = {
+        x: Math.round(boss.x), y: Math.round(boss.y), hp: boss.hp,
+        alive: !!boss.alive, state: boss.state, cleared: !!boss.cleared,
+        arena: !!boss.arena, wave: Math.round(boss.wave || 0),
+        rx: boss.roller ? Math.round(boss.roller.x) : 0,
+        ry: boss.roller ? Math.round(boss.roller.y) : 0,
+        ron: !!(boss.roller),
+      };
+    }
+    return {
+      t: 'snap', m: mode, lv: levelIndex, sim: Math.round(sim * 60) / 60,
+      c: gotCoins, s: gotStars,
+      p1: netPackNinja(player), p2: netPackNinja(p2),
+      sl: slimeBits, co: coinBits, st: starBits, cr: crateBits, ck: checkBits,
+      sh, b,
+      cx: Math.round(checkpoint.x), cy: Math.round(checkpoint.y),
+    };
+  }
+  function netMaybeSnap(dt) {
+    if (!netLinked || netRole !== 'host' || mode === 'title') return;
+    netSnapAcc += dt;
+    if (netSnapAcc < 1 / 18) return;
+    netSnapAcc = 0;
+    netSend(netBuildSnap());
+  }
+  function netApplySnap(msg) {
+    if (msg.lv !== levelIndex || mode === 'title') {
+      // host changed level — load then apply
+      if (typeof msg.lv === 'number' && msg.lv !== levelIndex) {
+        coop = true;
+        wantCoop = true;
+        mode = 'play';
+        loadLevel(msg.lv);
+      }
+    }
+    if (msg.m && msg.m !== mode) {
+      mode = msg.m;
+      if (mode === 'clear' || mode === 'win') {
+        const total = '🪙 ' + (msg.c || gotCoins) + '   ⭐ ' + (msg.s || gotStars);
+        panelTitle.textContent = mode === 'win' ? '你做到了!' : '过关了!';
+        panelSub.textContent = (mode === 'win' ? 'You did it!  ' : 'Level clear!  ') + total;
+        panelBtn.textContent = '等房主…';
+      } else if (mode === 'over') {
+        panelTitle.textContent = 'Game Over';
+        panelSub.textContent = '再来一次';
+        panelBtn.textContent = '等房主…';
+      }
+      syncChrome();
+    }
+    gotCoins = msg.c | 0;
+    gotStars = msg.s | 0;
+    netApplyNinja(player, msg.p1);
+    netApplyNinja(p2, msg.p2);
+    if (msg.sl) for (let i = 0; i < slimes.length && i < msg.sl.length; i++) slimes[i].dead = !!msg.sl[i];
+    if (msg.co) for (let i = 0; i < coins.length && i < msg.co.length; i++) coins[i].got = !!msg.co[i];
+    if (msg.st) for (let i = 0; i < stars.length && i < msg.st.length; i++) stars[i].got = !!msg.st[i];
+    if (msg.cr) for (let i = 0; i < crates.length && i < msg.cr.length; i++) crates[i].dead = !!msg.cr[i];
+    if (msg.ck) for (let i = 0; i < checks.length && i < msg.ck.length; i++) checks[i].on = !!msg.ck[i];
+    for (let i = 0; i < shurikens.length; i++) shurikens[i].on = 0;
+    if (msg.sh) {
+      for (let i = 0; i < msg.sh.length && i < shurikens.length; i++) {
+        const a = msg.sh[i];
+        const s = shurikens[i];
+        s.on = 1; s.x = a[0]; s.y = a[1]; s.vx = a[2]; s.vy = 0; s.spin = (a[3] || 0) / 10; s.life = 0.5;
+      }
+    }
+    if (boss && msg.b) {
+      const b = msg.b;
+      boss.x = b.x; boss.y = b.y; boss.hp = b.hp;
+      boss.alive = !!b.alive; boss.state = b.state || boss.state;
+      boss.cleared = !!b.cleared; boss.arena = !!b.arena; boss.wave = b.wave || 0;
+      if (b.ron) boss.roller = { x: b.rx, y: b.ry };
+      else boss.roller = null;
+    }
+    if (msg.cx != null) { checkpoint.x = msg.cx; checkpoint.y = msg.cy; }
+    syncHUD();
+    syncChrome();
+  }
+  function updateGuestNet(dt) {
+    // guest: no world authority — camera + cosmetics only
+    for (let i = 0; i < springs.length; i++) springs[i].squish = Math.max(0, springs[i].squish - dt);
+    player.phase += dt * 8;
+    p2.phase += dt * 8;
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (!p.on) continue;
+      p.life -= dt;
+      p.vy += 400 * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      if (p.life <= 0) p.on = 0;
+    }
+    if (mode === 'play' || mode === 'clear' || mode === 'win' || mode === 'over') {
+      const vw = viewW / zoom;
+      const vh = viewH / zoom;
+      let focus = player;
+      if (coop) {
+        const a = player.down ? null : player;
+        const b = p2.down ? null : p2;
+        if (a && b) focus = { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y), face: a.face };
+        else focus = a || b || player;
+      }
+      let tx = focus.x - vw * 0.45;
+      tx = Math.max(0, Math.min(tx, Math.max(0, cols * T - vw)));
+      let ty = focus.y - vh * (viewH > viewW ? 0.58 : 0.62);
+      const worldH = rows * T;
+      ty = Math.max(-16, Math.min(ty, Math.max(-16, worldH - vh + 8)));
+      if (cam.snap) { cam.x = tx; cam.y = ty; cam.snap = false; }
+      else { cam.x += (tx - cam.x) * 0.2; cam.y += (ty - cam.y) * 0.2; }
+    }
+    // send local input to host (~30Hz)
+    netOutAcc += dt;
+    if (netOutAcc >= 1 / 30 && netLinked) {
+      netOutAcc = 0;
+      netSend({
+        t: 'in',
+        L: !!input.left, R: !!input.right, J: !!input.jump, T: !!input.throw,
+      });
+    }
+    syncHUD();
+  }
+  function netApplyGuestInput(msg) {
+    const L = !!msg.L, R = !!msg.R, J = !!msg.J, Th = !!msg.T;
+    if (J && !netGuestPrev.jump) input2.jumpPressed = true;
+    if (Th && !netGuestPrev.throw) input2.throwEdge = true;
+    input2.left = L;
+    input2.right = R;
+    input2.jump = J;
+    input2.throw = Th;
+    netGuestPrev.left = L;
+    netGuestPrev.right = R;
+    netGuestPrev.jump = J;
+    netGuestPrev.throw = Th;
+  }
+  function netOnMsg(msg, asHost) {
+    if (!msg || !msg.t) return;
+    if (asHost) {
+      if (msg.t === 'in') netApplyGuestInput(msg);
+      return;
+    }
+    // guest
+    if (msg.t === 'hello') {
+      document.getElementById('joinWait').textContent = '已连上房间 ' + (msg.code || netCode) + '，等房主开始';
+    } else if (msg.t === 'go') {
+      netHideRoom();
+      unlock();
+      coop = true;
+      wantCoop = true;
+      netRole = 'guest';
+      start(msg.lv | 0, true);
+      // start() would try to netSend as host — guest role already set, start only sends if host
+      toast('开始！你是蓝色忍者');
+    } else if (msg.t === 'snap') {
+      netApplySnap(msg);
+    } else if (msg.t === 'mode') {
+      netApplySnap({ t: 'snap', m: msg.m, lv: msg.lv, c: msg.coins, s: msg.stars, p1: netPackNinja(player), p2: netPackNinja(p2) });
+    } else if (msg.t === 'cmd') {
+      if (msg.a === 'cont') {
+        continueRun();
+      } else if (msg.a === 'retry' || msg.a === 'next' || msg.a === 'again') {
+        unlock();
+        start(msg.lv | 0, true);
+      }
+    }
+  }
+  function netEnsurePeerJs() {
+    if (typeof Peer === 'undefined') {
+      toast('联网组件加载失败，请刷新');
+      return false;
+    }
+    return true;
+  }
+  function netOpenHost() {
+    if (!netEnsurePeerJs()) return;
+    unlock();
+    netDestroy();
+    netRole = 'host';
+    netCode = netMakeCode();
+    netPickLv = 0;
+    document.getElementById('roomCode').textContent = netCode;
+    document.getElementById('roomWait').textContent = '正在开房…';
+    document.getElementById('roomStart').disabled = true;
+    document.querySelectorAll('.roomLv button').forEach((b) => {
+      b.classList.toggle('on', Number(b.dataset.nlv) === netPickLv);
+    });
+    netDrawQr(netCode);
+    netShowRoom('host');
+    const id = netPeerId(netCode);
+    try {
+      netPeer = new Peer(id, { debug: 0 });
+    } catch (e) {
+      toast('开房失败');
+      netDestroy();
+      return;
+    }
+    netPeer.on('open', () => {
+      document.getElementById('roomWait').textContent = '等待好友扫码加入…';
+    });
+    netPeer.on('connection', (conn) => {
+      if (netConn && netLinked) {
+        try { conn.close(); } catch (e) {}
+        return;
+      }
+      netBindConn(conn, true);
+    });
+    netPeer.on('error', (err) => {
+      const t = String(err && err.type || err || '');
+      if (t.indexOf('unavailable-id') >= 0 || t.indexOf('ID is taken') >= 0) {
+        toast('房间码撞车，再开一次');
+        netDestroy();
+        netHideRoom();
+      } else {
+        toast('开房出错：' + t);
+      }
+    });
+    netPeer.on('disconnected', () => {
+      try { netPeer.reconnect(); } catch (e) {}
+    });
+  }
+  function netOpenJoin(prefill) {
+    if (!netEnsurePeerJs()) return;
+    unlock();
+    netDestroy();
+    netRole = 'guest';
+    netShowRoom('join');
+    const inp = document.getElementById('roomInput');
+    if (prefill) inp.value = String(prefill).toUpperCase();
+    inp.focus();
+  }
+  function netDoJoin() {
+    if (!netEnsurePeerJs()) return;
+    const raw = (document.getElementById('roomInput').value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (raw.length < 4) {
+      document.getElementById('joinWait').textContent = '房间码太短啦';
+      return;
+    }
+    unlock();
+    netCode = raw;
+    document.getElementById('joinWait').textContent = '正在连接…';
+    try { if (netPeer) netPeer.destroy(); } catch (e) {}
+    netPeer = new Peer({ debug: 0 });
+    netPeer.on('open', () => {
+      const conn = netPeer.connect(netPeerId(netCode), { reliable: true });
+      netBindConn(conn, false);
+      setTimeout(() => {
+        if (!netLinked) document.getElementById('joinWait').textContent = '连不上？请确认房主还开着，或再试一次';
+      }, 8000);
+    });
+    netPeer.on('error', (err) => {
+      document.getElementById('joinWait').textContent = '连接失败，检查房间码';
+      toast('加入失败');
+    });
+  }
+  function netHostStart() {
+    if (netRole !== 'host' || !netLinked) {
+      toast('等好友加入后再开始');
+      return;
+    }
+    unlock();
+    netHideRoom();
+    start(netPickLv, true);
+    toast('开始！你是绿色忍者');
+  }
+  function netBackMenu() {
+    netDestroy();
+    netHideRoom();
+    mode = 'title';
+    coop = false;
+    wantCoop = false;
+    mode1.classList.add('on');
+    mode2.classList.remove('on');
+    syncChrome();
+  }
+
+
   function hold(el, name, fn) {
     el.addEventListener('pointerdown', (e) => {
       e.preventDefault();
@@ -1725,25 +2159,65 @@
   hold(document.getElementById('p2J'), 'jump', press2);
   hold(document.getElementById('p2T'), 'throw', press2);
   mode1.addEventListener('click', () => {
+    if (netRole) return;
     wantCoop = false;
     mode1.classList.add('on');
     mode2.classList.remove('on');
   });
   mode2.addEventListener('click', () => {
+    if (netRole) return;
     wantCoop = true;
     mode2.classList.add('on');
     mode1.classList.remove('on');
   });
-  document.getElementById('play').addEventListener('click', () => { unlock(); start(0, wantCoop); });
-  document.querySelectorAll('.picks button').forEach((b) => {
-    b.addEventListener('click', () => { unlock(); start(Number(b.dataset.lv), wantCoop); });
+  document.getElementById('play').addEventListener('click', () => {
+    if (netRole === 'guest') return;
+    if (netRole === 'host') { netHostStart(); return; }
+    unlock(); start(0, wantCoop);
   });
-  document.getElementById('retry').addEventListener('click', () => start(levelIndex, coop));
+  document.querySelectorAll('.picks button').forEach((b) => {
+    b.addEventListener('click', () => {
+      if (netRole === 'guest') return;
+      if (netRole === 'host') {
+        netPickLv = Number(b.dataset.lv);
+        document.querySelectorAll('.roomLv button').forEach((x) => x.classList.toggle('on', Number(x.dataset.nlv) === netPickLv));
+        if (netLinked) netHostStart();
+        else toast('先等好友加入，或点联网开房');
+        return;
+      }
+      unlock(); start(Number(b.dataset.lv), wantCoop);
+    });
+  });
+  document.getElementById('retry').addEventListener('click', () => {
+    if (netRole === 'guest') { toast('等房主重来'); return; }
+    start(levelIndex, coop);
+    if (netRole === 'host') netSend({ t: 'cmd', a: 'retry', lv: levelIndex });
+  });
   muteBtn.addEventListener('click', () => { unlock(); toggleMute(); });
   panelBtn.addEventListener('click', () => {
+    if (netRole === 'guest') { toast('等房主点下一步'); return; }
     if (mode === 'over') { continueRun(); return; }
-    if (mode === 'clear' && levelIndex < LEVELS.length - 1) start(levelIndex + 1, coop);
-    else start(0, coop);
+    if (mode === 'clear' && levelIndex < LEVELS.length - 1) {
+      start(levelIndex + 1, coop);
+      if (netRole === 'host') netSend({ t: 'cmd', a: 'next', lv: levelIndex });
+    } else {
+      start(0, coop);
+      if (netRole === 'host') netSend({ t: 'cmd', a: 'again', lv: 0 });
+    }
+  });
+  document.getElementById('netHost').addEventListener('click', () => netOpenHost());
+  document.getElementById('netJoin').addEventListener('click', () => netOpenJoin(''));
+  document.getElementById('roomClose').addEventListener('click', () => netBackMenu());
+  document.getElementById('roomStart').addEventListener('click', () => netHostStart());
+  document.getElementById('roomJoinGo').addEventListener('click', () => netDoJoin());
+  document.getElementById('roomInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); netDoJoin(); }
+  });
+  document.querySelectorAll('.roomLv button').forEach((b) => {
+    b.addEventListener('click', () => {
+      netPickLv = Number(b.dataset.nlv);
+      document.querySelectorAll('.roomLv button').forEach((x) => x.classList.toggle('on', Number(x.dataset.nlv) === netPickLv));
+    });
   });
   const P1K = {
     KeyA: 'left', KeyD: 'right', ArrowLeft: 'left', ArrowRight: 'right',
@@ -1751,7 +2225,7 @@
     KeyF: 'throw', KeyJ: 'throw', KeyK: 'throw',
   };
   addEventListener('keydown', (e) => {
-    if (mode === 'title' && (e.code === 'Space' || e.code === 'Enter')) {
+    if (mode === 'title' && (e.code === 'Space' || e.code === 'Enter') && !netRole) {
       e.preventDefault();
       unlock();
       start(0, false);
@@ -1770,6 +2244,12 @@
   resize();
   syncChrome();
   requestAnimationFrame(frame);
+  try {
+    const q = new URLSearchParams(location.search).get('room');
+    if (q) {
+      setTimeout(() => netOpenJoin(q), 200);
+    }
+  } catch (e) { /* ignore */ }
 
   window.__ninja = {
     ready: true,
@@ -1805,6 +2285,7 @@
         checkpointX: checkpoint.x, whooshLevel, whooshBurst, errors,
         coop, hp: player.hp, p2x: p2.x, p2y: p2.y, p2hp: p2.hp,
         bossHp: boss ? boss.hp : 0, bossAlive: !!(boss && boss.alive),
+        netRole, netCode, netLinked,
       };
     },
   };
