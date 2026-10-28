@@ -54,10 +54,10 @@
   let netPickLv = 0;
   let netGuestPrev = { left: false, right: false, jump: false, throw: false };
   let netOutAcc = 0;
-  const NET_PREFIX = 'xy-pp';
+  const NET_PREFIX = 'xygo';
   const NET_SLOTS = 8;
-  const NET_PROBE_MS = 2800;
-  const NET_FIND_MS = 60000;
+  const NET_PROBE_MS = 1500;
+  const NET_FIND_MS = 75000;
   const NET_PEER_OPTS = {
     debug: 0,
     config: {
@@ -65,6 +65,22 @@
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun.cloudflare.com:3478' },
+        // public TURN — mobile/WeChat NAT often needs relay or datachannel never opens
+        {
+          urls: 'turn:openrelay.metered.ca:80',
+          username: 'openrelayproject',
+          credential: 'openrelayproject',
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelayproject',
+          credential: 'openrelayproject',
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+          username: 'openrelayproject',
+          credential: 'openrelayproject',
+        },
       ],
     },
   };
@@ -2202,6 +2218,18 @@
       const timer = setTimeout(() => finish(false), NET_PROBE_MS);
     });
   }
+  async function netProbeBatch(peer, ids) {
+    // parallel batch — first open wins; close the rest
+    if (netMatchAbort || !ids.length) return null;
+    const jobs = ids.map((id) => netProbeId(peer, id).then((conn) => ({ id, conn })));
+    const results = await Promise.all(jobs);
+    let won = null;
+    for (const r of results) {
+      if (r.conn && !won) won = r;
+      else if (r.conn) { try { r.conn.close(); } catch (e) {} }
+    }
+    return won;
+  }
   function netOpenJoin() {
     if (!netEnsurePeerJs()) return;
     unlock();
@@ -2217,7 +2245,7 @@
     }
     netPeer = peer;
     peer.on('error', (err) => {
-      if (err && err.type === 'peer-unavailable') return; // normal while scanning
+      if (err && err.type === 'peer-unavailable') return;
       if (!netLinked && !netMatchAbort) {
         netSetWait('联网信号不稳，请用系统浏览器打开后再试');
       }
@@ -2228,19 +2256,19 @@
       while (!netMatchAbort && !netLinked && Date.now() - started < NET_FIND_MS) {
         round += 1;
         const ids = netPairIds();
-        for (let s = 0; s < ids.length; s++) {
+        netSetWait('正在配对…第' + round + '轮（确认对方已是玩家A）');
+        for (let s = 0; s < ids.length; s += 4) {
           if (netMatchAbort || netLinked) return;
-          const id = ids[s];
-          netSetWait('正在配对…第' + round + '轮（确认对方已是玩家A）');
-          const conn = await netProbeId(peer, id);
-          if (conn) {
-            netCode = id;
-            netBindConn(conn, false);
+          const batch = ids.slice(s, s + 4);
+          const won = await netProbeBatch(peer, batch);
+          if (won && won.conn) {
+            netCode = won.id;
+            netBindConn(won.conn, false);
             netSetWait('配对成功！马上开始');
             return;
           }
         }
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 250));
       }
       if (!netLinked) {
         netSetWait('没找到玩家A。请双方取消后：先A后B；微信请用右上角「浏览器打开」');
