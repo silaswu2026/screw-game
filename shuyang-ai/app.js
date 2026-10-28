@@ -830,4 +830,13 @@ function renderDay(n) {
   };
 }
 
-document.addEventListener('DOMContentLoaded', renderHome);
+function boot() {
+  try { renderHome(); }
+  catch (e) {
+    const app = document.getElementById('app');
+    if (app) app.innerHTML = '<p style="padding:24px;color:#ffb4b4">页面加载出错：' + e.message + '</p>';
+    console.error(e);
+  }
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
