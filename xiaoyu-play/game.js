@@ -54,20 +54,17 @@
   let netPickLv = 0;
   let netGuestPrev = { left: false, right: false, jump: false, throw: false };
   let netOutAcc = 0;
-  const NET_PREFIX = 'shuyang-xy-pair';
-  const NET_PAIR_IDS = ['shuyang-xy-pair', 'shuyang-xy-pair2', 'shuyang-xy-pair3', 'shuyang-xy-pair4'];
-  const NET_PROBE_MS = 2200;
-  const NET_FIND_MS = 45000;
+  const NET_PREFIX = 'xy-pp';
+  const NET_SLOTS = 8;
+  const NET_PROBE_MS = 2800;
+  const NET_FIND_MS = 60000;
   const NET_PEER_OPTS = {
-    host: '0.peerjs.com',
-    port: 443,
-    path: '/',
-    secure: true,
     debug: 0,
     config: {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun.cloudflare.com:3478' },
       ],
     },
   };
@@ -1797,19 +1794,31 @@
 
   // ========== 联网双人 helpers ==========
   function netOnline() { return !!netRole; }
+  function netWindowKey(offset) {
+    return Math.floor(Date.now() / 60000) + (offset || 0);
+  }
+  function netPairIds() {
+    const ids = [];
+    for (let w = 0; w >= -1; w--) {
+      const key = netWindowKey(w);
+      for (let i = 0; i < NET_SLOTS; i++) ids.push(NET_PREFIX + '-' + key + '-' + i);
+    }
+    return ids;
+  }
   function netSlotId(i) {
-    const n = Math.max(0, Math.min(NET_PAIR_IDS.length - 1, i | 0));
-    return NET_PAIR_IDS[n];
+    const ids = netPairIds();
+    const n = Math.max(0, Math.min(ids.length - 1, i | 0));
+    return ids[n];
   }
-  function netPeerId(code) {
-    const s = String(code || '');
-    if (NET_PAIR_IDS.indexOf(s) >= 0) return s;
-    return netSlotId(Number(code) || 0);
-  }
-  function netMakeCode() { return NET_PAIR_IDS[0]; }
+  function netPeerId(code) { return String(code || netSlotId(0)); }
+  function netMakeCode() { return netSlotId(0); }
   function netJoinUrl() { return location.origin + location.pathname.replace(/index\.html?$/, ''); }
   function netNewPeer(id) {
     return id ? new Peer(id, NET_PEER_OPTS) : new Peer(NET_PEER_OPTS);
+  }
+  function netSetWait(text) {
+    const el = document.getElementById('roomWait');
+    if (el) el.textContent = text;
   }
   function netSend(obj) {
     if (!netConn || !netLinked) return;
@@ -1857,18 +1866,22 @@
   }
   function netBindConn(conn, asHost) {
     netConn = conn;
-    conn.on('open', () => {
+    const onReady = () => {
+      if (netLinked && netConn === conn) return;
       netLinked = true;
+      netConn = conn;
       if (asHost) {
-        document.getElementById('roomWait').textContent = '配对成功！马上开始';
+        netSetWait('配对成功！马上开始');
         toast('玩家B来了！');
         netSend({ t: 'hello', code: netCode, role: 'host' });
-        setTimeout(() => { if (netRole === 'host' && netLinked) netHostStart(); }, 350);
+        setTimeout(() => { if (netRole === 'host' && netLinked) netHostStart(); }, 400);
       } else {
-        document.getElementById('roomWait').textContent = '配对成功！等一下就开打';
+        netSetWait('配对成功！等一下就开打');
         toast('已连上玩家A');
       }
-    });
+    };
+    conn.on('open', onReady);
+    if (conn.open) onReady();
     conn.on('data', (msg) => netOnMsg(msg, asHost));
     conn.on('close', () => netOnDisconnect());
     conn.on('error', () => netOnDisconnect());
@@ -2094,24 +2107,26 @@
     }
     return true;
   }
-  function netClaimPair(index, onOk, onBusy) {
-    const id = netSlotId(index);
+  function netClaimPair(id, onOk, onBusy) {
     let peer;
-    try { peer = netNewPeer(id); } catch (e) { onBusy(index); return; }
+    try { peer = netNewPeer(id); } catch (e) { onBusy('create'); return; }
     let settled = false;
-    const fail = () => {
+    const fail = (why) => {
       if (settled) return;
       settled = true;
       try { peer.destroy(); } catch (e) {}
-      onBusy(index);
+      onBusy(why || 'busy');
     };
     peer.on('open', () => {
       if (settled || netMatchAbort) return;
       settled = true;
-      onOk(peer, id, index);
+      onOk(peer, id);
     });
-    peer.on('error', () => fail());
-    setTimeout(() => { if (!settled) fail(); }, 4000);
+    peer.on('error', (err) => {
+      const t = (err && err.type) || '';
+      fail(t || 'error');
+    });
+    setTimeout(() => { if (!settled) fail('timeout'); }, 5000);
   }
   function netOpenHost() {
     if (!netEnsurePeerJs()) return;
@@ -2121,27 +2136,33 @@
     netRole = 'host';
     netPickLv = 0;
     netShowRoom('host');
-    document.getElementById('roomWait').textContent = '正在当玩家A…';
+    netSetWait('正在当玩家A…');
+    const ids = netPairIds().slice(0, NET_SLOTS); // current minute only for host claim
+    // randomize start so two parents retrying don't collide forever on slot0
+    const startAt = Math.floor(Math.random() * ids.length);
+    const order = ids.slice(startAt).concat(ids.slice(0, startAt));
     let i = 0;
     const tryNext = () => {
       if (netMatchAbort || netRole !== 'host') return;
-      if (i >= NET_PAIR_IDS.length) {
-        document.getElementById('roomWait').textContent = '暂时没有空位，取消后重试，或让对方先点取消';
+      if (i >= order.length) {
+        netSetWait('座位忙，请双方都点取消，再先点玩家A');
         toast('请再点一次玩家A');
         return;
       }
-      const cur = i;
-      i += 1;
-      document.getElementById('roomWait').textContent = '等待玩家B…';
-      netClaimPair(cur, (peer, id) => {
+      const id = order[i++];
+      netSetWait('等待玩家B…（座位准备中）');
+      netClaimPair(id, (peer, claimed) => {
         netPeer = peer;
-        netCode = id;
+        netCode = claimed;
         netPeer.on('connection', (conn) => {
           if (netConn && netLinked) { try { conn.close(); } catch (e) {} return; }
           netBindConn(conn, true);
         });
         netPeer.on('disconnected', () => { try { netPeer.reconnect(); } catch (e) {} });
-        document.getElementById('roomWait').textContent = '已准备好，等玩家B…（对方点玩家B）';
+        netPeer.on('error', (err) => {
+          if (err && err.type === 'peer-unavailable') return;
+        });
+        netSetWait('已准备好，请对方点玩家B');
       }, () => tryNext());
     };
     tryNext();
@@ -2158,7 +2179,7 @@
         if (!ok) { try { if (conn) conn.close(); } catch (e) {} }
         resolve(ok ? conn : null);
       };
-      try { conn = peer.connect(id, { reliable: true }); }
+      try { conn = peer.connect(id, { reliable: true, serialization: 'json' }); }
       catch (e) { resolve(null); return; }
       conn.on('open', () => finish(true));
       conn.on('error', () => finish(false));
@@ -2172,16 +2193,17 @@
     netDestroy();
     netRole = 'guest';
     netShowRoom('join');
-    document.getElementById('roomWait').textContent = '正在寻找玩家A…先让对方点玩家A';
+    netSetWait('正在寻找玩家A…请先让对方点玩家A');
     let peer;
     try { peer = netNewPeer(); } catch (e) {
       toast('联网失败');
       return;
     }
     netPeer = peer;
-    peer.on('error', () => {
+    peer.on('error', (err) => {
+      if (err && err.type === 'peer-unavailable') return; // normal while scanning
       if (!netLinked && !netMatchAbort) {
-        document.getElementById('roomWait').textContent = '联网信号不稳，再点玩家B，或用系统浏览器打开';
+        netSetWait('联网信号不稳，请用系统浏览器打开后再试');
       }
     });
     peer.on('open', async () => {
@@ -2189,22 +2211,23 @@
       let round = 0;
       while (!netMatchAbort && !netLinked && Date.now() - started < NET_FIND_MS) {
         round += 1;
-        for (let s = 0; s < NET_PAIR_IDS.length; s++) {
+        const ids = netPairIds();
+        for (let s = 0; s < ids.length; s++) {
           if (netMatchAbort || netLinked) return;
-          const id = NET_PAIR_IDS[s];
-          document.getElementById('roomWait').textContent = '正在配对…第' + round + '轮（请确认对方已点玩家A）';
+          const id = ids[s];
+          netSetWait('正在配对…第' + round + '轮（确认对方已是玩家A）');
           const conn = await netProbeId(peer, id);
           if (conn) {
             netCode = id;
             netBindConn(conn, false);
-            document.getElementById('roomWait').textContent = '配对成功！马上开始';
+            netSetWait('配对成功！马上开始');
             return;
           }
         }
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 400));
       }
       if (!netLinked) {
-        document.getElementById('roomWait').textContent = '没找到玩家A。请：1对方先点玩家A 2你再点玩家B 3微信里请用右上角浏览器打开';
+        netSetWait('没找到玩家A。请双方取消后：先A后B；微信请用右上角「浏览器打开」');
         toast('配对失败，按提示重试');
       }
     });
