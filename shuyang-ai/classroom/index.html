@@ -110,6 +110,53 @@
     border-bottom:1px solid var(--line);
   }
   .course h2{padding-bottom:4px}
+
+  .today-summary{
+    flex-shrink:0;
+    margin:0 8px 6px;
+    padding:8px 10px;
+    border-radius:12px;
+    border:1px solid #3f8f4a88;
+    background:#0f2418ee;
+    font-size:12px;
+    line-height:1.45;
+    color:var(--txt);
+  }
+  .today-summary .ts-label{
+    display:inline-block;
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.06em;
+    color:#ffe7a0;
+    margin-right:6px;
+  }
+  .today-summary .ts-theme{font-weight:800}
+  .today-summary .ts-overview{
+    margin:4px 0 0;
+    opacity:.9;
+    font-size:11px;
+  }
+  .today-summary .ts-steps{
+    margin:6px 0 0;
+    padding:0;
+    list-style:none;
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+  }
+  .today-summary .ts-steps li{
+    padding:2px 8px;
+    border-radius:999px;
+    background:#1a3d2a;
+    border:1px solid #3f8f4a66;
+    font-size:10px;
+    font-weight:700;
+  }
+  @media (orientation: landscape), (min-width: 600px){
+    .today-summary{margin:0 6px 6px;padding:6px 8px;font-size:11px}
+    .today-summary .ts-overview{font-size:10px}
+  }
+
   .course iframe{
     width:100%;
     flex:1;
@@ -715,8 +762,14 @@
 <main>
   <section class="panel course" id="coursePanel">
     <h2>课程同屏</h2>
+    <div class="today-summary" id="todaySummary" aria-live="polite">
+      <span class="ts-label">今日课题</span>
+      <span class="ts-theme" id="todayTheme">加载中…</span>
+      <p class="ts-overview" id="todayOverview"></p>
+      <ul class="ts-steps" id="todaySteps"></ul>
+    </div>
     <div class="course-shell">
-      <iframe id="courseFrame" title="course" src="../learn/skeleton.html?v=mc20"></iframe>
+      <iframe id="courseFrame" title="course" src="../learn/skeleton.html?v=mc21"></iframe>
       <div class="course-flow" id="courseFlow" role="dialog" aria-labelledby="cfTheme">
         <img class="xy-hero" src="../avatars/xiaoyu.jpg" alt="小雨" width="96" height="96"/>
         <div class="cf-body">
@@ -979,12 +1032,27 @@ async function askXiaoyuSay(text, mood){
     } catch (_) {}
   }
 }
+function renderTodaySummary(){
+  const th = document.getElementById('todayTheme');
+  const ov = document.getElementById('todayOverview');
+  const stepsEl = document.getElementById('todaySteps');
+  if (!courseData) return;
+  if (th) th.textContent = courseData.theme || '今日课程';
+  if (ov) ov.textContent = courseData.overview || '';
+  if (stepsEl) {
+    const steps = courseData.steps || [];
+    stepsEl.innerHTML = steps.map((s, i) =>
+      `<li>第${['一','二','三','四','五'][i] || (i+1)}步 · ${s.title || ''}</li>`
+    ).join('');
+  }
+}
 function renderCourseIntro(){
   if (!courseData || !courseFlow) return;
   courseFlow.hidden = false;
   courseFlow.classList.remove('steps-on');
   coursePhase = 'intro';
   courseStepIdx = 0;
+  renderTodaySummary();
   const th = document.getElementById('cfTheme');
   const ov = document.getElementById('cfOverview');
   if (th) th.textContent = courseData.theme || '今日课程';
@@ -1061,9 +1129,16 @@ function applyCourseFromNet(msg){
 }
 async function loadCourseToday(){
   try {
-    const res = await fetch('./course-today.json?v=mc20', { cache: 'no-cache' });
+    const bust = String(Date.now());
+    const res = await fetch('./course-today.json?v=' + encodeURIComponent(bust), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     courseData = await res.json();
-    if (courseData.iframe && courseFrame) courseFrame.src = courseData.iframe;
+    if (courseData.iframe && courseFrame) {
+      const raw = String(courseData.iframe);
+      const base = raw.split('?')[0];
+      const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : 'v=mc21';
+      courseFrame.src = base + '?' + q + '&_=' + bust;
+    }
     renderCourseIntro();
   } catch (e) {
     log('系统：课程加载失败: ' + (e.message || e));
@@ -1743,9 +1818,9 @@ async function hardRefreshPage(){
   try {
     const frame = document.getElementById('courseFrame');
     if (frame) {
-      const raw = frame.getAttribute('src') || '../learn/skeleton.html?v=mc20';
+      const raw = frame.getAttribute('src') || '../learn/skeleton.html?v=mc21';
       const base = raw.split('?')[0];
-      frame.setAttribute('src', base + '?v=mc20&_=' + bust);
+      frame.setAttribute('src', base + '?v=mc21&_=' + bust);
     }
   } catch (_) {}
   // Clear Cache Storage
