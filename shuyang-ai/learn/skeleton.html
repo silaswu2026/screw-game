@@ -111,7 +111,7 @@
 <body>
 <div class="wrap">
   <h1>拖一拖：3D 骨头人</h1>
-  <p class="tip">骨头 → 大块方块人 → 更细的小颗粒 → 把逼真忍者图直接贴在方块上</p>
+  <p class="tip">骨头 → 大块方块人 → 更细的小颗粒 → Minecraft式6方块贴上逼真皮肤</p>
   <p class="callout" id="lesson">① <strong>只看骨头</strong>——里面先有一副会动的骨头架。</p>
 
   <div class="stage" id="stage" aria-label="可拖动的3D骨头人">
@@ -348,8 +348,6 @@ function addChunk(parent, x, y, z, w, h, d, colorIdx, delay, part = 'torso') {
     delay: delay ?? (chunkSeq * 0.035) % 0.7,
     colorMat: mat,
     part,
-    skinMats: null, // filled after textures load
-    skinned: false,
   });
   chunkSeq++;
   return mesh;
@@ -516,23 +514,22 @@ fillFineLimb(shinR, 0, -0.48, 0.1, 0.12, 400);
 console.info('[skeleton] fine particles', fineParticles.length);
 
 
-// ─── Step ④: paint realistic AI ninja art ONTO the big cubes (no billboard) ───
+// ─── Step ④: classic Minecraft 6-box body — one coherent AI map per box front ───
 let skinReveal = null;
 let skinReady = false;
-const PART_SKIN_DELAY = { head: 0.00, torso: 0.18, armL: 0.36, armR: 0.42, legL: 0.58, legR: 0.64 };
+const PART_SKIN_DELAY = { head: 0.00, torso: 0.18, armL: 0.34, armR: 0.40, legL: 0.56, legR: 0.62 };
 
-/** Paint high-quality AI art onto an opaque suit-colored canvas (sharp cube faces). */
-function paintOnto(img, sx, sy, sw, sh, bgCss, outW, outH) {
+/** Cover-crop AI art onto opaque canvas (fills face once — no tiling). */
+function paintCover(img, sx, sy, sw, sh, bgCss, outW, outH) {
   const c = document.createElement('canvas');
-  c.width = outW || Math.max(128, Math.round(sw));
-  c.height = outH || Math.max(128, Math.round(sh));
+  c.width = outW || 512;
+  c.height = outH || 512;
   const ctx = c.getContext('2d');
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.fillStyle = bgCss;
   ctx.fillRect(0, 0, c.width, c.height);
-  // letterbox the crop into the canvas preserving aspect so art stays 逼真
-  const scale = Math.min(c.width / sw, c.height / sh);
+  const scale = Math.max(c.width / sw, c.height / sh);
   const dw = sw * scale;
   const dh = sh * scale;
   const dx = (c.width - dw) / 2;
@@ -544,60 +541,81 @@ function paintOnto(img, sx, sy, sw, sh, bgCss, outW, outH) {
   tex.minFilter = THREE.LinearMipmapLinearFilter;
   tex.magFilter = THREE.LinearFilter;
   tex.anisotropy = 8;
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
   tex.needsUpdate = true;
   return tex;
 }
 
-/** Crop using known content bbox of a sticker sheet. */
-function stickerTex(img, bbox, bgCss, outW, outH) {
+function stickerCover(img, bbox, bgCss, outW, outH) {
   const [sx, sy, ex, ey] = bbox;
-  return paintOnto(img, sx, sy, ex - sx, ey - sy, bgCss, outW, outH);
+  return paintCover(img, sx, sy, ex - sx, ey - sy, bgCss, outW, outH);
 }
 
-/** 6 materials for a Box: +X -X +Y -Y +Z -Z — front/back + sides get AI art. */
-function makeCubeSkinMats(frontTex, sideTex, sideHex) {
-  const topBot = () => new THREE.MeshStandardMaterial({
-    color: sideHex, roughness: 0.55, metalness: 0.06,
-  });
-  const front = new THREE.MeshStandardMaterial({
-    map: frontTex, roughness: 0.38, metalness: 0.03,
+/** Front = one AI map; side/back/top/bottom = solid matching colour (no face stamps). */
+function makeMcBoxMats(frontTex, sideHex) {
+  const solid = () => new THREE.MeshStandardMaterial({
+    color: sideHex, roughness: 0.55, metalness: 0.05,
   });
   const back = new THREE.MeshStandardMaterial({
-    map: frontTex, roughness: 0.5, metalness: 0.03,
-    color: 0xbbbbbb,
+    color: sideHex, roughness: 0.65, metalness: 0.04,
   });
-  const left = new THREE.MeshStandardMaterial({
-    map: sideTex || frontTex, roughness: 0.48, metalness: 0.04,
-    color: 0xdddddd,
-  });
-  const right = new THREE.MeshStandardMaterial({
-    map: sideTex || frontTex, roughness: 0.48, metalness: 0.04,
-    color: 0xdddddd,
+  // darken back slightly via color multiply feel — use a dimmer hex sibling
+  const front = new THREE.MeshStandardMaterial({
+    map: frontTex, roughness: 0.4, metalness: 0.03,
   });
   // Box face order: +X -X +Y -Y +Z -Z
-  return [right, left, topBot(), topBot(), front, back];
+  return [solid(), solid(), solid(), solid(), front, back];
 }
 
-function buildCubeSkins(partsImg, stickers) {
-  // Dedicated high-quality AI stickers (逼真) + parts.png for arms
-  const S = 512; // crisp face resolution on the big cubes
-  const tex = {
-    head: stickerTex(stickers.head, [59, 0, 612, 335], '#1a1a1a', S, S),
-    torso: stickerTex(stickers.torso, [4, 293, 608, 649], '#1e3d22', S, S),
-    armL: paintOnto(partsImg, 233, 369, 154, 292, '#2e5c32', S, S),
-    armR: paintOnto(partsImg, 977, 54, 138, 272, '#2e5c32', S, S),
-    legL: stickerTex(stickers.legs, [0, 575, 300, 1047], '#1a1a1a', S, S),
-    legR: stickerTex(stickers.legs, [300, 575, 609, 1047], '#1a1a1a', S, S),
+// Classic Minecraft player: 1 head + 1 torso + 2 arms + 2 legs (parented under hips → orbit as one)
+const mcSkinRoot = new THREE.Group();
+mcSkinRoot.name = 'mcSkin';
+hips.add(mcSkinRoot);
+mcSkinRoot.visible = false;
+
+const mcBoxes = []; // { mesh, part, delay, skinMats }
+
+function addMcBox(part, x, y, z, w, h, d) {
+  const geo = new THREE.BoxGeometry(w, h, d);
+  // placeholder solid until textures load
+  const placeholder = new THREE.MeshStandardMaterial({ color: 0x2e5c32, roughness: 0.55 });
+  const mesh = new THREE.Mesh(geo, placeholder);
+  mesh.position.set(x, y, z);
+  mesh.visible = false;
+  mesh.scale.setScalar(0.01);
+  mesh.userData.part = part;
+  mcSkinRoot.add(mesh);
+  mcBoxes.push({
+    mesh,
+    part,
+    delay: PART_SKIN_DELAY[part] ?? 0.3,
+    skinMats: null,
+    colorMat: placeholder,
+  });
+  return mesh;
+}
+
+// Proportions ~ Steve-style, scaled to our figure (~hips origin)
+addMcBox('head',  0,      1.12, 0, 0.40, 0.40, 0.40);
+addMcBox('torso', 0,      0.44, 0, 0.40, 0.56, 0.20);
+addMcBox('armL', -0.30,  0.44, 0, 0.16, 0.56, 0.16);
+addMcBox('armR',  0.30,  0.44, 0, 0.16, 0.56, 0.16);
+addMcBox('legL', -0.11, -0.30, 0, 0.18, 0.60, 0.18);
+addMcBox('legR',  0.11, -0.30, 0, 0.18, 0.60, 0.18);
+console.info('[skeleton] MC 6-box body', mcBoxes.length);
+
+function buildMcSkins(partsImg, stickers) {
+  const S = 512;
+  // One coherent front map per body part — never stamped onto many small bricks
+  const fronts = {
+    head:  stickerCover(stickers.head || stickers.full, [59, 0, 612, 335], '#1a1a1a', S, S),
+    torso: stickerCover(stickers.torso || stickers.full, [4, 293, 608, 649], '#1e3d22', S, Math.round(S * 1.4)),
+    armL:  paintCover(partsImg, 233, 369, 154, 292, '#2e5c32', S, Math.round(S * 1.4)),
+    armR:  paintCover(partsImg, 977, 54, 138, 272, '#2e5c32', S, Math.round(S * 1.4)),
+    legL:  stickerCover(stickers.legs || stickers.full, [20, 575, 300, 1047], '#1a1a1a', S, Math.round(S * 1.4)),
+    legR:  stickerCover(stickers.legs || stickers.full, [300, 575, 590, 1047], '#1a1a1a', S, Math.round(S * 1.4)),
   };
-  // Fallback / accent from full body sticker if a part sheet failed
-  if (stickers.full) {
-    if (!stickers.head) tex.head = stickerTex(stickers.full, [59, 0, 612, 335], '#1a1a1a', S, S);
-    if (!stickers.torso) tex.torso = stickerTex(stickers.full, [4, 293, 608, 649], '#1e3d22', S, S);
-    if (!stickers.legs) {
-      tex.legL = stickerTex(stickers.full, [0, 575, 300, 1047], '#1a1a1a', S, S);
-      tex.legR = stickerTex(stickers.full, [300, 575, 609, 1047], '#1a1a1a', S, S);
-    }
-  }
   const sideHex = {
     head: 0x2a2a2a,
     torso: 0x2e5c32,
@@ -606,23 +624,25 @@ function buildCubeSkins(partsImg, stickers) {
     legL: 0x222222,
     legR: 0x222222,
   };
-  const cache = {};
-  for (const part of Object.keys(tex)) {
-    cache[part] = makeCubeSkinMats(tex[part], tex[part], sideHex[part]);
+  for (const box of mcBoxes) {
+    const tex = fronts[box.part] || fronts.torso;
+    box.skinMats = makeMcBoxMats(tex, sideHex[box.part] || 0x2e5c32);
+    box.mesh.material = box.skinMats;
   }
-  for (const p of particles) {
-    p.skinMats = cache[p.part] || cache.torso;
+  console.info('[skeleton] MC skins ready (1 map / box front)');
+}
+
+function hideMcSkin() {
+  skinReveal = null;
+  mcSkinRoot.visible = false;
+  for (const b of mcBoxes) {
+    b.mesh.visible = false;
+    b.mesh.scale.setScalar(0.01);
   }
-  console.info('[skeleton] cube skins ready (HQ AI stickers)');
 }
 
 function clearCubeSkin() {
-  skinReveal = null;
-  for (const p of particles) {
-    p.skinned = false;
-    p.mesh.material = p.colorMat;
-    p.mesh.rotation.y = p.mesh.userData.baseTilt || 0;
-  }
+  hideMcSkin();
 }
 
 const ground = new THREE.Mesh(
@@ -680,7 +700,7 @@ const LESSONS = {
     badge: '🟨 细颗粒',
   },
   4: {
-    html: '④ <strong>皮肤直接贴在方块上</strong>——高清AI绿忍者贴图，一块一块贴在方块脸上，转一转还是同一个人！',
+    html: '④ <strong>皮肤直接贴在方块上</strong>——像 Minecraft：头/身/手/脚共 6 个大方块，每面一张完整AI忍者图，转一转还是同一个人！',
     badge: '🎨 贴在方块上',
   },
 };
@@ -733,33 +753,40 @@ function showRig() {
   for (const m of rigMeshes) m.visible = true;
 }
 
-/** Step ④ paint AI ninja textures onto big Minecraft cubes (real 3D) */
+/** Step ④: hide particles/rig, reveal classic 6-box MC body with AI maps */
 function showSkinStaggered() {
   particleReveal = null;
   fineReveal = null;
   hideFineParticles();
+  hideBigChunks();
   hideRig();
+  // freeze limb sway so the 6 boxes stay one coherent figure
+  upperArmL.rotation.set(0, 0, 0);
+  upperArmR.rotation.set(0, 0, 0);
+  foreArmL.rotation.set(0, 0, 0);
+  foreArmR.rotation.set(0, 0, 0);
+  thighL.rotation.set(0, 0, 0);
+  thighR.rotation.set(0, 0, 0);
+  shinL.rotation.set(0, 0, 0);
+  shinR.rotation.set(0, 0, 0);
   if (!skinReady) {
     lessonEl.innerHTML = '④ 绿色忍者皮肤加载中…稍等一下';
-    // still show big cubes unskinned so body is there
-    for (const p of particles) {
-      p.mesh.visible = true;
-      p.mesh.scale.setScalar(1);
-      p.mesh.material = p.colorMat;
-      p.skinned = false;
+    mcSkinRoot.visible = true;
+    for (const b of mcBoxes) {
+      b.mesh.visible = true;
+      b.mesh.scale.setScalar(1);
+      b.mesh.material = b.colorMat;
     }
     return;
   }
-  // Show big block body; skin maps applied piece-by-piece in the frame loop
-  for (const p of particles) {
-    p.mesh.visible = true;
-    p.mesh.scale.setScalar(1);
-    p.mesh.material = p.colorMat;
-    p.skinned = false;
-    p.mesh.rotation.y = 0; // square faces for clear art
+  mcSkinRoot.visible = true;
+  for (const b of mcBoxes) {
+    b.mesh.visible = true;
+    b.mesh.scale.setScalar(0.01); // pop in piece-by-piece
+    if (b.skinMats) b.mesh.material = b.skinMats;
   }
-  skinReveal = { t0: performance.now(), dur: 2200 };
-  swayOn = true; // orbit + mild sway still OK — textured cubes rotate together
+  skinReveal = { t0: performance.now(), dur: 2000 };
+  swayOn = true; // hips yaw only while step 4 (see frame)
 }
 
 function setStep(n) {
@@ -867,10 +894,14 @@ function frame(now) {
   } else if (swayOn) {
     const t = now / 1000;
     hips.rotation.y = Math.sin(t * 0.7) * 0.06;
-    upperArmL.rotation.x = Math.sin(t * 1.1) * 0.08;
-    upperArmR.rotation.x = Math.sin(t * 1.1 + 0.4) * -0.08;
-    thighL.rotation.x = Math.sin(t * 0.9) * 0.04;
-    thighR.rotation.x = Math.sin(t * 0.9 + Math.PI) * 0.04;
+    if (step === 4) {
+      // 6-box MC body is rigid under hips — only yaw so orbit reads as one figure
+    } else {
+      upperArmL.rotation.x = Math.sin(t * 1.1) * 0.08;
+      upperArmR.rotation.x = Math.sin(t * 1.1 + 0.4) * -0.08;
+      thighL.rotation.x = Math.sin(t * 0.9) * 0.04;
+      thighR.rotation.x = Math.sin(t * 0.9 + Math.PI) * 0.04;
+    }
   }
 
   if (particleReveal) {
@@ -912,29 +943,19 @@ function frame(now) {
   if (skinReveal) {
     const u = (now - skinReveal.t0) / skinReveal.dur;
     let allDone = true;
-    for (const p of particles) {
-      const d = PART_SKIN_DELAY[p.part] ?? 0.3;
-      const local = (u - d) / 0.22;
+    for (const b of mcBoxes) {
+      const local = (u - b.delay) / 0.28;
       if (local < 0) {
-        if (p.skinned) {
-          p.mesh.material = p.colorMat;
-          p.skinned = false;
-        }
+        b.mesh.scale.setScalar(0.01);
+        allDone = false;
+      } else if (local < 1) {
+        b.mesh.scale.setScalar(Math.max(0.01, easeOutBack(local)));
         allDone = false;
       } else {
-        if (!p.skinned && p.skinMats) {
-          p.mesh.material = p.skinMats;
-          p.skinned = true;
-          // tiny pop so kid sees the piece stick on
-          p.mesh.scale.setScalar(1.08);
-        } else if (p.skinned) {
-          const s = local < 1 ? 1.08 - 0.08 * Math.min(1, local) : 1;
-          p.mesh.scale.setScalar(s);
-        }
-        if (local < 1) allDone = false;
+        b.mesh.scale.setScalar(1);
       }
     }
-    if (u >= 1.35 && allDone) skinReveal = null;
+    if (u >= 1.4 && allDone) skinReveal = null;
   }
 
   controls.update();
@@ -963,7 +984,7 @@ function loadImage(url) {
       loadImage('../../assets/sprites/mc-ninja/sticker-legs.png'),
       loadImage('../../assets/sprites/mc-ninja/sticker-full.png'),
     ]);
-    buildCubeSkins(partsImg, {
+    buildMcSkins(partsImg, {
       head: headImg, torso: torsoImg, legs: legsImg, full: fullImg,
     });
     skinReady = true;
