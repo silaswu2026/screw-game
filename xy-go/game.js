@@ -571,7 +571,7 @@
     },
     {
       name: '苔岩小径', en: 'Moss Path',
-      hint: '第2关：弹簧+矮墙；喷火初见  Spring & fire intro',
+      hint: '第2关：着火后左右快晃灭火  Shake L/R to put out fire',
       cols: 82, rows: 14, spawn: [2, 11], goal: [78, 11],
       checks: [[20, 11], [48, 11]],
       slimes: [[26, 11], [54, 11]], crates: [[18, 11]],
@@ -645,7 +645,7 @@
     },
     {
       name: '火焰栈道', en: 'Flame Bridge',
-      hint: '第5关：喷火密集；红免疫喷火  Fire gauntlet',
+      hint: '第5关：喷火密集；着火快左右晃  Fire gauntlet — shake to extinguish',
       cols: 100, rows: 14, spawn: [2, 11], goal: [96, 11],
       checks: [[26, 11], [54, 11], [78, 11]],
       slimes: [[18, 11], [38, 11], [58, 11], [82, 11]], crates: [[22, 11], [62, 11]],
