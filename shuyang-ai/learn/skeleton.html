@@ -111,7 +111,7 @@
 <body>
 <div class="wrap">
   <h1>拖一拖：3D 骨头人</h1>
-  <p class="tip">先看骨头，再盖上大块颗粒拼成的人，最后一张张贴上绿色忍者皮肤</p>
+  <p class="tip">先看骨头，再盖上大块颗粒拼成的人，再一张张贴上绿色忍者（头、身、手脚）</p>
   <p class="callout" id="lesson">① <strong>只看骨头</strong>——里面先有一副会动的骨头架。</p>
 
   <div class="stage" id="stage" aria-label="可拖动的3D骨头人">
@@ -145,9 +145,9 @@
     </details>
   </div>
 
-  <a class="back" href="../kid.html?v=bone3d4">回今晚课</a>
+  <a class="back" href="../kid.html?v=bone3d5">回今晚课</a>
   <div class="row" style="margin-top:10px">
-    <a class="btn" href="frame-anim.html?v=bone3d4">回动手页 · 逐帧</a>
+    <a class="btn" href="frame-anim.html?v=bone3d5">回动手页 · 逐帧</a>
   </div>
 </div>
 
@@ -331,7 +331,11 @@ function addChunk(parent, x, y, z, w, h, d, colorIdx, delay) {
   mesh.visible = false;
   mesh.scale.setScalar(0.01);
   parent.add(mesh);
-  particles.push({ mesh, delay: delay ?? (chunkSeq * 0.035) % 0.7 });
+  particles.push({
+    mesh,
+    delay: delay ?? (chunkSeq * 0.035) % 0.7,
+    colorMat: mat,
+  });
   chunkSeq++;
   return mesh;
 }
@@ -396,81 +400,72 @@ addChunk(shinR, 0, -0.48, 0.08, 0.2, 0.12, 0.26, 14, 0.66);
 
 console.info('[skeleton] LEGO chunks', particles.length);
 
-// ─── Step 3: big green-ninja stickers mapped to those body parts ───
+// ─── Step 3: clear green-ninja body-part DECALS (transparent planes) ───
 const skinPatches = [];
 let skinReveal = null;
 
+const CALM_CHUNK = new THREE.MeshStandardMaterial({
+  color: 0x4a6b55, roughness: 0.85, metalness: 0.02,
+});
+
 function cropTex(img, sx, sy, sw, sh) {
   const c = document.createElement('canvas');
-  c.width = Math.max(8, sw);
-  c.height = Math.max(8, sh);
+  c.width = Math.max(8, Math.round(sw));
+  c.height = Math.max(8, Math.round(sh));
   const ctx = c.getContext('2d');
+  // Keep PNG transparency — NEVER fill white (that made cardboard slabs)
   ctx.clearRect(0, 0, c.width, c.height);
-  // soft white back so transparent PNG crops read as stickers
-  ctx.fillStyle = '#f4fff6';
-  ctx.fillRect(0, 0, c.width, c.height);
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.premultiplyAlpha = false;
   tex.needsUpdate = true;
   return tex;
 }
 
-/** Large box sticker — same scale as LEGO chunks, texture on all faces. */
-function addSkinBox(parent, tex, x, y, z, w, h, d, delay) {
-  const mat = new THREE.MeshStandardMaterial({
+/** Front-facing decal plane (character faces +Z). Transparent PNG edges. */
+function addSkinPlane(parent, tex, x, y, z, w, h, delay) {
+  const mat = new THREE.MeshBasicMaterial({
     map: tex,
-    roughness: 0.7,
-    metalness: 0.02,
     transparent: true,
     opacity: 0,
-    side: THREE.FrontSide,
+    side: THREE.DoubleSide,
+    alphaTest: 0.12,
+    depthWrite: false,
   });
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
   mesh.position.set(x, y, z);
   mesh.visible = false;
-  // sit slightly outside the particle brick so sticker is readable
+  mesh.renderOrder = 10;
   parent.add(mesh);
   skinPatches.push({ mesh, delay, mat });
   return mesh;
 }
 
-function buildNinjaSkin(idleImg, walkImg, portraitImg) {
-  // Large clear crops from idle / walk / portrait
-  const headTex = cropTex(idleImg, 70, 15, 115, 110);
-  const torsoTex = cropTex(idleImg, 85, 100, 90, 80);
-  const armLTex = cropTex(idleImg, 50, 110, 55, 80);
-  const armRTex = cropTex(idleImg, 155, 110, 55, 80);
-  const legLTex = cropTex(idleImg, 90, 165, 45, 85);
-  const legRTex = cropTex(idleImg, 125, 165, 50, 85);
-  const fullFront = cropTex(idleImg, 65, 20, 125, 228);
-  const walkFull = cropTex(walkImg, 65, 18, 125, 230);
-  const portraitHead = cropTex(portraitImg, 360, 80, 320, 360);
+function buildNinjaSkin(idleImg /*, walkImg, portraitImg */) {
+  // Sensible large crops from idle.png (256², real alpha)
+  // bbox of character ≈ (65,20)–(190,248)
+  const headTex = cropTex(idleImg, 72, 16, 118, 108);     // head + headband
+  const torsoTex = cropTex(idleImg, 82, 100, 95, 78);     // scarf + chest + belt
+  const armLTex = cropTex(idleImg, 48, 108, 58, 88);      // left arm
+  const armRTex = cropTex(idleImg, 152, 108, 58, 88);     // right arm
+  const legLTex = cropTex(idleImg, 88, 168, 48, 82);      // left leg + boot
+  const legRTex = cropTex(idleImg, 128, 168, 52, 82);     // right leg + boot
+  const fullTex = cropTex(idleImg, 65, 18, 125, 232);     // whole ninja
 
-  // ① 头 — one big head sticker cube
-  addSkinBox(hips, headTex, 0, 1.08, 0, 0.46, 0.46, 0.46, 0.00);
-  // portrait face on front as a clear “忍者脸” plate
-  addSkinBox(hips, portraitHead, 0, 1.08, 0.24, 0.4, 0.42, 0.04, 0.08);
-
-  // ② 身子 — one big torso sticker
-  addSkinBox(hips, torsoTex, 0, 0.42, 0, 0.5, 0.72, 0.34, 0.18);
-  // front plate of full ninja so kid clearly sees 绿色忍者
-  addSkinBox(hips, fullFront, 0, 0.5, 0.2, 0.42, 0.85, 0.04, 0.28);
-
-  // ③ 手臂 — one sticker per segment
-  addSkinBox(upperArmL, armLTex, 0, -0.19, 0, 0.2, 0.4, 0.2, 0.38);
-  addSkinBox(foreArmL, armLTex, 0, -0.17, 0, 0.18, 0.36, 0.18, 0.46);
-  addSkinBox(upperArmR, armRTex, 0, -0.19, 0, 0.2, 0.4, 0.2, 0.54);
-  addSkinBox(foreArmR, armRTex, 0, -0.17, 0, 0.18, 0.36, 0.18, 0.62);
-
-  // ④ 腿
-  addSkinBox(thighL, legLTex, 0, -0.24, 0, 0.22, 0.48, 0.22, 0.70);
-  addSkinBox(shinL, legLTex, 0, -0.24, 0, 0.2, 0.48, 0.2, 0.78);
-  addSkinBox(thighR, legRTex, 0, -0.24, 0, 0.22, 0.48, 0.22, 0.86);
-  addSkinBox(shinR, legRTex, 0, -0.24, 0, 0.2, 0.48, 0.2, 0.94);
-
-  // Final big “整张绿忍者” board in front — lesson: 一张张贴上去
-  addSkinBox(hips, walkFull, 0, 0.55, 0.38, 0.55, 1.15, 0.05, 1.05);
+  // Aspect from crops → plane size so art isn't stretched oddly
+  // Head
+  addSkinPlane(hips, headTex, 0, 1.1, 0.32, 0.55, 0.5, 0.00);
+  // Torso
+  addSkinPlane(hips, torsoTex, 0, 0.45, 0.28, 0.55, 0.45, 0.14);
+  // Arms (whole arm segment — one clear sticker each)
+  addSkinPlane(upperArmL, armLTex, 0, -0.2, 0.16, 0.28, 0.42, 0.28);
+  addSkinPlane(upperArmR, armRTex, 0, -0.2, 0.16, 0.28, 0.42, 0.40);
+  // Legs
+  addSkinPlane(thighL, legLTex, 0, -0.35, 0.16, 0.26, 0.55, 0.52);
+  addSkinPlane(thighR, legRTex, 0, -0.35, 0.16, 0.28, 0.55, 0.64);
+  // Final full-body green ninja in front — completes the lesson
+  addSkinPlane(hips, fullTex, 0, 0.58, 0.48, 0.7, 1.3, 0.82);
 }
 
 const ground = new THREE.Mesh(
@@ -551,16 +546,19 @@ function showParticlesAssembling() {
   for (const p of particles) {
     p.mesh.visible = true;
     p.mesh.scale.setScalar(0.01);
+    if (p.colorMat) p.mesh.material = p.colorMat;
   }
   particleReveal = { t0: performance.now(), dur: 1400 };
 }
 
 function showSkinStaggered() {
+  particleReveal = null;
+  // Keep chunky silhouette under skin, but mute rainbow voxels to calm green-grey
   for (const p of particles) {
     p.mesh.visible = true;
     p.mesh.scale.setScalar(1);
+    p.mesh.material = CALM_CHUNK;
   }
-  particleReveal = null;
   if (!skinReady) {
     lessonEl.innerHTML = '③ 绿色忍者皮肤加载中…稍等一下';
     return;
@@ -569,7 +567,7 @@ function showSkinStaggered() {
     s.mesh.visible = true;
     s.mat.opacity = 0;
   }
-  skinReveal = { t0: performance.now(), dur: 1800 };
+  skinReveal = { t0: performance.now(), dur: 2000 };
 }
 
 function setStep(n) {
