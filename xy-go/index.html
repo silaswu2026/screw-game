@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1d4e38">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>小宇 / Xiao Yu</title>
-<link rel="stylesheet" href="style.css?v=3036">
+<link rel="stylesheet" href="style.css?v=3039">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -82,27 +82,6 @@
   <p class="netHint">联网：浏览器1点玩家A，浏览器2点玩家B（人类双人）。点玩家C可开关「小宇AI跟班」（本地笨AI，不占联网席）。微信用浏览器打开。见 TEST-AB.md</p>
 </div>
 
-<div id="localReadyPanel" class="hidden" aria-hidden="true">
-  <div class="roomCard">
-    <h2>同机双人 · 准备</h2>
-    <p id="localReadySub">同屏分键 · 双方都准备好再进关</p>
-    <div class="localReadySlots">
-      <button type="button" class="readySlot" id="readyA" aria-pressed="false">
-        <img src="ninjas/ninja-green.jpg" alt="绿忍者">
-        <span>玩家A · 芃芃</span>
-        <b id="readyAState">点一下 · 准备好了</b>
-      </button>
-      <button type="button" class="readySlot" id="readyB" aria-pressed="false">
-        <img src="ninjas/ninja-blue.jpg" alt="蓝忍者">
-        <span>玩家B · 爸爸</span>
-        <b id="readyBState">点一下 · 准备好了</b>
-      </button>
-    </div>
-    <p class="roomWait" id="localReadyWait">等双方都点「准备好了」</p>
-    <button type="button" id="localReadyGo" disabled>双方准备好 · 进关</button>
-    <button type="button" id="localReadyClose" class="roomClose">取消</button>
-  </div>
-</div>
 <div id="roomPanel" class="hidden" aria-hidden="true">
   <div class="roomCard">
     <h2 id="roomTitle">联网配对</h2>
@@ -164,6 +143,6 @@
   </div>
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="game.js?v=3036"></script>
+<script src="game.js?v=3039"></script>
 </body>
 </html>

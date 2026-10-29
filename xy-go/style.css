@@ -123,14 +123,5 @@ button{font:inherit;font-weight:900;border:0;cursor:pointer}
 
 .backClassroom{pointer-events:auto;display:inline-block;margin:0 0 10px;padding:8px 14px;border-radius:999px;background:#ffffffcc;color:#1d3557;font-weight:900;font-size:14px;text-decoration:none;box-shadow:0 3px 0 #0002}
 .backClassroom:active{transform:translateY(2px)}
-#localReadyPanel{position:fixed;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;background:#0006;padding:16px;pointer-events:auto}
-#localReadyPanel.hidden{display:none!important}
-.localReadySlots{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:8px 0 12px}
-.readySlot{pointer-events:auto;appearance:none;border:3px solid #c9e6ff;background:#f4f8ff;border-radius:18px;padding:10px 8px;width:140px;cursor:pointer;font:inherit;font-weight:800;color:#1d3557;box-shadow:0 4px 0 #c9e6ff}
-.readySlot img{display:block;width:72px;height:72px;object-fit:cover;object-position:center top;border-radius:50%;margin:0 auto 6px;border:3px solid #fff}
-.readySlot span{display:block;font-size:13px;margin-bottom:4px}
-.readySlot b{display:block;font-size:12px;color:#1868c4}
-.readySlot.on{border-color:#3ecf6e;background:#e8fff0;box-shadow:0 4px 0 #1f9d49}
-.readySlot.on b{color:#0d3b16}
-#localReadyGo{background:linear-gradient(#ffe14a,#ffb703);color:#6a3b00;border-radius:999px;padding:12px 22px;font-size:18px;font-weight:900;box-shadow:0 5px 0 #e09a00;width:100%;margin-top:4px;border:0;cursor:pointer}
-#localReadyGo:disabled{opacity:.45;box-shadow:0 5px 0 #bbb;background:#ddd;color:#666;cursor:not-allowed}
+/* local ready / auto-pair panels removed — 同机双人 uses silent PeerJS room */
+

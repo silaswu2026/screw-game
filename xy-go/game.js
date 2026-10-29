@@ -3011,10 +3011,18 @@
       netLinked = true;
       netConn = conn;
       if (asHost) {
-        netSetWait('配对成功！马上开始');
         toast('玩家B来了！');
         try { netSend({ t: 'hello', code: netCode, role: 'host' }); } catch (e) {}
-        setTimeout(() => { if (netRole === 'host' && netLinked) netHostStart(); }, 500);
+        const alreadyPlaying = (mode === 'play' || mode === 'clear' || mode === 'win' || mode === 'over');
+        if (alreadyPlaying) {
+          // 同机双人: host already in level — pull guest in via go+snap (do not restart host)
+          try { netSend({ t: 'go', lv: levelIndex, cp: companion ? 1 : 0 }); } catch (e) {}
+          try { netSend(netBuildSnap()); } catch (e) {}
+          syncChrome();
+        } else {
+          netSetWait('配对成功！马上开始');
+          setTimeout(() => { if (netRole === 'host' && netLinked) netHostStart(); }, 500);
+        }
       } else {
         netSetWait('配对成功！等一下就开打');
         toast('已连上玩家A');
@@ -3345,15 +3353,24 @@
     });
     setTimeout(() => { if (!settled) fail('timeout'); }, 3200);
   }
-  function netOpenHost() {
+  function netOpenHost(opts) {
+    opts = opts || {};
+    const silent = !!opts.silent;
     if (!netEnsurePeerJs()) return;
     unlock();
     netMatchAbort = false;
+    // keep gameplay if already in a level (同机双人 background host)
+    const keepPlay = (mode === 'play' || mode === 'clear' || mode === 'win' || mode === 'over');
     netDestroy();
     netRole = 'host';
-    netPickLv = 0;
-    netShowRoom('host');
-    netSetWait('正在当玩家A…');
+    netPickLv = (opts.pickLv != null ? opts.pickLv : 0) | 0;
+    if (!silent) {
+      netShowRoom('host');
+      netSetWait('正在当玩家A…');
+    } else {
+      netHideRoom();
+      toast('房间已开，对方点「玩家B」即可加入');
+    }
     const ids = netPairIds().slice(0, NET_SLOTS); // current minute only for host claim
     // randomize start so two parents retrying don't collide forever on slot0
     const startAt = Math.floor(Math.random() * ids.length);
@@ -3362,12 +3379,12 @@
     const tryNext = () => {
       if (netMatchAbort || netRole !== 'host') return;
       if (i >= order.length) {
-        netSetWait('座位忙，请双方都点取消，再先点玩家A');
-        toast('请再点一次玩家A');
+        if (!silent) netSetWait('座位忙，请双方都点取消，再先点玩家A');
+        toast(silent ? '房间座位忙，请再点开始' : '请再点一次玩家A');
         return;
       }
       const id = order[i++];
-      netSetWait('等待玩家B…（座位准备中）');
+      if (!silent) netSetWait('等待玩家B…（座位准备中）');
       netClaimPair(id, (peer, claimed) => {
         netPeer = peer;
         netCode = claimed;
@@ -3379,7 +3396,8 @@
         netPeer.on('error', (err) => {
           if (err && err.type === 'peer-unavailable') return;
         });
-        netSetWait('已准备好，请对方点玩家B');
+        if (!silent) netSetWait('已准备好，请对方点玩家B');
+        else toast('等待玩家B加入…');
       }, () => tryNext());
     };
     tryNext();
@@ -3415,14 +3433,21 @@
     }
     return won;
   }
-  function netOpenJoin() {
+  function netOpenJoin(opts) {
+    opts = opts || {};
+    const silent = !!opts.silent;
     if (!netEnsurePeerJs()) return;
     unlock();
     netMatchAbort = false;
     netDestroy();
     netRole = 'guest';
-    netShowRoom('join');
-    netSetWait('正在寻找玩家A…请先让对方点玩家A');
+    if (!silent) {
+      netShowRoom('join');
+      netSetWait('正在寻找玩家A…请先让对方点玩家A');
+    } else {
+      netHideRoom();
+      toast('正在加入…');
+    }
     let peer;
     try { peer = netNewPeer(); } catch (e) {
       toast('联网失败');
@@ -3432,7 +3457,8 @@
     peer.on('error', (err) => {
       if (err && err.type === 'peer-unavailable') return;
       if (!netLinked && !netMatchAbort) {
-        netSetWait('联网信号不稳，请用系统浏览器打开后再试');
+        if (!silent) netSetWait('联网信号不稳，请用系统浏览器打开后再试');
+        else toast('联网信号不稳，请用系统浏览器打开后再试');
       }
     });
     peer.on('open', async () => {
@@ -3441,7 +3467,7 @@
       while (!netMatchAbort && !netLinked && Date.now() - started < NET_FIND_MS) {
         round += 1;
         const ids = netPairIds();
-        netSetWait('正在配对…第' + round + '轮（确认对方已是玩家A）');
+        if (!silent) netSetWait('正在配对…第' + round + '轮（确认对方已是玩家A）');
         for (let s = 0; s < ids.length; s += 6) {
           if (netMatchAbort || netLinked) return;
           const batch = ids.slice(s, s + 6);
@@ -3449,15 +3475,16 @@
           if (won && won.conn) {
             netCode = won.id;
             netBindConn(won.conn, false);
-            netSetWait('配对成功！马上开始');
+            if (!silent) netSetWait('配对成功！马上开始');
+            else toast('已连上，马上进入');
             return;
           }
         }
         await new Promise((r) => setTimeout(r, 120));
       }
       if (!netLinked) {
-        netSetWait('没找到玩家A。请双方取消后：先A后B；微信请用右上角「浏览器打开」');
-        toast('配对失败，按提示重试');
+        if (!silent) netSetWait('没找到玩家A。请双方取消后：先A后B；微信请用右上角「浏览器打开」');
+        toast('没找到房间：请先让对方点同机双人·开始，再点玩家B');
       }
     });
   }
@@ -3470,6 +3497,14 @@
     }
     unlock();
     netHideRoom();
+    // if already in that level (同机双人), just re-send go+snap
+    if (mode === 'play' && levelIndex === (netPickLv | 0)) {
+      try { netSend({ t: 'go', lv: levelIndex, cp: companion ? 1 : 0 }); } catch (e) {}
+      try { netSend(netBuildSnap()); } catch (e) {}
+      syncChrome();
+      toast('已同步给玩家B');
+      return;
+    }
     start(netPickLv, true);
     syncChrome();
     toast('开始！你是绿色忍者');
@@ -3523,95 +3558,43 @@
     });
   });
 
-  // —— 同机双人 ready gate (local, same device) ——
-  let localReadyLv = 0;
-  let localReadyA = false;
-  let localReadyB = false;
-  function syncLocalReadyUi() {
-    const aBtn = document.getElementById('readyA');
-    const bBtn = document.getElementById('readyB');
-    const aState = document.getElementById('readyAState');
-    const bState = document.getElementById('readyBState');
-    const wait = document.getElementById('localReadyWait');
-    const go = document.getElementById('localReadyGo');
-    if (aBtn) {
-      aBtn.classList.toggle('on', localReadyA);
-      aBtn.setAttribute('aria-pressed', localReadyA ? 'true' : 'false');
-    }
-    if (bBtn) {
-      bBtn.classList.toggle('on', localReadyB);
-      bBtn.setAttribute('aria-pressed', localReadyB ? 'true' : 'false');
-    }
-    if (aState) aState.textContent = localReadyA ? '已准备 ✓' : '点一下 · 准备好了';
-    if (bState) bState.textContent = localReadyB ? '已准备 ✓' : '点一下 · 准备好了';
-    const both = localReadyA && localReadyB;
-    if (wait) {
-      wait.textContent = both
-        ? '双方都准备好了！点「进关」开始'
-        : (!localReadyA && !localReadyB
-          ? '等双方都点「准备好了」'
-          : (!localReadyA ? '等玩家A（芃芃）准备…' : '等玩家B（爸爸）准备…'));
-    }
-    if (go) go.disabled = !both;
+  // —— 同机双人: enter NOW + silent PeerJS host; P2 joins via 玩家B (no pair UI) ——
+  function prepareCoopCast() {
+    wantCompanion = true;
+    companion = true;
+    pickColor = 'green';
+    document.querySelectorAll('#castRow .cast').forEach((b) => {
+      if (b.id === 'castC') {
+        b.classList.add('on');
+        return;
+      }
+      b.classList.toggle('on', b.getAttribute('data-color') === 'green');
+    });
+    syncCompanionUi();
   }
-  function showLocalReady(lv) {
-    localReadyLv = lv | 0;
-    localReadyA = false;
-    localReadyB = false;
-    const panel = document.getElementById('localReadyPanel');
-    if (!panel) {
-      // fallback if markup missing
-      unlock();
-      start(localReadyLv, true);
-      return;
-    }
-    const sub = document.getElementById('localReadySub');
-    if (sub) sub.textContent = '同屏分键 · 第' + (localReadyLv + 1) + '关 · 双方都准备好再进关';
-    panel.classList.remove('hidden');
-    panel.setAttribute('aria-hidden', 'false');
-    syncLocalReadyUi();
-    toast('同机双人：请双方点准备');
-  }
-  function hideLocalReady() {
-    const panel = document.getElementById('localReadyPanel');
-    if (panel) {
-      panel.classList.add('hidden');
-      panel.setAttribute('aria-hidden', 'true');
-    }
-    localReadyA = false;
-    localReadyB = false;
-  }
-  function beginLocalCoop() {
-    if (!(localReadyA && localReadyB)) {
-      toast('请双方都点准备');
-      return;
-    }
-    hideLocalReady();
-    unlock();
-    start(localReadyLv, true);
-    toast('开始！同机双人');
-  }
-  /** Local start: 同机双人 = same-screen P1绿+P2蓝 + 小宇红AI, auto-enter (no ready panel).
-   *  Network pair stays on 联网 玩家A/B buttons. */
+  /** Local start: 同机双人 = play immediately + open net room in background.
+   *  P2: 玩家B auto-discovers same minute-slot room (existing net match). */
   function requestLocalOrSoloStart(lv) {
     if (netRole === 'guest') return;
-    if (netRole === 'host') { netHostStart(); return; }
+    if (netRole === 'host') {
+      // already hosting — if linked, (re)start level; else just keep playing / set pick
+      netPickLv = lv | 0;
+      if (netLinked) netHostStart();
+      else {
+        unlock();
+        prepareCoopCast();
+        start(lv | 0, true);
+        toast('同机双人：已开打 · 对方点「玩家B」加入');
+      }
+      return;
+    }
     if (wantCoop) {
-      // 同机=一屏双人+红AI — auto companion, fixed colors, start now
-      wantCompanion = true;
-      companion = true;
-      pickColor = 'green'; // A stays green; B is always blue via applyPickColors
-      document.querySelectorAll('#castRow .cast').forEach((b) => {
-        if (b.id === 'castC') {
-          b.classList.add('on');
-          return;
-        }
-        b.classList.toggle('on', b.getAttribute('data-color') === 'green');
-      });
-      syncCompanionUi();
+      prepareCoopCast();
       unlock();
       start(lv | 0, true);
-      toast('同机=一屏双人+红AI：绿芃芃 · 蓝爸爸 · 红小宇（乱逛）');
+      toast('同机双人：已开打 · 对方点「玩家B」加入');
+      // background room — no roomPanel
+      netOpenHost({ silent: true, pickLv: lv | 0 });
       return;
     }
     unlock();
@@ -3666,8 +3649,8 @@
       if (netRole === 'host') netSend({ t: 'cmd', a: 'again', lv: 0 });
     }
   });
-  document.getElementById('netHost').addEventListener('click', () => { pickColor = 'green'; netOpenHost(); });
-  document.getElementById('netJoin').addEventListener('click', () => { pickColor = 'blue'; netOpenJoin(); });
+  document.getElementById('netHost').addEventListener('click', () => { pickColor = 'green'; netOpenHost({ silent: false }); });
+  document.getElementById('netJoin').addEventListener('click', () => { pickColor = 'blue'; wantCoop = true; mode2.classList.add('on'); mode1.classList.remove('on'); netOpenJoin({ silent: true }); });
   function syncCompanionUi() {
     const btn = document.getElementById('netJoinC');
     const cast = document.getElementById('castC');
@@ -3698,19 +3681,6 @@
   });
   syncCompanionUi();
 
-  document.getElementById('readyA')?.addEventListener('click', () => {
-    localReadyA = !localReadyA;
-    syncLocalReadyUi();
-  });
-  document.getElementById('readyB')?.addEventListener('click', () => {
-    localReadyB = !localReadyB;
-    syncLocalReadyUi();
-  });
-  document.getElementById('localReadyGo')?.addEventListener('click', () => beginLocalCoop());
-  document.getElementById('localReadyClose')?.addEventListener('click', () => {
-    hideLocalReady();
-    toast('已取消同机准备');
-  });
   document.getElementById('roomClose').addEventListener('click', () => netBackMenu());
   const roomStartBtn = document.getElementById('roomStart');
   if (roomStartBtn) roomStartBtn.addEventListener('click', () => netHostStart());
