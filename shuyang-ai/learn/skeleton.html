@@ -111,7 +111,7 @@
 <body>
 <div class="wrap">
   <h1>拖一拖：3D 骨头人</h1>
-  <p class="tip">先看骨头，再盖满颗粒模型，最后一张张贴上绿色忍者皮肤</p>
+  <p class="tip">先看骨头，再盖上大块颗粒拼成的人，最后一张张贴上绿色忍者皮肤</p>
   <p class="callout" id="lesson">① <strong>只看骨头</strong>——里面先有一副会动的骨头架。</p>
 
   <div class="stage" id="stage" aria-label="可拖动的3D骨头人">
@@ -145,9 +145,9 @@
     </details>
   </div>
 
-  <a class="back" href="../kid.html?v=bone3d3">回今晚课</a>
+  <a class="back" href="../kid.html?v=bone3d4">回今晚课</a>
   <div class="row" style="margin-top:10px">
-    <a class="btn" href="frame-anim.html?v=bone3d3">回动手页 · 逐帧</a>
+    <a class="btn" href="frame-anim.html?v=bone3d4">回动手页 · 逐帧</a>
   </div>
 </div>
 
@@ -303,167 +303,100 @@ addJoint(shinR, 0, -0.48, 0, 0.07);
 addBone(shinR, 0, -0.48, 0, 0, -0.48, 0.16, 0.04);
 addJoint(shinR, 0, -0.48, 0.16, 0.055);
 
-// ─── Step 2: dense particle humanoid (many different granules) ───
+// ─── Step 2: LEGO / voxel-chunk body (few BIG different granules) ───
 const PARTICLE_COLORS = [
   0xff8a65, 0xffd54f, 0x81c784, 0x64b5f6, 0xba68c8,
   0xffb74d, 0x4dd0e1, 0xf06292, 0xaed581, 0xffe082,
   0x90caf9, 0xce93d8, 0xffab91, 0x80cbc4, 0xfff176,
-  0x2e7d32, 0x1b5e20, 0x37474f, 0x263238, 0xffcc80,
+  0x2e7d32, 0x43a047, 0x37474f, 0x546e7a, 0xffcc80,
 ];
+
+const particleMats = PARTICLE_COLORS.map((color) =>
+  new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.06 })
+);
 
 const particles = [];
 let particleReveal = null;
-let seedCounter = 1;
+let chunkSeq = 0;
 
-function seeded(i) {
-  const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
-  return x - Math.floor(x);
-}
-
-const particleMats = PARTICLE_COLORS.map((color) =>
-  new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.08 })
-);
-const boxGeoCache = {};
-const sphereGeoCache = {};
-function boxGeo(size, r1, r3) {
-  const key = ((size * 100) | 0) + '-' + ((r1 * 10) | 0) + '-' + ((r3 * 10) | 0);
-  let g = boxGeoCache[key];
-  if (!g) {
-    g = new THREE.BoxGeometry(size, size * (0.75 + r1 * 0.5), size * (0.75 + r3 * 0.5));
-    boxGeoCache[key] = g;
-  }
-  return g;
-}
-function sphereGeo(size) {
-  const key = (size * 100) | 0;
-  let g = sphereGeoCache[key];
-  if (!g) {
-    g = new THREE.SphereGeometry(size * 0.55, 7, 5);
-    sphereGeoCache[key] = g;
-  }
-  return g;
-}
-
-function pushParticle(parent, x, y, z, seed) {
-  const r1 = seeded(seed);
-  const r2 = seeded(seed + 1);
-  const r3 = seeded(seed + 2);
-  const size = 0.05 + r2 * 0.045;
-  const isBox = seed % 4 !== 0;
-  const geo = isBox ? boxGeo(size, r1, r3) : sphereGeo(size);
-  const mat = particleMats[seed % particleMats.length];
+/** One large LEGO-style brick. */
+function addChunk(parent, x, y, z, w, h, d, colorIdx, delay) {
+  const geo = new THREE.BoxGeometry(w, h, d);
+  const mat = particleMats[colorIdx % particleMats.length];
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(x, y, z);
-  mesh.rotation.set(r1 * 1.4, r2 * 1.6, r3 * 0.9);
+  // tiny tilt so bricks read as separate pieces, not one fused blob
+  const tilt = ((colorIdx * 17) % 7) * 0.015 - 0.045;
+  mesh.rotation.y = tilt;
   mesh.visible = false;
   mesh.scale.setScalar(0.01);
   parent.add(mesh);
-  particles.push({
-    mesh,
-    delay: (seed * 0.007) % 0.75,
-  });
+  particles.push({ mesh, delay: delay ?? (chunkSeq * 0.035) % 0.7 });
+  chunkSeq++;
+  return mesh;
 }
 
-/** Fill an axis-aligned box volume densely (local coords). */
-function fillBox(parent, x0, y0, z0, x1, y1, z1, spacing = 0.075) {
-  const nx = Math.max(2, Math.round(Math.abs(x1 - x0) / spacing));
-  const ny = Math.max(2, Math.round(Math.abs(y1 - y0) / spacing));
-  const nz = Math.max(2, Math.round(Math.abs(z1 - z0) / spacing));
-  for (let ix = 0; ix <= nx; ix++) {
-    for (let iy = 0; iy <= ny; iy++) {
-      for (let iz = 0; iz <= nz; iz++) {
-        const u = ix / nx, v = iy / ny, w = iz / nz;
-        const jx = (seeded(seedCounter++) - 0.5) * spacing * 0.35;
-        const jy = (seeded(seedCounter++) - 0.5) * spacing * 0.35;
-        const jz = (seeded(seedCounter++) - 0.5) * spacing * 0.35;
-        pushParticle(
-          parent,
-          x0 + (x1 - x0) * u + jx,
-          y0 + (y1 - y0) * v + jy,
-          z0 + (z1 - z0) * w + jz,
-          seedCounter
-        );
-      }
+// Head — 2×2×2 big cubes (clear head block)
+const HS = 0.2;
+for (const xi of [-1, 1]) for (const yi of [-1, 1]) for (const zi of [-1, 1]) {
+  addChunk(hips, xi * HS * 0.55, 1.08 + yi * HS * 0.55, zi * HS * 0.55, HS, HS, HS, chunkSeq, chunkSeq * 0.03);
+}
+// Neck
+addChunk(hips, 0, 0.9, 0, 0.16, 0.14, 0.16, 3, 0.22);
+
+// Torso — 2×3×2 stack of big bricks (full chest silhouette)
+const TW = 0.22, TH = 0.22, TD = 0.16;
+for (const xi of [-1, 1]) {
+  for (let row = 0; row < 3; row++) {
+    for (const zi of [-1, 1]) {
+      addChunk(
+        hips,
+        xi * TW * 0.55,
+        0.22 + row * TH * 0.95,
+        zi * TD * 0.55,
+        TW, TH, TD,
+        4 + row + (xi > 0 ? 3 : 0),
+        0.25 + row * 0.04 + (xi > 0 ? 0.02 : 0)
+      );
     }
   }
 }
+// Pelvis
+addChunk(hips, -0.12, 0.02, 0, 0.22, 0.18, 0.22, 10, 0.4);
+addChunk(hips, 0.12, 0.02, 0, 0.22, 0.18, 0.22, 11, 0.42);
+// Shoulder pads
+addChunk(hips, -0.34, 0.76, 0, 0.2, 0.16, 0.2, 12, 0.44);
+addChunk(hips, 0.34, 0.76, 0, 0.2, 0.16, 0.2, 13, 0.46);
 
-/** Fill ellipsoid volume (local coords). */
-function fillEllipsoid(parent, cx, cy, cz, rx, ry, rz, spacing = 0.07) {
-  const nx = Math.max(3, Math.round((rx * 2) / spacing));
-  const ny = Math.max(3, Math.round((ry * 2) / spacing));
-  const nz = Math.max(3, Math.round((rz * 2) / spacing));
-  for (let ix = 0; ix <= nx; ix++) {
-    for (let iy = 0; iy <= ny; iy++) {
-      for (let iz = 0; iz <= nz; iz++) {
-        const u = (ix / nx) * 2 - 1;
-        const v = (iy / ny) * 2 - 1;
-        const w = (iz / nz) * 2 - 1;
-        if (u * u + v * v + w * w > 1.05) continue;
-        const j = spacing * 0.2;
-        pushParticle(
-          parent,
-          cx + u * rx + (seeded(seedCounter++) - 0.5) * j,
-          cy + v * ry + (seeded(seedCounter++) - 0.5) * j,
-          cz + w * rz + (seeded(seedCounter++) - 0.5) * j,
-          seedCounter
-        );
-      }
-    }
-  }
-}
+// Arms — 2 stacked bricks each segment
+addChunk(upperArmL, 0, -0.1, 0, 0.18, 0.22, 0.18, 14, 0.48);
+addChunk(upperArmL, 0, -0.3, 0, 0.18, 0.2, 0.18, 15, 0.5);
+addChunk(foreArmL, 0, -0.1, 0, 0.16, 0.2, 0.16, 16, 0.52);
+addChunk(foreArmL, 0, -0.28, 0, 0.16, 0.18, 0.16, 17, 0.54);
+addChunk(foreArmL, 0, -0.38, 0, 0.14, 0.12, 0.14, 18, 0.56); // hand
 
-/** Capsule along local Y from y0 to y1. */
-function fillLimb(parent, y0, y1, radius, spacing = 0.07) {
-  const len = Math.abs(y1 - y0);
-  const nAlong = Math.max(4, Math.round(len / spacing));
-  const nRad = Math.max(2, Math.round((radius * 2) / spacing));
-  for (let i = 0; i <= nAlong; i++) {
-    const t = i / nAlong;
-    const y = y0 + (y1 - y0) * t;
-    for (let ix = -nRad; ix <= nRad; ix++) {
-      for (let iz = -nRad; iz <= nRad; iz++) {
-        const x = (ix / nRad) * radius;
-        const z = (iz / nRad) * radius;
-        if (x * x + z * z > radius * radius * 1.05) continue;
-        pushParticle(
-          parent,
-          x + (seeded(seedCounter++) - 0.5) * spacing * 0.25,
-          y + (seeded(seedCounter++) - 0.5) * spacing * 0.25,
-          z + (seeded(seedCounter++) - 0.5) * spacing * 0.25,
-          seedCounter
-        );
-      }
-    }
-  }
-}
+addChunk(upperArmR, 0, -0.1, 0, 0.18, 0.22, 0.18, 0, 0.48);
+addChunk(upperArmR, 0, -0.3, 0, 0.18, 0.2, 0.18, 1, 0.5);
+addChunk(foreArmR, 0, -0.1, 0, 0.16, 0.2, 0.16, 2, 0.52);
+addChunk(foreArmR, 0, -0.28, 0, 0.16, 0.18, 0.16, 3, 0.54);
+addChunk(foreArmR, 0, -0.38, 0, 0.14, 0.12, 0.14, 4, 0.56);
 
-// Dense full humanoid silhouette
-fillEllipsoid(hips, 0, 1.08, 0, 0.23, 0.25, 0.21, 0.085); // head
-fillLimb(hips, 0.88, 1.0, 0.09, 0.085); // neck
-fillBox(hips, -0.24, 0.06, -0.15, 0.24, 0.8, 0.15, 0.09); // torso
-fillBox(hips, -0.22, -0.08, -0.13, 0.22, 0.14, 0.13, 0.09); // pelvis
-fillLimb(hips, 0.7, 0.84, 0.3, 0.095); // shoulder shelf
+// Legs
+addChunk(thighL, 0, -0.12, 0, 0.2, 0.26, 0.2, 5, 0.58);
+addChunk(thighL, 0, -0.36, 0, 0.2, 0.24, 0.2, 6, 0.6);
+addChunk(shinL, 0, -0.12, 0, 0.18, 0.24, 0.18, 7, 0.62);
+addChunk(shinL, 0, -0.36, 0, 0.18, 0.24, 0.18, 8, 0.64);
+addChunk(shinL, 0, -0.48, 0.08, 0.2, 0.12, 0.26, 9, 0.66); // foot
 
-fillLimb(upperArmL, 0, -0.38, 0.11, 0.085);
-fillLimb(foreArmL, 0, -0.34, 0.095, 0.085);
-fillEllipsoid(foreArmL, 0, -0.38, 0, 0.08, 0.07, 0.08, 0.08); // hand L
+addChunk(thighR, 0, -0.12, 0, 0.2, 0.26, 0.2, 10, 0.58);
+addChunk(thighR, 0, -0.36, 0, 0.2, 0.24, 0.2, 11, 0.6);
+addChunk(shinR, 0, -0.12, 0, 0.18, 0.24, 0.18, 12, 0.62);
+addChunk(shinR, 0, -0.36, 0, 0.18, 0.24, 0.18, 13, 0.64);
+addChunk(shinR, 0, -0.48, 0.08, 0.2, 0.12, 0.26, 14, 0.66);
 
-fillLimb(upperArmR, 0, -0.38, 0.11, 0.085);
-fillLimb(foreArmR, 0, -0.34, 0.095, 0.085);
-fillEllipsoid(foreArmR, 0, -0.38, 0, 0.08, 0.07, 0.08, 0.08); // hand R
+console.info('[skeleton] LEGO chunks', particles.length);
 
-fillLimb(thighL, 0, -0.48, 0.12, 0.085);
-fillLimb(shinL, 0, -0.48, 0.105, 0.085);
-fillBox(shinL, -0.07, -0.54, -0.03, 0.07, -0.42, 0.2, 0.08); // foot L
-
-fillLimb(thighR, 0, -0.48, 0.12, 0.085);
-fillLimb(shinR, 0, -0.48, 0.105, 0.085);
-fillBox(shinR, -0.07, -0.54, -0.03, 0.07, -0.42, 0.2, 0.08); // foot R
-
-console.info('[skeleton] particles', particles.length);
-
-// ─── Step 3: green ninja skin patches (from repo sprites) ───
+// ─── Step 3: big green-ninja stickers mapped to those body parts ───
 const skinPatches = [];
 let skinReveal = null;
 
@@ -473,6 +406,9 @@ function cropTex(img, sx, sy, sw, sh) {
   c.height = Math.max(8, sh);
   const ctx = c.getContext('2d');
   ctx.clearRect(0, 0, c.width, c.height);
+  // soft white back so transparent PNG crops read as stickers
+  ctx.fillStyle = '#f4fff6';
+  ctx.fillRect(0, 0, c.width, c.height);
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -480,84 +416,61 @@ function cropTex(img, sx, sy, sw, sh) {
   return tex;
 }
 
-function addSkinPatch(parent, tex, opts) {
-  const {
-    w, h, x, y, z, rx = 0, ry = 0, rz = 0,
-    delay = 0, isBox = false, d = 0.05,
-  } = opts;
+/** Large box sticker — same scale as LEGO chunks, texture on all faces. */
+function addSkinBox(parent, tex, x, y, z, w, h, d, delay) {
   const mat = new THREE.MeshStandardMaterial({
     map: tex,
-    roughness: 0.65,
+    roughness: 0.7,
     metalness: 0.02,
     transparent: true,
     opacity: 0,
-    side: THREE.DoubleSide,
-    alphaTest: 0.08,
+    side: THREE.FrontSide,
   });
-  const geo = isBox ? new THREE.BoxGeometry(w, h, d) : new THREE.PlaneGeometry(w, h);
-  const mesh = new THREE.Mesh(geo, mat);
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
   mesh.position.set(x, y, z);
-  mesh.rotation.set(rx, ry, rz);
   mesh.visible = false;
+  // sit slightly outside the particle brick so sticker is readable
   parent.add(mesh);
   skinPatches.push({ mesh, delay, mat });
   return mesh;
 }
 
 function buildNinjaSkin(idleImg, walkImg, portraitImg) {
-  // Crops from idle.png (256²) — green ninja body parts
-  const headTex = cropTex(idleImg, 78, 18, 100, 100);
-  const faceTex = cropTex(idleImg, 95, 45, 65, 60);
-  const torsoTex = cropTex(idleImg, 95, 110, 70, 65);
-  const scarfTex = cropTex(idleImg, 85, 100, 90, 40);
-  const armLTex = cropTex(idleImg, 55, 115, 45, 70);
-  const armRTex = cropTex(idleImg, 160, 115, 45, 70);
-  const legLTex = cropTex(idleImg, 95, 170, 35, 75);
-  const legRTex = cropTex(idleImg, 130, 170, 40, 75);
-  const beltTex = cropTex(idleImg, 100, 155, 60, 30);
-  const fullTex = cropTex(idleImg, 65, 20, 125, 228);
-  // Extra sticker variety from walk frame + portrait
-  const walkTorso = cropTex(walkImg, 90, 105, 75, 70);
-  const walkHead = cropTex(walkImg, 75, 15, 105, 100);
-  const portraitFace = cropTex(portraitImg, 380, 120, 280, 320);
+  // Large clear crops from idle / walk / portrait
+  const headTex = cropTex(idleImg, 70, 15, 115, 110);
+  const torsoTex = cropTex(idleImg, 85, 100, 90, 80);
+  const armLTex = cropTex(idleImg, 50, 110, 55, 80);
+  const armRTex = cropTex(idleImg, 155, 110, 55, 80);
+  const legLTex = cropTex(idleImg, 90, 165, 45, 85);
+  const legRTex = cropTex(idleImg, 125, 165, 50, 85);
+  const fullFront = cropTex(idleImg, 65, 20, 125, 228);
+  const walkFull = cropTex(walkImg, 65, 18, 125, 230);
+  const portraitHead = cropTex(portraitImg, 360, 80, 320, 360);
 
-  // Head — front / back / sides (一张张贴)
-  addSkinPatch(hips, headTex, { w: 0.44, h: 0.44, x: 0, y: 1.08, z: 0.16, delay: 0.00 });
-  addSkinPatch(hips, walkHead, { w: 0.42, h: 0.42, x: 0, y: 1.08, z: -0.16, ry: Math.PI, delay: 0.07 });
-  addSkinPatch(hips, faceTex, { w: 0.36, h: 0.34, x: 0.17, y: 1.08, z: 0, ry: Math.PI / 2, delay: 0.13 });
-  addSkinPatch(hips, faceTex, { w: 0.36, h: 0.34, x: -0.17, y: 1.08, z: 0, ry: -Math.PI / 2, delay: 0.18 });
+  // ① 头 — one big head sticker cube
+  addSkinBox(hips, headTex, 0, 1.08, 0, 0.46, 0.46, 0.46, 0.00);
+  // portrait face on front as a clear “忍者脸” plate
+  addSkinBox(hips, portraitHead, 0, 1.08, 0.24, 0.4, 0.42, 0.04, 0.08);
 
-  // Scarf / neck
-  addSkinPatch(hips, scarfTex, { w: 0.4, h: 0.18, x: 0, y: 0.88, z: 0.14, delay: 0.24 });
+  // ② 身子 — one big torso sticker
+  addSkinBox(hips, torsoTex, 0, 0.42, 0, 0.5, 0.72, 0.34, 0.18);
+  // front plate of full ninja so kid clearly sees 绿色忍者
+  addSkinBox(hips, fullFront, 0, 0.5, 0.2, 0.42, 0.85, 0.04, 0.28);
 
-  // Torso front / back / sides
-  addSkinPatch(hips, torsoTex, { w: 0.46, h: 0.58, x: 0, y: 0.42, z: 0.15, delay: 0.30, isBox: true, d: 0.06 });
-  addSkinPatch(hips, walkTorso, { w: 0.46, h: 0.58, x: 0, y: 0.42, z: -0.15, delay: 0.37, isBox: true, d: 0.06 });
-  addSkinPatch(hips, torsoTex, { w: 0.3, h: 0.52, x: 0.22, y: 0.4, z: 0, ry: Math.PI / 2, delay: 0.44, isBox: true, d: 0.05 });
-  addSkinPatch(hips, torsoTex, { w: 0.3, h: 0.52, x: -0.22, y: 0.4, z: 0, ry: -Math.PI / 2, delay: 0.50, isBox: true, d: 0.05 });
+  // ③ 手臂 — one sticker per segment
+  addSkinBox(upperArmL, armLTex, 0, -0.19, 0, 0.2, 0.4, 0.2, 0.38);
+  addSkinBox(foreArmL, armLTex, 0, -0.17, 0, 0.18, 0.36, 0.18, 0.46);
+  addSkinBox(upperArmR, armRTex, 0, -0.19, 0, 0.2, 0.4, 0.2, 0.54);
+  addSkinBox(foreArmR, armRTex, 0, -0.17, 0, 0.18, 0.36, 0.18, 0.62);
 
-  // Belt
-  addSkinPatch(hips, beltTex, { w: 0.44, h: 0.16, x: 0, y: 0.12, z: 0.14, delay: 0.56 });
+  // ④ 腿
+  addSkinBox(thighL, legLTex, 0, -0.24, 0, 0.22, 0.48, 0.22, 0.70);
+  addSkinBox(shinL, legLTex, 0, -0.24, 0, 0.2, 0.48, 0.2, 0.78);
+  addSkinBox(thighR, legRTex, 0, -0.24, 0, 0.22, 0.48, 0.22, 0.86);
+  addSkinBox(shinR, legRTex, 0, -0.24, 0, 0.2, 0.48, 0.2, 0.94);
 
-  // Arms
-  addSkinPatch(upperArmL, armLTex, { w: 0.18, h: 0.38, x: 0, y: -0.19, z: 0.09, delay: 0.62, isBox: true, d: 0.14 });
-  addSkinPatch(upperArmR, armRTex, { w: 0.18, h: 0.38, x: 0, y: -0.19, z: 0.09, delay: 0.68, isBox: true, d: 0.14 });
-  addSkinPatch(foreArmL, armLTex, { w: 0.15, h: 0.32, x: 0, y: -0.17, z: 0.08, delay: 0.74, isBox: true, d: 0.12 });
-  addSkinPatch(foreArmR, armRTex, { w: 0.15, h: 0.32, x: 0, y: -0.17, z: 0.08, delay: 0.80, isBox: true, d: 0.12 });
-
-  // Legs
-  addSkinPatch(thighL, legLTex, { w: 0.2, h: 0.46, x: 0, y: -0.24, z: 0.1, delay: 0.86, isBox: true, d: 0.15 });
-  addSkinPatch(thighR, legRTex, { w: 0.2, h: 0.46, x: 0, y: -0.24, z: 0.1, delay: 0.92, isBox: true, d: 0.15 });
-  addSkinPatch(shinL, legLTex, { w: 0.17, h: 0.44, x: 0, y: -0.24, z: 0.09, delay: 0.98, isBox: true, d: 0.13 });
-  addSkinPatch(shinR, legRTex, { w: 0.17, h: 0.44, x: 0, y: -0.24, z: 0.09, delay: 1.04, isBox: true, d: 0.13 });
-
-  // Big “整张忍者贴纸” at the end so the lesson lands: 绿色忍者贴上去
-  addSkinPatch(hips, fullTex, {
-    w: 0.55, h: 1.05, x: 0, y: 0.55, z: 0.28, delay: 1.12,
-  });
-  addSkinPatch(hips, portraitFace, {
-    w: 0.36, h: 0.4, x: 0, y: 1.1, z: 0.32, delay: 1.2,
-  });
+  // Final big “整张绿忍者” board in front — lesson: 一张张贴上去
+  addSkinBox(hips, walkFull, 0, 0.55, 0.38, 0.55, 1.15, 0.05, 1.05);
 }
 
 const ground = new THREE.Mesh(
@@ -608,7 +521,7 @@ const LESSONS = {
     badge: '🦴 只看骨头',
   },
   2: {
-    html: '② <strong>模型＝很多不同的小颗粒拼起来的</strong>——拼满以后才是一个完整的人！',
+    html: '② <strong>模型＝很多不同的大颗粒 / 方块拼起来的</strong>——一块一块拼成完整的人！',
     badge: '🧱 颗粒模型',
   },
   3: {
