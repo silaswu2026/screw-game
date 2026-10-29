@@ -530,8 +530,8 @@
       display:grid;
       grid-template-columns:repeat(2,minmax(0,1fr));
       grid-template-rows:repeat(3,auto);
-      padding:4px 4px 6px;gap:6px;background:transparent;
-      overflow:visible;
+      padding:4px 4px 6px;gap:8px;background:transparent;
+      overflow:visible;flex-wrap:unset;width:100%;
     }
     .react{flex:unset;min-width:0;width:100%;height:22px;font-size:11px;padding:0;overflow:visible}
     .react.bang{font-size:11px}
@@ -559,7 +559,7 @@
     .btn.send{padding:8px 14px;border-radius:10px;font-size:13px}
 
     main{
-      grid-template-columns:minmax(72px,92px) minmax(0,1fr);
+      grid-template-columns:minmax(88px,112px) minmax(0,1fr);
       gap:10px;padding:10px;padding-bottom:0;max-width:1400px;
     }
     .panel{border-radius:16px;padding:10px}
@@ -571,9 +571,17 @@
     .tile .name{left:6px;bottom:6px;padding:2px 7px;border-radius:8px;font-size:11px}
     .tile .badge{right:6px;top:6px;padding:2px 7px;border-radius:8px;font-size:10px}
     .like-float{font-size:24px}
-    .react-bar{display:flex;flex-wrap:nowrap;padding:6px 8px 8px;gap:10px;overflow:visible}.vol-bar{padding:4px 8px 2px}
-    .react{flex:1 1 0;min-width:0;width:auto;height:26px;font-size:14px;padding:0;overflow:visible}
-    .react.bang{font-size:14px}
+    /* cams stays a narrow side column — keep 2×3 grid (do NOT flex 6-across) */
+    .react-bar{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      grid-template-rows:repeat(3,auto);
+      padding:6px 6px 8px;gap:8px;background:transparent;
+      overflow:visible;flex-wrap:unset;
+    }
+    .react{flex:unset;min-width:0;width:100%;height:26px;font-size:13px;padding:0;overflow:visible}
+    .react.bang{font-size:13px}
+    .vol-bar{padding:4px 8px 2px}
     .course{border-radius:16px}
     .course h2{padding:0 0 8px}
     .course iframe{border-radius:12px;min-height:min(72vh,640px)}
