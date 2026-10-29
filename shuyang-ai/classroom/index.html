@@ -126,7 +126,7 @@
     display:flex;
     flex-direction:row;
     gap:8px;
-    padding:12px 10px 8px; /* room for head bubbles */
+    padding:28px 10px 8px; /* room for text bubbles above tiles */
     overflow-x:auto;
     overflow-y:visible;
     -webkit-overflow-scrolling:touch;
@@ -283,29 +283,29 @@
     font-size:10px;opacity:.7;padding:0 10px 4px;line-height:1.35;
   }
 
-  /* 头顶冒泡 */
+  /* 文字气泡：完全在头像格上方，不挡脸 */
   .bubble{
     position:absolute;
     left:50%;
-    bottom:calc(100% + 4px);
-    transform:translateX(-50%) translateY(8px) scale(.92);
-    max-width:min(160px, 42vw);
-    background:#fffef8;
+    bottom:calc(100% + 10px);
+    transform:translateX(-50%) translateY(6px) scale(.94);
+    max-width:min(120px, 36vw);
+    background:#fffef8ee;
     color:#1a2e20;
-    border:2px solid #6dcf7a;
-    border-radius:14px;
-    padding:5px 9px;
-    font-size:13px;
+    border:1.5px solid #6dcf7a;
+    border-radius:12px;
+    padding:4px 8px;
+    font-size:11px;
     font-weight:700;
     line-height:1.25;
     text-align:center;
     white-space:pre-wrap;
     word-break:break-word;
-    box-shadow:0 6px 16px #0006;
+    box-shadow:0 4px 12px #0005;
     opacity:0;
     pointer-events:none;
-    z-index:5;
-    transition:opacity .22s ease, transform .28s ease;
+    z-index:6;
+    transition:opacity .2s ease, transform .26s ease;
   }
   .bubble::after{
     content:"";
@@ -313,17 +313,36 @@
     left:50%;
     top:100%;
     transform:translateX(-50%);
-    border:6px solid transparent;
+    border:5px solid transparent;
     border-top-color:#6dcf7a;
   }
   .bubble.show{
     opacity:1;
     transform:translateX(-50%) translateY(0) scale(1);
   }
-  .bubble.emoji{
+
+  /* 抖音点赞：表情从头像升起漂浮淡出（不挡脸） */
+  .like-layer{
+    position:absolute;
+    left:0;right:0;top:0;bottom:0;
+    overflow:visible;
+    pointer-events:none;
+    z-index:8;
+  }
+  .like-float{
+    position:absolute;
+    left:50%;
+    bottom:42%;
     font-size:22px;
-    padding:4px 8px;
-    line-height:1.1;
+    line-height:1;
+    filter:drop-shadow(0 2px 4px #0007);
+    animation:likeRise 1.35s ease-out forwards;
+    will-change:transform, opacity;
+  }
+  @keyframes likeRise{
+    0%{opacity:0;transform:translate(-50%, 8px) scale(.5) rotate(-8deg)}
+    12%{opacity:1;transform:translate(-50%, 0) scale(1.15) rotate(0deg)}
+    100%{opacity:0;transform:translate(calc(-50% + var(--dx, 0px)), -88px) scale(1.05) rotate(var(--rot, 12deg))}
   }
 
   /* 快捷表情条 */
@@ -445,7 +464,7 @@
     }
     .vids{
       flex-direction:column;overflow:auto;overflow-x:hidden;
-      padding:10px 4px 4px;gap:14px;flex:1;min-height:0;scroll-snap-type:none;
+      padding:22px 4px 4px;gap:16px;flex:1;min-height:0;scroll-snap-type:none;
     }
     .tile{
       width:100%;height:auto;max-height:none;aspect-ratio:3/4;
@@ -453,8 +472,8 @@
     }
     .tile .name{left:3px;bottom:3px;padding:1px 5px;border-radius:6px;font-size:9px}
     .tile .badge{right:3px;top:3px;padding:1px 4px;border-radius:6px;font-size:8px}
-    .bubble{font-size:11px;max-width:110%;padding:4px 7px}
-    .bubble.emoji{font-size:18px}
+    .bubble{font-size:10px;max-width:96%;padding:3px 6px;bottom:calc(100% + 8px)}
+    .like-float{font-size:18px}
     .react-bar{padding:4px 4px 6px;gap:4px;background:transparent}
     .react{min-width:32px;height:30px;font-size:15px;padding:0 6px}
 
@@ -487,11 +506,12 @@
     .panel h2{font-size:13px;opacity:.9;padding:0 0 8px}
     .hint{display:block;font-size:12px;opacity:.85;line-height:1.45;margin-bottom:8px}
     .cams{padding-bottom:0}
-    .vids{gap:16px;padding-top:14px}
+    .vids{gap:18px;padding-top:28px}
     .tile{border-radius:14px}
     .tile .name{left:6px;bottom:6px;padding:2px 7px;border-radius:8px;font-size:11px}
     .tile .badge{right:6px;top:6px;padding:2px 7px;border-radius:8px;font-size:10px}
-    .bubble{font-size:13px;max-width:140%}
+    .bubble{font-size:12px;max-width:120%;bottom:calc(100% + 12px)}
+    .like-float{font-size:24px}
     .react-bar{padding:6px 2px 8px;gap:6px}
     .react{min-width:40px;height:36px;font-size:18px}
     .course{border-radius:16px}
@@ -515,7 +535,7 @@
 <main>
   <section class="panel course">
     <h2>课程同屏</h2>
-    <iframe title="course" src="../learn/skeleton.html?v=mc17"></iframe>
+    <iframe title="course" src="../learn/skeleton.html?v=mc18"></iframe>
   </section>
 
   <section class="panel cams">
@@ -683,28 +703,61 @@ function isEmojiOnly(text){
   // short emoji / bang
   return /^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}！!]{1,4}$/u.test(t);
 }
+function ensureLikeLayer(tileEl){
+  let layer = tileEl.querySelector(':scope > .like-layer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.className = 'like-layer';
+    layer.setAttribute('aria-hidden', 'true');
+    tileEl.appendChild(layer);
+  }
+  return layer;
+}
+function spawnLikeFloat(tileEl, emoji){
+  if (!tileEl) return;
+  const layer = ensureLikeLayer(tileEl);
+  const count = 3 + Math.floor(Math.random() * 2); // 3–4 floats like Douyin burst
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('span');
+    el.className = 'like-float';
+    el.textContent = emoji;
+    const dx = (Math.random() * 48 - 24).toFixed(1) + 'px';
+    const rot = (Math.random() * 28 - 14).toFixed(1) + 'deg';
+    el.style.setProperty('--dx', dx);
+    el.style.setProperty('--rot', rot);
+    el.style.left = (42 + Math.random() * 16) + '%';
+    el.style.bottom = (36 + Math.random() * 18) + '%';
+    el.style.animationDelay = (i * 0.07).toFixed(2) + 's';
+    el.style.fontSize = (18 + Math.random() * 10).toFixed(0) + 'px';
+    layer.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
 function showBubble(tileEl, text){
   if (!tileEl) return;
+  const t = String(text || '').trim();
+  if (!t) return;
+  // 表情/点赞 → 抖音漂浮，不挡脸
+  if (isEmojiOnly(t)) {
+    spawnLikeFloat(tileEl, t);
+    return;
+  }
+  // 文字气泡：贴在格子上方外侧
   let bubble = tileEl.querySelector(':scope > .bubble');
   if (!bubble) {
     bubble = document.createElement('div');
     bubble.className = 'bubble';
     tileEl.appendChild(bubble);
   }
-  const t = String(text || '').trim();
-  if (!t) return;
-  bubble.textContent = t.length > 40 ? t.slice(0, 39) + '…' : t;
-  bubble.classList.toggle('emoji', isEmojiOnly(t));
+  bubble.textContent = t.length > 36 ? t.slice(0, 35) + '…' : t;
   bubble.classList.remove('show');
-  // restart animation
   void bubble.offsetWidth;
   bubble.classList.add('show');
   const prev = bubbleTimers.get(tileEl);
   if (prev) clearTimeout(prev);
-  const hideMs = isEmojiOnly(t) ? 2800 : 3800;
   bubbleTimers.set(tileEl, setTimeout(() => {
     bubble.classList.remove('show');
-  }, hideMs));
+  }, 3600));
 }
 function setXiaoyuMood(mood){
   const el = document.getElementById('tile-xiaoyu');
@@ -1026,7 +1079,7 @@ chatInput.addEventListener('keydown', (e) => {
 });
 setRainOnline(true, '在线·静默');
 setXiaoyuMood('idle');
-log('系统：同房教室 chengzhangwu — 爸爸、妈妈、伍澍暘（芃芃）、小雨一起上课。点头像开摄像头；点小雨切换心情。');
+log('系统：同房教室 — 点头像开摄像头；表情像抖音点赞往上飘；文字气泡在头像上方不挡脸。');
 </script>
 </body>
 </html>
