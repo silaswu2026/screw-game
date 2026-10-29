@@ -8,16 +8,21 @@
   :root{
     --bg:#0b1a12;--card:#12261a;--line:#2a5a3a;--txt:#e8f5ea;--chat-bg:#0e1f14;
     --safe-b:env(safe-area-inset-bottom,0px);
-    --chip-h:64px;
+    --chip-h:76px;
+    --cams-w: clamp(108px, 18vw, 168px);
   }
   *{box-sizing:border-box}
-  html,body{height:100%}
+  html,body{height:100%; width:100%; max-width:100vw;}
+  html{overflow:hidden;}
   body{
     margin:0;
     font-family:system-ui,-apple-system,"PingFang SC","Noto Sans SC",sans-serif;
     background:radial-gradient(900px 480px at 50% -8%,#1a3a24,var(--bg));
     color:var(--txt);
+    height:100dvh;
+    max-height:100dvh;
     min-height:100dvh;
+    width:100%;
     display:flex;
     flex-direction:column;
     overflow:hidden;
@@ -211,6 +216,21 @@
   }
   .tile.rain.online{box-shadow:0 0 0 2px #6dcf7a, 0 0 14px #6dcf7a66}
   .tile.rain.speaking .xy-bob{animation-duration:0.9s}
+  .tile.rain.speaking{border-color:#ffe08a;box-shadow:0 0 0 2px #ffe08a, 0 0 16px #ffe08a66}
+  .tile.rain .speak-mode{
+    position:absolute;left:4px;top:4px;z-index:3;
+    background:#000b;color:#e8f5ea;
+    font-size:9px;font-weight:800;letter-spacing:.02em;
+    padding:2px 6px;border-radius:7px;pointer-events:none;
+    border:1px solid #3f8f4a88;
+  }
+  .tile.rain.speaking .speak-mode{
+    background:#2a6fd4ee;border-color:#8ab4ff;color:#fff;
+  }
+  @media (orientation: landscape), (min-width: 600px){
+    .tile.rain .speak-mode{font-size:8px;padding:1px 5px}
+  }
+
 
   /* 小雨：可爱数字人头部 + 情绪动画 */
   .xy-glow{
@@ -475,8 +495,8 @@
   }
   .chat-compose input:focus{border-color:#6dcf7a}
 
-  @media(min-width:360px) and (orientation:portrait){ :root{--chip-h:68px} }
-  @media(min-width:390px) and (orientation:portrait){ :root{--chip-h:72px} }
+  @media(min-width:360px) and (orientation:portrait){ :root{--chip-h:82px} }
+  @media(min-width:390px) and (orientation:portrait){ :root{--chip-h:88px} }
 
   @media (orientation: landscape), (min-width: 600px){
     body{overflow:hidden}
@@ -491,14 +511,17 @@
 
     main{
       display:grid;
-      grid-template-columns:minmax(56px,72px) minmax(0,1fr);
+      grid-template-columns:var(--cams-w) minmax(0,1fr);
       grid-template-areas:"cams course";
-      gap:4px;
-      padding:4px;
+      gap:8px;
+      padding:6px;
       padding-bottom:0;
       max-width:100%;
+      width:100%;
+      height:100%;
       flex:1;
       min-height:0;
+      overflow:hidden;
     }
     .panel{
       background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px;
@@ -559,8 +582,9 @@
     .btn.send{padding:8px 14px;border-radius:10px;font-size:13px}
 
     main{
-      grid-template-columns:minmax(88px,112px) minmax(0,1fr);
-      gap:10px;padding:10px;padding-bottom:0;max-width:1400px;
+      grid-template-columns:clamp(132px, 16vw, 180px) minmax(0,1fr);
+      gap:12px;padding:10px;padding-bottom:0;max-width:100%;
+      width:100%; height:100%;
     }
     .panel{border-radius:16px;padding:10px}
     .panel h2{font-size:13px;opacity:.9;padding:0 0 4px}
@@ -584,7 +608,7 @@
     .vol-bar{padding:4px 8px 2px}
     .course{border-radius:16px}
     .course h2{padding:0 0 8px}
-    .course iframe{border-radius:12px;min-height:min(72vh,640px)}
+    .course iframe{border-radius:12px;flex:1;min-height:0;height:auto}
     .chat-modal{width:min(92vw, 460px);max-height:min(78vh, 600px);padding:14px}
     #log{font-size:13px;padding:12px;min-height:160px}
     .chat-compose input{font-size:14px;padding:10px 12px}
@@ -712,14 +736,16 @@
   <section class="panel cams">
     <h2>伍澍暘</h2>
     <div class="vids" id="vids">
-      <div class="tile rain online digital mood-idle" id="tile-xiaoyu" data-role="xiaoyu" role="button" tabindex="0" aria-label="小雨数字人，点一下开口或静音" title="点小雨：开口/静音">
+      <div class="tile rain online digital mood-idle" id="tile-xiaoyu" data-role="xiaoyu" role="button" tabindex="0" aria-label="小雨：点一下切换开口/静音" title="点小雨：开口说话 / 再点静音（仍旁听）">
         <div class="tile-inner">
           <div class="xy-glow" aria-hidden="true"></div>
           <img class="avatar xy-bob" src="../avatars/xiaoyu.jpg" alt="小雨"/>
           <div class="xy-sparkles" aria-hidden="true"><span>✨</span><span>⭐</span><span>💫</span></div>
           <div class="xy-face" aria-hidden="true"></div>
-          <div class="badge" id="rainBadge">在线·静默</div>
+          <div class="speak-mode" id="xySpeakMode" aria-live="polite">静音</div>
+          <div class="badge" id="rainBadge">在线·静音</div>
           <div class="name">小雨</div>
+          <audio id="xyMoodAudio" preload="auto" playsinline></audio>
         </div>
       </div>
       <div class="tile online joinable" id="tile-dad" data-role="dad" role="button" tabindex="0" aria-label="点爸爸头像进房开摄像头" title="点一下开摄像头">
@@ -1160,8 +1186,8 @@ function setXiaoyuMood(mood){
   const badge = document.getElementById('rainBadge');
   if (badge && !badge.textContent.startsWith('离线')) {
     // Prefer speak-mode badge; mood is visual on the avatar only
-    if (typeof xiaoyuSpeakActive !== 'undefined' && xiaoyuSpeakActive) badge.textContent = '在线·可开口';
-    else badge.textContent = m === 'happy' ? '在线·开心' : m === 'star' ? '在线·明星' : '在线·静默';
+    if (typeof xiaoyuSpeakActive !== 'undefined' && xiaoyuSpeakActive) badge.textContent = '在线·开口';
+    else badge.textContent = m === 'happy' ? '在线·开心' : m === 'star' ? '在线·明星' : '在线·静音';
   }
   if (xyExprTimer) clearTimeout(xyExprTimer);
   if (m !== 'idle') {
@@ -1284,13 +1310,13 @@ function setRainOnline(on, detail){
   const badge = document.getElementById('rainBadge');
   if (!on) badge.textContent = '离线';
   else if (detail) badge.textContent = detail;
-  else if (!/^在线/.test(badge.textContent)) badge.textContent = '在线·静默';
+  else if (!/^在线/.test(badge.textContent)) badge.textContent = '在线·静音';
 }
 async function joinRainPresence(){
   try {
     const rainRoom = new Room();
     await rainRoom.connect(URL_WS, TOKENS.rain);
-    setRainOnline(true, '在线·静默');
+    setRainOnline(true, '在线·静音');
     setXiaoyuMood('idle');
     log('系统：小雨已进同房（数字人旁听）');
     rainRoom.on(RoomEvent.DataReceived, (payload, participant) => {
@@ -1306,17 +1332,49 @@ async function joinRainPresence(){
     log('系统：小雨旁听: ' + (e.message||e));
   }
 }
+const XY_LIORA = {
+  happy: 'audio/liora/happy-zh.wav',
+  star: 'audio/liora/hello-zh.wav',
+  idle: 'audio/liora/listening-zh.wav',
+};
+function playLioraCue(kind){
+  const a = document.getElementById('xyMoodAudio');
+  if (!a) return;
+  const src = XY_LIORA[kind] || XY_LIORA.happy;
+  try {
+    a.pause();
+    if (a.getAttribute('data-src') !== src) {
+      a.src = src;
+      a.setAttribute('data-src', src);
+    }
+    a.volume = typeof classroomVolume === 'number' ? classroomVolume : 0.3;
+    const p = a.play();
+    if (p && p.catch) p.catch(() => {});
+  } catch (_) {}
+}
 function applyXiaoyuSpeakUi(on){
   xiaoyuSpeakActive = !!on;
   const el = document.getElementById('tile-xiaoyu');
   if (el) el.classList.toggle('speaking', xiaoyuSpeakActive);
+  const mode = document.getElementById('xySpeakMode');
+  if (mode) mode.textContent = xiaoyuSpeakActive ? '开口' : '静音';
   const badge = document.getElementById('rainBadge');
   if (badge) {
     if (!el || !el.classList.contains('online')) badge.textContent = '离线';
-    else badge.textContent = xiaoyuSpeakActive ? '在线·可开口' : '在线·静默';
+    else badge.textContent = xiaoyuSpeakActive ? '在线·开口' : '在线·静音';
   }
-  if (xiaoyuSpeakActive) setXiaoyuMood('happy');
-  else setXiaoyuMood('idle');
+  if (el) {
+    el.setAttribute('aria-label', xiaoyuSpeakActive
+      ? '小雨开口中：再说点什么；点一下静音'
+      : '小雨静音旁听：点一下开口对话');
+    el.title = xiaoyuSpeakActive ? '开口中 — 点一下静音（仍旁听）' : '静音旁听 — 点一下开口对话';
+  }
+  if (xiaoyuSpeakActive) {
+    setXiaoyuMood('happy');
+    playLioraCue('happy');
+  } else {
+    setXiaoyuMood('idle');
+  }
 }
 async function publishXiaoyuActive(on){
   const payload = new TextEncoder().encode(JSON.stringify({ t: 'xiaoyu_active', on: !!on }));
@@ -1343,7 +1401,7 @@ async function toggleXiaoyuSpeak(){
   if (!ok) applyXiaoyuSpeakUi(false);
   else {
     unlockRemoteAudio();
-    log(next ? '系统：已点小雨 — 可以开口（再点静音）' : '系统：小雨已静音旁听');
+    log(next ? '系统：小雨【开口】— 听你说话并回复（Liora 音色）；再点变静音' : '系统：小雨【静音】— 仍旁听，不说话');
   }
 }
 function handleRoomDataMessage(msg, participant){
@@ -1472,7 +1530,7 @@ async function join(role){
     room.on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
       // One 小雨 only: cartoon tile. Never spawn tile for xiaoyu / xiaoyu-listener.
       if (isXiaoyuIdentity(participant.identity)) {
-        setRainOnline(true, xiaoyuSpeakActive ? '在线·可开口' : '在线·静默');
+        setRainOnline(true, xiaoyuSpeakActive ? '在线·开口' : '在线·静音');
         if (track.kind === Track.Kind.Audio) attachRemoteAudio(track);
         return;
       }
@@ -1482,7 +1540,7 @@ async function join(role){
     });
     room.on(RoomEvent.ParticipantConnected, (p) => {
       if (isXiaoyuIdentity(p.identity)) {
-        setRainOnline(true, xiaoyuSpeakActive ? '在线·可开口' : '在线·静默');
+        setRainOnline(true, xiaoyuSpeakActive ? '在线·开口' : '在线·静音');
         return;
       }
       log('系统：同房有人进：' + (p.name||p.identity));
@@ -1587,7 +1645,7 @@ document.getElementById('leave').onclick = async () => {
     try { await publishXiaoyuActive(false); } catch(_){}
   }
   await leaveRoom({ keepRain: false });
-  setRainOnline(true, '在线·静默');
+  setRainOnline(true, '在线·静音');
   setXiaoyuMood('idle');
   log('系统：已离开同房（小雨仍在示意席）');
 };
@@ -1595,7 +1653,7 @@ document.getElementById('chatSend').onclick = () => sendChat();
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
 });
-setRainOnline(true, '在线·静默');
+setRainOnline(true, '在线·静音');
 setXiaoyuMood('idle');
 applyXiaoyuSpeakUi(false);
 const courseFsBtn = document.getElementById('courseFsBtn');
@@ -1718,7 +1776,7 @@ document.getElementById('hardRefreshBtn')?.addEventListener('click', (e) => {
   });
 });
 
-log('系统：同房教室 — 点头像开摄像头。点小雨才开口；右下角强制刷新 / 全屏。音量默认 3。');
+log('系统：同房教室 — 点头像开摄像头。点小雨切换【开口/静音】（音色 Liora）；右下角强制刷新 / 全屏。');
 
 </script>
 <div class="fs-stack">

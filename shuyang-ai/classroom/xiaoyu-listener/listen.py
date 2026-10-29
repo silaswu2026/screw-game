@@ -2,14 +2,13 @@
 """
 小雨同房旁听：先听，不抢话。
 - 加入 LiveKit room（默认 chengzhangwu）身份 xiaoyu-listener
-- 订阅家人音频 → LiveKit Inference STT（无需单独 Deepgram key）
-- 始终旁听并 publish {t:'heard'}；开口（TTS + 小雨 chat 气泡）须教室页点小雨激活
-- 教室页 publishData {t:'xiaoyu_active', on:true|false} 开关 speak mode
-- 教室页 publishData {t:'xiaoyu_say', text} 课程/脚本让小雨开口（可自动开 speak）
-- 通过 publishData 推给教室页：{t:'heard'} / {t:'chat', who:'小雨', ...} / {t:'xiaoyu_active'}
+- 订阅家人音频 → LiveKit Inference STT
+- 始终旁听并 publish {t:'heard'}；开口（TTS + 小雨 chat）须教室页点小雨激活（开口）
+- 静音：STT 继续，但不回复 / 不 TTS
+- TTS：xAI Grok voice **liora**（用户口中的 Lyora；与 Grok Bot 通话音色一致）via LiveKit Inference
+- 唤醒后用 Inference LLM 生成真实回复；说话期间静音 STT，防回声循环
 
 Secrets: .env or LIVEKIT_* env — never commit.
-Runs outside AgentSession; wraps inference STT/TTS in http_context.open().
 """
 from __future__ import annotations
 
@@ -24,13 +23,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from livekit import api, rtc
-from livekit.agents import inference
+from livekit.agents import inference, llm as lk_llm
 from livekit.agents.stt import SpeechEventType
 from livekit.agents.utils import http_context
 
 HERE = Path(__file__).resolve().parent
 load_dotenv(HERE / ".env")
-load_dotenv()  # also allow process env
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("xiaoyu-listen")
@@ -42,11 +41,24 @@ ROOM_NAME = os.environ.get("LIVEKIT_ROOM", "chengzhangwu").strip()
 IDENTITY = os.environ.get("XIAOYU_IDENTITY", "xiaoyu-listener").strip()
 STT_MODEL = os.environ.get("STT_MODEL", "deepgram/nova-3").strip()
 STT_LANGUAGE = os.environ.get("STT_LANGUAGE", "zh").strip()
-TTS_MODEL = os.environ.get("TTS_MODEL", "cartesia/sonic-3").strip()
+# Lyora = xAI Grok TTS voice id "liora" (Calm, grounded, luminous)
+TTS_MODEL = os.environ.get("TTS_MODEL", "xai/tts-1").strip()
+TTS_VOICE = os.environ.get("TTS_VOICE", "liora").strip()
+TTS_LANGUAGE = os.environ.get("TTS_LANGUAGE", "zh").strip()
+LLM_MODEL = os.environ.get("LLM_MODEL", "openai/gpt-4o-mini").strip()
 ENABLE_TTS = os.environ.get("ENABLE_TTS", "1").strip() not in ("0", "false", "no")
+ENABLE_LLM = os.environ.get("ENABLE_LLM", "1").strip() not in ("0", "false", "no")
+# After TTS ends, keep ignoring STT for this many seconds (echo / room reverb)
+ECHO_COOLDOWN_S = float(os.environ.get("ECHO_COOLDOWN_S", "1.2"))
+# Keep conversation open after wake without re-saying 小雨
+CONV_HOLD_S = float(os.environ.get("CONV_HOLD_S", "90"))
 
-# Wake words: canonical 小雨; family sometimes says 小宇 — only reply when speak mode on
 WAKE_RE = re.compile(r"(小雨|小宇|xiaoyu|xiao.?yu)", re.I)
+# Own canned / recent replies often re-heard by mic — never treat as user speech
+OWN_ECHO_RE = re.compile(
+    r"(我在听你说|我在听.?你说|爸爸.?我在听|我在听.?你说～|嗯.?我在)",
+    re.I,
+)
 
 ROLE_LABEL = {
     "dad": "爸爸",
@@ -55,6 +67,12 @@ ROLE_LABEL = {
     "mom": "妈妈",
     "chunyan": "妈妈",
 }
+
+SYSTEM_PROMPT = (
+    "你是「小雨」，伍澍暘成长屋里的陪伴姐姐，语气亲切、简短、适合亲子口语。"
+    "用中文回复，一两句即可（一般不超过40字），不要复读唤醒词，不要自称AI。"
+    "根据家人刚才说的话自然回应，像通电话一样聊天。"
+)
 
 
 def label_for(participant: rtc.RemoteParticipant) -> str:
@@ -79,14 +97,13 @@ def mint_token() -> str:
         can_subscribe=True,
         can_publish_data=True,
     )
-    token = (
+    return (
         api.AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
         .with_identity(IDENTITY)
         .with_name("小雨")
         .with_grants(grant)
         .to_jwt()
     )
-    return token
 
 
 class XiaoyuListener:
@@ -96,16 +113,46 @@ class XiaoyuListener:
         self._audio_ready = asyncio.Event()
         self._listen_started_at = 0.0
         self._tts = None
+        self._llm = None
         self._http: aiohttp.ClientSession | None = None
         self._audio_source: rtc.AudioSource | None = None
         self._audio_track: rtc.LocalAudioTrack | None = None
         self._speak_lock = asyncio.Lock()
-        # Gate ALL spoken output until classroom page activates 小雨
         self._speak_active = False
+        self._speaking = False
+        self._mute_stt_until = 0.0
+        self._conv_until = 0.0
+        self._recent_replies: list[str] = []
+        self._history: list[tuple[str, str]] = []  # (role, text) for short context
+
+    def _stt_muted(self) -> bool:
+        return self._speaking or time.time() < self._mute_stt_until
+
+    def _conv_open(self) -> bool:
+        return time.time() < self._conv_until
+
+    def _mark_speaking(self, on: bool, cooldown: float | None = None) -> None:
+        self._speaking = on
+        if not on:
+            cd = ECHO_COOLDOWN_S if cooldown is None else cooldown
+            self._mute_stt_until = time.time() + max(0.0, cd)
+
+    def _looks_like_echo(self, text: str) -> bool:
+        t = (text or "").strip()
+        if not t:
+            return True
+        if OWN_ECHO_RE.search(t):
+            return True
+        norm = re.sub(r"[\s，。！？、～,.!?]+", "", t)
+        for prev in self._recent_replies[-6:]:
+            p = re.sub(r"[\s，。！？、～,.!?]+", "", prev)
+            if not p:
+                continue
+            if norm == p or (len(norm) >= 4 and (norm in p or p in norm)):
+                return True
+        return False
 
     async def start(self) -> None:
-        # Own aiohttp session so inference STT/TTS work from room callbacks
-        # (ContextVar from http_context.open may not reach LiveKit event tasks).
         self._http = aiohttp.ClientSession()
         try:
             await self._start_room()
@@ -118,7 +165,15 @@ class XiaoyuListener:
 
     async def _start_room(self) -> None:
         token = mint_token()
-        log.info("connecting to %s room=%s as %s (LISTEN FIRST, speak gated)", LIVEKIT_URL, ROOM_NAME, IDENTITY)
+        log.info(
+            "connecting to %s room=%s as %s TTS=%s voice=%s LLM=%s",
+            LIVEKIT_URL,
+            ROOM_NAME,
+            IDENTITY,
+            TTS_MODEL,
+            TTS_VOICE,
+            LLM_MODEL if ENABLE_LLM else "off",
+        )
 
         @self.room.on("track_subscribed")
         def _on_track_subscribed(
@@ -132,7 +187,6 @@ class XiaoyuListener:
                 log.info("audio subscribed: %s (%s) — 静默旁听", participant.identity, label_for(participant))
                 self._audio_ready.set()
                 self._ensure_stt(participant, track)
-            # video: no auto-welcome
 
         @self.room.on("participant_connected")
         def _on_participant_connected(participant: rtc.RemoteParticipant):
@@ -157,17 +211,15 @@ class XiaoyuListener:
 
         await self.room.connect(LIVEKIT_URL, token)
         self._listen_started_at = time.time()
-        log.info("joined — 先听；开口需教室页点小雨 (xiaoyu_active)")
+        log.info("joined — 开口/静音由教室页 xiaoyu_active 控制；voice=%s", TTS_VOICE)
 
-        await self._publish_system("小雨已进同房旁听（默默听；点小雨才开口）")
-        # existing participants
+        await self._publish_system("小雨已进同房旁听（点小雨「开口」才说话；再点「静音」）")
         for p in self.room.remote_participants.values():
             for pub in p.track_publications.values():
                 if pub.track and pub.track.kind == rtc.TrackKind.KIND_AUDIO:
                     self._audio_ready.set()
                     self._ensure_stt(p, pub.track)
 
-        # stay alive
         while True:
             await asyncio.sleep(3600)
 
@@ -188,17 +240,16 @@ class XiaoyuListener:
             who = ""
             if data.participant:
                 who = data.participant.identity or ""
-            log.info("speak mode %s → %s (from %s)", prev, on, who or "?")
-            # Echo so all classroom tabs stay in sync
+            log.info("speak mode %s → %s (from %s)  # 开口=%s 静音=%s", prev, on, who or "?", on, not on)
+            if not on:
+                self._conv_until = 0.0
             await self._publish({"t": "xiaoyu_active", "on": on})
             return
 
-        # Course / scripted line: classroom asks 小雨 to speak a fixed line
         if msg.get("t") == "xiaoyu_say":
             text = (msg.get("text") or "").strip()
             if not text:
                 return
-            # Course flow may send say before speak toggle; activate for this line
             if not self._speak_active:
                 self._speak_active = True
                 await self._publish({"t": "xiaoyu_active", "on": True})
@@ -229,6 +280,7 @@ class XiaoyuListener:
 
         async def pump_audio():
             async for ev in audio:
+                # Still push frames so STT stays warm; finals are gated in consumer
                 stream.push_frame(ev.frame)
 
         pump = asyncio.create_task(pump_audio())
@@ -240,6 +292,9 @@ class XiaoyuListener:
                 if event.alternatives:
                     text = (event.alternatives[0].text or "").strip()
                 if not text:
+                    continue
+                if self._stt_muted():
+                    log.info("ignore STT while speaking/cooldown: %s", text[:60])
                     continue
                 log.info("heard %s: %s", who, text)
                 await self._on_final_transcript(who, participant.identity, text)
@@ -260,8 +315,6 @@ class XiaoyuListener:
 
     async def _on_final_transcript(self, who: str, identity: str, text: str) -> None:
         wake = bool(WAKE_RE.search(text))
-        # Always notify classroom that 小雨 heard (for log/detection); never auto-speak
-        # unless speak mode is on AND wake word present.
         await self._publish(
             {
                 "t": "heard",
@@ -272,28 +325,83 @@ class XiaoyuListener:
                 "speak": self._speak_active,
             }
         )
+        # 静音：只听不说
         if not self._speak_active:
             return
-        if not wake:
+        if self._looks_like_echo(text):
+            log.info("skip echo-like transcript: %s", text[:60])
+            return
+        # 开口后：唤醒词 或 对话窗口内 → 真实回复
+        if wake:
+            self._conv_until = time.time() + CONV_HOLD_S
+        elif not self._conv_open():
             return
 
-        reply = self._reply_for_wake(who, text)
-        log.info("speak-on + wake → reply: %s", reply)
+        user_line = WAKE_RE.sub("", text).strip(" ，,。.!！？?～~")
+        if not user_line:
+            user_line = text.strip()
+
+        reply = await self._reply_for(who, user_line, raw=text)
+        if not reply:
+            return
+        log.info("speak-on → reply: %s", reply)
+        self._conv_until = time.time() + CONV_HOLD_S
         await self._say(reply, mood="happy")
 
-    def _reply_for_wake(self, who: str, text: str) -> str:
-        # Keep first replies short & kid-friendly; full LLM later
-        if "欢迎" in text:
-            return "嗯，我在～"
-        return f"{who}，我在听，你说～"
+    async def _reply_for(self, who: str, text: str, raw: str) -> str:
+        if ENABLE_LLM:
+            try:
+                out = await self._llm_reply(who, text)
+                if out:
+                    return out
+            except Exception as e:
+                log.warning("LLM failed, fallback ack: %s", e)
+        # No LLM / failure: varied short ack based on transcript (never fixed loop phrase)
+        snippet = re.sub(r"\s+", "", text)[:12] or "你说的"
+        return f"{who}，你说「{snippet}」啦，我听到了～"
+
+    async def _llm_reply(self, who: str, text: str) -> str:
+        if self._llm is None:
+            self._llm = inference.LLM(model=LLM_MODEL)
+        self._history.append(("user", f"{who}：{text}"))
+        self._history = self._history[-8:]
+        chat = lk_llm.ChatContext()
+        chat.add_message(role="system", content=SYSTEM_PROMPT)
+        for role, content in self._history:
+            chat.add_message(role=role, content=content)
+        stream = self._llm.chat(chat_ctx=chat)
+        chunks: list[str] = []
+        async for chunk in stream:
+            if chunk is None:
+                continue
+            delta = getattr(chunk, "delta", None)
+            if delta is not None:
+                c = getattr(delta, "content", None)
+                if c:
+                    chunks.append(c)
+                    continue
+            c = getattr(chunk, "content", None) or getattr(chunk, "text", None)
+            if isinstance(c, str) and c:
+                chunks.append(c)
+        reply = "".join(chunks).strip()
+        # strip quotes / markdown
+        reply = reply.strip("「」\"' \n")
+        if len(reply) > 80:
+            reply = reply[:78] + "…"
+        if reply:
+            self._history.append(("assistant", reply))
+            self._history = self._history[-8:]
+        return reply
 
     async def _say(self, text: str, mood: str = "happy") -> None:
         if not self._speak_active:
-            log.info("skip _say (speak off): %s", text)
+            log.info("skip _say (静音): %s", text)
             return
         async with self._speak_lock:
             if not self._speak_active:
                 return
+            self._recent_replies.append(text)
+            self._recent_replies = self._recent_replies[-8:]
             await self._publish(
                 {
                     "t": "chat",
@@ -304,10 +412,15 @@ class XiaoyuListener:
                 }
             )
             if ENABLE_TTS:
+                self._mark_speaking(True)
                 try:
                     await self._speak_tts(text)
                 except Exception as e:
                     log.warning("TTS failed (data bubble still sent): %s", e)
+                finally:
+                    # Estimate trailing echo: ~0.05s per char + cooldown
+                    extra = min(2.5, max(0.4, len(text) * 0.04))
+                    self._mark_speaking(False, cooldown=ECHO_COOLDOWN_S + extra)
 
     async def _ensure_mic(self) -> rtc.AudioSource:
         if self._audio_source and self._audio_track:
@@ -315,12 +428,18 @@ class XiaoyuListener:
         self._audio_source = rtc.AudioSource(24000, 1)
         self._audio_track = rtc.LocalAudioTrack.create_audio_track("xiaoyu-voice", self._audio_source)
         await self.room.local_participant.publish_track(self._audio_track)
-        log.info("published local TTS audio track")
+        log.info("published local TTS audio track (voice=%s)", TTS_VOICE)
         return self._audio_source
 
     async def _speak_tts(self, text: str) -> None:
         if self._tts is None:
-            self._tts = inference.TTS(model=TTS_MODEL, language="zh", http_session=self._http)
+            self._tts = inference.TTS(
+                model=TTS_MODEL,
+                voice=TTS_VOICE,
+                language=TTS_LANGUAGE,
+                http_session=self._http,
+            )
+            log.info("TTS ready model=%s voice=%s lang=%s", TTS_MODEL, TTS_VOICE, TTS_LANGUAGE)
         source = await self._ensure_mic()
         stream = self._tts.synthesize(text)
         async for ev in stream:
@@ -343,7 +462,6 @@ async def main() -> None:
     missing = [k for k in ("LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET") if not os.environ.get(k)]
     if missing:
         raise SystemExit(f"missing env: {', '.join(missing)} (see .env.example)")
-    # inference STT/TTS need an http session outside the agent worker API
     async with http_context.open():
         listener = XiaoyuListener()
         await listener.start()
