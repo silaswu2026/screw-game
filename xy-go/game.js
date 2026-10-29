@@ -76,12 +76,80 @@
     },
   };
   let netMatchAbort = false;
-  // Same-browser / same-profile assist (two tabs test + one computer two windows)
+  let netTransport = null; // 'peer' | 'bc'
+  let netBcSession = '';
+  // Same-browser / same-profile: BroadcastChannel is the reliable link (PeerJS ICE often fails same-machine)
   let netBC = null;
-  try { netBC = new BroadcastChannel('xygo-coop-v4'); } catch (e) { netBC = null; }
+  try { netBC = new BroadcastChannel('xygo-coop-v5'); } catch (e) { netBC = null; }
   function netBCPost(msg) {
     try { if (netBC) netBC.postMessage(msg); } catch (e) {}
   }
+  function netMakeSession() {
+    return 's' + Math.floor(Date.now() % 1e9) + '-' + Math.floor(Math.random() * 1e6);
+  }
+  function netLinkViaBC(asHost, session, code) {
+    if (netLinked) return;
+    netTransport = 'bc';
+    netBcSession = session || netMakeSession();
+    netCode = code || netCode || netRoomId();
+    netRole = asHost ? 'host' : 'guest';
+    netLinked = true;
+    netConn = null;
+    if (asHost) {
+      toast('玩家B来了！（同机直连）');
+      netSetBanner('玩家B已加入·同机', 'ok');
+      try { netSend({ t: 'hello', code: netCode, role: 'host' }); } catch (e) {}
+      const alreadyPlaying = (mode === 'play' || mode === 'clear' || mode === 'win' || mode === 'over');
+      if (alreadyPlaying) {
+        try { netSend({ t: 'go', lv: levelIndex, cp: companion ? 1 : 0 }); } catch (e) {}
+        try { netSend(netBuildSnap()); } catch (e) {}
+        syncChrome();
+      } else {
+        netSetWait('配对成功！马上开始');
+        setTimeout(() => { if (netRole === 'host' && netLinked) netHostStart(); }, 400);
+      }
+    } else {
+      netSetWait('配对成功！等一下就开打');
+      toast('已连上玩家A（同机直连）');
+      netSetBanner('已连上·同机', 'ok');
+    }
+  }
+  function netOnBCMessage(ev) {
+    const m = ev && ev.data;
+    if (!m || typeof m !== 'object') return;
+    // Data plane for same-origin link
+    if (m.t === 'bc-data' && netLinked && netTransport === 'bc') {
+      if (m.session && netBcSession && m.session !== netBcSession) return;
+      if (m.role === netRole) return; // ignore echo of own sends
+      if (m.payload) netOnMsg(m.payload, netRole === 'host');
+      return;
+    }
+    // Guest asks → host answers with session offer
+    if (m.t === 'need' && netRole === 'host' && netCode && !netLinked) {
+      netBCPost({ t: 'host', id: netCode, lv: netPickLv | 0 });
+      netBCPost({ t: 'bc-offer', id: netCode, session: netBcSession || (netBcSession = netMakeSession()), lv: netPickLv | 0 });
+      return;
+    }
+    // Guest sees host offer → accept via BC (skip PeerJS)
+    if ((m.t === 'host' || m.t === 'bc-offer') && netRole === 'guest' && !netLinked && m.id) {
+      const sess = m.session || netMakeSession();
+      netBcSession = sess;
+      netCode = String(m.id);
+      netBCPost({ t: 'bc-hello', id: netCode, session: sess });
+      // If offer already has session, host may accept immediately; also self-complete guest side after short wait if host acks
+      return;
+    }
+    if (m.t === 'bc-hello' && netRole === 'host' && !netLinked && m.id && String(m.id) === String(netCode)) {
+      netLinkViaBC(true, m.session || netMakeSession(), netCode);
+      netBCPost({ t: 'bc-ok', id: netCode, session: netBcSession, lv: netPickLv | 0 });
+      return;
+    }
+    if (m.t === 'bc-ok' && netRole === 'guest' && !netLinked) {
+      netLinkViaBC(false, m.session || netBcSession || netMakeSession(), m.id || netCode);
+      return;
+    }
+  }
+  try { if (netBC) netBC.addEventListener('message', netOnBCMessage); } catch (e) {}
 
   let cols = 1;
   let rows = 1;
@@ -3018,7 +3086,12 @@
     if (el) el.textContent = text;
   }
   function netSend(obj) {
-    if (!netConn || !netLinked) return;
+    if (!netLinked) return;
+    if (netTransport === 'bc') {
+      netBCPost({ t: 'bc-data', role: netRole, session: netBcSession, payload: obj });
+      return;
+    }
+    if (!netConn) return;
     try { netConn.send(obj); } catch (e) { /* drop */ }
   }
   function netDestroy() {
@@ -3030,6 +3103,8 @@
     netRole = null;
     netCode = '';
     netSnapAcc = 0;
+    netTransport = null;
+    netBcSession = '';
   }
   function netShowRoom(kind) {
     const panel = document.getElementById('roomPanel');
@@ -3062,9 +3137,15 @@
     QRCode.toCanvas(canvas, url, { width: 160, margin: 1, color: { dark: '#1d3557', light: '#ffffff' } }, function () {});
   }
   function netBindConn(conn, asHost) {
+    if (netLinked && netTransport === 'bc') {
+      try { conn.close(); } catch (e) {}
+      return; // already linked same-machine
+    }
     netConn = conn;
     const onReady = () => {
       if (netConn !== conn) return;
+      if (netLinked && netTransport === 'bc') return;
+      netTransport = 'peer';
       netLinked = true;
       netConn = conn;
       if (asHost) {
@@ -3506,21 +3587,14 @@
       netPeer = won.peer;
       netCode = won.id;
       netRole = 'host';
+      netBcSession = netMakeSession();
       netBCPost({ t: 'host', id: won.id, lv: netPickLv | 0 });
-      try {
-        if (netBC) {
-          netBC.addEventListener('message', (ev) => {
-            const m = ev && ev.data;
-            if (m && m.t === 'need' && netRole === 'host' && netCode) {
-              netBCPost({ t: 'host', id: netCode, lv: netPickLv | 0 });
-            }
-          });
-        }
-      } catch (e) {}
+      netBCPost({ t: 'bc-offer', id: won.id, session: netBcSession, lv: netPickLv | 0 });
       const bcPulse = setInterval(() => {
         if (netMatchAbort || netRole !== 'host' || netLinked) { clearInterval(bcPulse); return; }
         netBCPost({ t: 'host', id: netCode, lv: netPickLv | 0 });
-      }, 2000);
+        netBCPost({ t: 'bc-offer', id: netCode, session: netBcSession, lv: netPickLv | 0 });
+      }, 1200);
       netPeer.on('connection', (conn) => {
         if (netConn && netLinked) { try { conn.close(); } catch (e) {} return; }
         netBindConn(conn, true);
@@ -3594,13 +3668,13 @@
     }
     netPeer = peer;
     let bcHostId = '';
-    const onBC = (ev) => {
+    // Global netOnBCMessage handles bc-offer/bc-ok; keep id hint for PeerJS probe order
+    const onBCHint = (ev) => {
       const m = ev && ev.data;
-      if (!m || m.t !== 'host' || !m.id) return;
-      bcHostId = String(m.id);
-      netBCPost({ t: 'need', want: 1 });
+      if (!m || !m.id) return;
+      if (m.t === 'host' || m.t === 'bc-offer') bcHostId = String(m.id);
     };
-    try { if (netBC) netBC.addEventListener('message', onBC); } catch (e) {}
+    try { if (netBC) netBC.addEventListener('message', onBCHint); } catch (e) {}
     netBCPost({ t: 'need', want: 1 });
     peer.on('error', (err) => {
       if (err && err.type === 'peer-unavailable') return;
@@ -3615,11 +3689,12 @@
       let peerRef = activePeer;
       while (!netMatchAbort && !netLinked && Date.now() - started < NET_FIND_MS) {
         round += 1;
+        if (netLinked) return;
         const ids = netRoomCandidates();
         if (bcHostId && ids.indexOf(bcHostId) < 0) ids.unshift(bcHostId);
         else if (bcHostId) { ids.splice(ids.indexOf(bcHostId), 1); ids.unshift(bcHostId); }
-        if (!silent) netSetWait('正在配对…第' + round + '轮');
-        else if (round === 1 || round % 4 === 0) toast('寻找房主…第' + round + '轮');
+        if (!silent) netSetWait('正在配对…第' + round + '轮' + (bcHostId ? '·同机优先' : ''));
+        else if (round === 1 || round % 4 === 0) toast(netLinked ? '已连上' : ('寻找房主…第' + round + '轮'));
         const won = await netProbeBatch(peerRef, ids);
         if (won && won.conn) {
           netPeer = peerRef;
