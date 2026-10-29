@@ -1,4 +1,4 @@
-// 闯关平台 (8 levels, two-player A/B). Controlled move/jump — no auto-run.
+// 闯关平台 (8 levels, two-player A/B). Button-only L/R move — no auto-dash.
 // Knockdown uses Cocos-style sprite frames (sprites/green sheet).
 // Traps: spike / bomb / fire jet / lightning with color immunities.
 (function () {
@@ -1527,10 +1527,13 @@
   }
   function aiBuddyPickDir() {
     const r = Math.random();
-    if (r < 0.28) aiBuddy.dir = 0;
-    else if (r < 0.64) aiBuddy.dir = -1;
+    // Prefer idle: no button-like wander dash; short left/right walks only
+    if (r < 0.55) aiBuddy.dir = 0;
+    else if (r < 0.78) aiBuddy.dir = -1;
     else aiBuddy.dir = 1;
-    aiBuddy.dirT = 0.55 + Math.random() * 1.6;
+    aiBuddy.dirT = aiBuddy.dir === 0
+      ? (1.2 + Math.random() * 2.4)
+      : (0.35 + Math.random() * 0.7);
   }
   function aiCompanionInput(dt) {
     clearInput(input3);
@@ -1655,19 +1658,16 @@
     n.boltCd = Math.max(0, (n.boltCd || 0) - dt);
     tickBurn(n, dt, inp);
 
-    let desired = n.vx;
-    if (n.wallLock > 0) desired = n.vx;
-    else if (n.onWall && !n.grounded) {
-      if (n.onWall === 1 && !inp.left) desired = 90;
-      else if (n.onWall === -1 && !inp.right) desired = -90;
-      else if (inp.left) desired = -240;
-      else if (inp.right) desired = 270;
-    } else if (inp.left && !inp.right) desired = -240;
-    else if (inp.right && !inp.left) desired = 270;
-    else if (n.grounded) desired = 0 /* no auto-run */;
-    const accel = (n.grounded ? 2400 : 1400) * dt;
+    // Button-only move: no auto-run / no air dash. Hold left/right to swing; release = stop.
+    const MOVE = 200;
+    let desired = 0;
+    if (n.wallLock > 0) desired = n.vx; // brief wall-jump carry only
+    else if (inp.left && !inp.right) desired = -MOVE;
+    else if (inp.right && !inp.left) desired = MOVE;
+    const accel = (n.grounded ? 2800 : 2200) * dt; // snappy stop when keys released
     const dv = desired - n.vx;
     n.vx += Math.max(-accel, Math.min(accel, dv));
+    if (desired === 0 && n.wallLock <= 0 && Math.abs(n.vx) < 18) n.vx = 0;
 
     if (inp.jumpPressed) {
       n.jumpBuf = 0.14;
