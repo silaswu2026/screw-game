@@ -55,9 +55,9 @@
   let netPickLv = 0;
   let netGuestPrev = { left: false, right: false, jump: false, throw: false };
   let netOutAcc = 0;
-  const NET_PREFIX = 'xygo2';
-  const NET_SLOTS = 12;
-  const NET_PROBE_MS = 900;
+  const NET_PREFIX = 'xygo3';
+  const NET_SLOTS = 4; // per minute window
+  const NET_PROBE_MS = 1200;
   const NET_FIND_MS = 90000;
   const NET_PEER_OPTS = {
     debug: 0,
@@ -2934,15 +2934,28 @@
 
   // ========== 联网双人 helpers ==========
   function netOnline() { return !!netRole; }
-  /** Fixed coop room so two devices always meet (no minute/N race). ?room=xxx overrides. */
-  function netRoomId() {
+  /** Coop room ids: rotating minute slots so a stuck PeerJS id cannot block forever.
+   *  ?room=xxx → single custom id. Guest probes current+previous minute slots. */
+  function netCustomRoom() {
     try {
       const q = new URLSearchParams(location.search);
       const custom = (q.get('room') || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 24);
-      if (custom) return 'xygo-coop-' + custom;
+      if (custom) return NET_PREFIX + '-c-' + custom;
     } catch (e) { /* ignore */ }
-    return 'xygo-coop-public';
+    return '';
   }
+  function netRoomCandidates() {
+    const custom = netCustomRoom();
+    if (custom) return [custom];
+    const m = Math.floor(Date.now() / 60000);
+    const out = [];
+    for (const mm of [m, m - 1]) {
+      const tag = ((mm % 100000) + 100000) % 100000;
+      for (let s = 0; s < NET_SLOTS; s++) out.push(NET_PREFIX + '-m' + tag + '-s' + s);
+    }
+    return out;
+  }
+  function netRoomId() { return netRoomCandidates()[0]; }
   function netSetBanner(text, kind) {
     const el = document.getElementById('netBanner');
     if (!el) return;
@@ -3341,26 +3354,40 @@
     }
     return true;
   }
+  function netClaimOne(id) {
+    return new Promise((resolve) => {
+      let peer;
+      try { peer = netNewPeer(id); } catch (e) { resolve(null); return; }
+      let settled = false;
+      const fail = () => {
+        if (settled) return;
+        settled = true;
+        try { peer.destroy(); } catch (e) {}
+        resolve(null);
+      };
+      peer.on('open', () => {
+        if (settled || netMatchAbort) { fail(); return; }
+        settled = true;
+        resolve({ peer, id });
+      });
+      peer.on('error', () => fail());
+      setTimeout(() => { if (!settled) fail(); }, 5000);
+    });
+  }
+  /** Try each candidate until one Peer id is free; ghosts on other ids are skipped. */
+  async function netClaimFirstFree(ids) {
+    for (const id of ids) {
+      if (netMatchAbort) return null;
+      const won = await netClaimOne(id);
+      if (won) return won;
+    }
+    return null;
+  }
   function netClaimPair(id, onOk, onBusy) {
-    let peer;
-    try { peer = netNewPeer(id); } catch (e) { onBusy('create'); return; }
-    let settled = false;
-    const fail = (why) => {
-      if (settled) return;
-      settled = true;
-      try { peer.destroy(); } catch (e) {}
-      onBusy(why || 'busy');
-    };
-    peer.on('open', () => {
-      if (settled || netMatchAbort) return;
-      settled = true;
-      onOk(peer, id);
+    netClaimOne(id).then((won) => {
+      if (won) onOk(won.peer, won.id);
+      else onBusy('busy');
     });
-    peer.on('error', (err) => {
-      const t = (err && err.type) || '';
-      fail(t || 'error');
-    });
-    setTimeout(() => { if (!settled) fail('timeout'); }, 6000);
   }
   function netOpenHost(opts) {
     opts = opts || {};
@@ -3379,20 +3406,69 @@
     netDestroy();
     netRole = 'host';
     netPickLv = (opts.pickLv != null ? opts.pickLv : 0) | 0;
-    const room = netRoomId();
+    const rooms = netRoomCandidates();
     if (!silent) {
       netShowRoom('host');
-      netSetWait('正在当玩家A…房间 ' + room);
+      netSetWait('正在当玩家A…开房中');
     } else {
       netHideRoom();
       netSetBanner('正在开房…', 'warn');
-      toast('正在开房 ' + room + '…');
+      toast('正在开房…');
     }
-    // fixed public room — claim then enter play (no minute/N race)
-    netClaimPair(room, (peer, claimed) => {
-      if (netMatchAbort) { try { peer.destroy(); } catch (e) {} return; }
-      netPeer = peer;
-      netCode = claimed;
+    // Pre-probe: if a live host already exists, join instead of opening a 2nd room.
+    // Then multi-slot claim: skip stuck PeerJS ids; only fall back to join if every slot is taken.
+    (async () => {
+      let scout = null;
+      try {
+        scout = netNewPeer();
+        await new Promise((resolve) => {
+          let done = false;
+          const finish = () => { if (done) return; done = true; resolve(); };
+          scout.on('open', finish);
+          scout.on('error', finish);
+          setTimeout(finish, 4000);
+        });
+        if (!netMatchAbort && scout && scout.id) {
+          const existing = await netProbeBatch(scout, rooms);
+          if (existing && existing.conn) {
+            netPeer = scout;
+            scout = null; // keep peer; conn belongs to it
+            netRole = 'guest';
+            netCode = existing.id;
+            netSetBanner('发现房主·正在加入', 'ok');
+            toast('发现已有房间，正在加入…');
+            netBindConn(existing.conn, false);
+            return;
+          }
+        }
+      } catch (e) { /* scout optional */ }
+      try { if (scout) scout.destroy(); } catch (e) {}
+
+      const won = await netClaimFirstFree(rooms);
+      if (netMatchAbort) {
+        if (won) { try { won.peer.destroy(); } catch (e) {} }
+        return;
+      }
+      if (!won) {
+        // All ids unavailable — likely a live host already; try join. If join fails, still play local.
+        netSetBanner('房间忙·试着加入…', 'warn');
+        toast('房间忙，改为加入…');
+        netOpenJoin({
+          silent: silent,
+          enterPlay: enterPlay,
+          pickLv: netPickLv,
+          onFailLocal: enterPlay ? () => {
+            netRole = null;
+            prepareCoopCast();
+            start(netPickLv | 0, true);
+            netSetBanner('开房失败·先本地双人', 'warn');
+          } : null,
+        });
+        return;
+      }
+      netPeer = won.peer;
+      netCode = won.id;
+      netRole = 'host';
       netPeer.on('connection', (conn) => {
         if (netConn && netLinked) { try { conn.close(); } catch (e) {} return; }
         netBindConn(conn, true);
@@ -3408,13 +3484,7 @@
       if (!silent) netSetWait('已准备好，请对方点玩家B');
       netSetBanner('房间已开·等玩家B', 'ok');
       toast('房间已开·对方点「玩家B」加入');
-    }, (why) => {
-      // room taken (other device already hosting) — join as guest instead of 2nd host
-      if (netMatchAbort) return;
-      netSetBanner('房间已有人·改为加入…', 'warn');
-      toast(silent ? '房间已有人，改为加入…' : '房间忙，改为加入玩家A…');
-      netOpenJoin({ silent: silent, enterPlay: enterPlay, pickLv: netPickLv });
-    });
+    })();
   }
   function netProbeId(peer, id) {
     return new Promise((resolve) => {
@@ -3450,15 +3520,16 @@
   function netOpenJoin(opts) {
     opts = opts || {};
     const silent = !!opts.silent;
+    const onFailLocal = opts.onFailLocal || null;
     if (!netEnsurePeerJs()) return;
     unlock();
     netMatchAbort = false;
     netDestroy();
     netRole = 'guest';
-    const room = netRoomId();
+    const rooms = netRoomCandidates();
     if (!silent) {
       netShowRoom('join');
-      netSetWait('正在加入房间 ' + room + '…请先让对方点同机双人·开始或玩家A');
+      netSetWait('正在加入…请先让对方点同机双人·开始或玩家A');
     } else {
       netHideRoom();
       toast('正在加入…');
@@ -3467,6 +3538,7 @@
     let peer;
     try { peer = netNewPeer(); } catch (e) {
       toast('联网失败');
+      if (onFailLocal) onFailLocal();
       return;
     }
     netPeer = peer;
@@ -3482,9 +3554,11 @@
       let round = 0;
       while (!netMatchAbort && !netLinked && Date.now() - started < NET_FIND_MS) {
         round += 1;
-        if (!silent) netSetWait('正在配对…第' + round + '轮（房间 ' + room + '）');
+        // refresh candidates each round so minute rollover still finds host
+        const ids = netRoomCandidates();
+        if (!silent) netSetWait('正在配对…第' + round + '轮');
         else if (round === 1 || round % 8 === 0) toast('寻找房主…第' + round + '轮');
-        const won = await netProbeBatch(peer, [room]);
+        const won = await netProbeBatch(peer, ids);
         if (won && won.conn) {
           netCode = won.id;
           netBindConn(won.conn, false);
@@ -3492,12 +3566,13 @@
           else toast('已连上，马上进入');
           return;
         }
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 350));
       }
       if (!netLinked) {
         if (!silent) netSetWait('没找到房主。请对方先点同机双人·开始或玩家A；微信请用浏览器打开');
         toast('没找到房间：请先让对方点同机双人·开始，再点玩家B');
         netSetBanner('没找到房主', 'warn');
+        if (onFailLocal) onFailLocal();
       }
     });
   }
