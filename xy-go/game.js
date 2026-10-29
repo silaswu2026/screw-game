@@ -126,7 +126,7 @@
       anim: 'idle', phase: 0, palette: palette,
       hp: MAX_HP, down: false, downT: 0, springCd: 0, springLock: 0,
       shake: 0, flash: 0, glow: 0, bones: 0, spikeMsgCd: 0,
-      burnT: 0, burnTick: 0, boltCd: 0,
+      burnT: 0, burnTick: 0, burnShake: 0, burnDir: 0, boltCd: 0,
       knockT: 0, knockPhase: null, knockAnimT: 0, locoT: 0,
     };
   }
@@ -771,7 +771,7 @@
     n.anim = 'idle'; n.hp = MAX_HP; n.down = false; n.downT = 0;
     n.springCd = 0; n.springLock = 0;
     n.shake = 0; n.flash = 0; n.glow = 0; n.bones = 0; n.spikeMsgCd = 0;
-    n.burnT = 0; n.burnTick = 0; n.boltCd = 0;
+    n.burnT = 0; n.burnTick = 0; n.burnShake = 0; n.burnDir = 0; n.boltCd = 0;
     n.knockT = 0; n.knockPhase = null; n.knockAnimT = 0; n.locoT = 0;
   }
 
@@ -1219,40 +1219,78 @@
       }
     }
   }
-  function tickBurn(n, dt) {
+  const BURN_WINDOW = 2.6; // seconds to shake L/R before HP loss
+  const BURN_SHAKES_NEED = 5; // quick direction flips to extinguish
+  function tickBurn(n, dt, inp) {
     if (!n || n.down) return;
-    if ((n.burnT || 0) <= 0) { n.burnT = 0; n.burnTick = 0; return; }
-    n.burnT = Math.max(0, n.burnT - dt);
-    n.burnTick = (n.burnTick || 0) + dt;
-    n.bones = Math.max(n.bones || 0, 0.2);
-    if (n.burnTick >= 1.0) {
-      n.burnTick = 0;
-      if (n.invuln <= 0) {
-        n.hp -= 1;
-        n.flash = 0.12;
-        puff(n.x, n.y - 28, '#ff8c32', 4);
-        sfx.bump();
-        if (n.hp <= 0) { n.hp = 0; downOrOver(n); }
-      }
+    if ((n.burnT || 0) <= 0) {
+      n.burnT = 0; n.burnTick = 0; n.burnShake = 0; n.burnDir = 0;
+      return;
     }
-    if (Math.random() < dt * 8) puff(n.x + (Math.random() - 0.5) * 16, n.y - 20 - Math.random() * 20, '#ff7a20', 1);
+    // Quick left↔right extinguishes body fire (no HP if in time)
+    let d = 0;
+    if (inp) {
+      if (inp.left && !inp.right) d = -1;
+      else if (inp.right && !inp.left) d = 1;
+    }
+    if (!d) {
+      if (n.vx < -55) d = -1;
+      else if (n.vx > 55) d = 1;
+    }
+    if (d && n.burnDir && d !== n.burnDir) {
+      n.burnShake = (n.burnShake || 0) + 1;
+      puff(n.x, n.y - 24, '#ffe08a', 2);
+    }
+    if (d) n.burnDir = d;
+    if ((n.burnShake || 0) >= BURN_SHAKES_NEED) {
+      n.burnT = 0; n.burnTick = 0; n.burnShake = 0; n.burnDir = 0;
+      n.glow = Math.max(n.glow || 0, 0.25);
+      toast('左右快晃，火灭了！没掉血');
+      puff(n.x, n.y - 20, '#9ad0ff', 12);
+      sfx.coin && sfx.coin();
+      return;
+    }
+    n.burnT = Math.max(0, n.burnT - dt);
+    n.bones = Math.max(n.bones || 0, 0.25);
+    n.glow = Math.max(n.glow || 0, 0.2);
+    if (Math.random() < dt * 10) puff(n.x + (Math.random() - 0.5) * 16, n.y - 20 - Math.random() * 20, '#ff7a20', 1);
+    if (n.burnT > 0) return;
+    // Window over — not shaken out in time → lose 1 HP, fire goes out
+    n.burnShake = 0; n.burnDir = 0; n.burnTick = 0;
+    if (n.invuln <= 0) {
+      n.hp -= 1;
+      n.flash = 0.18;
+      n.invuln = 0.45;
+      puff(n.x, n.y - 28, '#ff8c32', 8);
+      sfx.bump();
+      toast((n.palette === 'green' ? '绿' : n.palette === 'blue' ? '蓝' : '红') + '忍者没晃灭火，-1血');
+      buzz(14);
+      if (n.hp <= 0) { n.hp = 0; downOrOver(n); }
+    }
   }
   function hurtFire(n) {
-    // Red immune; green/blue: burn 10s DoT after leave (refresh while in jet)
+    // Red immune; green/blue: body catches fire — shake L/R fast to extinguish before HP loss
     if (!n || n.down || mode !== 'play') return;
     if (n.palette === 'red') {
       if ((n.spikeMsgCd || 0) <= 0) { toast('红忍者免疫喷火'); n.spikeMsgCd = 1.2; }
       return;
     }
     const was = n.burnT || 0;
-    n.burnT = 10;
-    n.bones = Math.max(n.bones || 0, 0.35);
-    n.glow = Math.max(n.glow || 0, 0.3);
     if (was <= 0) {
-      toast((n.palette === 'green' ? '绿' : '蓝') + '忍者灼伤！离开后烧10秒');
+      n.burnT = BURN_WINDOW;
+      n.burnShake = 0;
+      n.burnDir = 0;
+      n.burnTick = 0;
+      n.bones = Math.max(n.bones || 0, 0.35);
+      n.glow = Math.max(n.glow || 0, 0.35);
+      toast((n.palette === 'green' ? '绿' : '蓝') + '忍者着火！快左右晃灭火');
       puff(n.x, n.y - 16, '#ff8c32', 10);
       sfx.bump();
       buzz(12);
+    } else {
+      // still in jet / re-hit: refresh window but keep shake progress (fair)
+      n.burnT = Math.max(n.burnT, BURN_WINDOW * 0.65);
+      n.bones = Math.max(n.bones || 0, 0.3);
     }
   }
   function touchFires(n) {
@@ -1615,7 +1653,7 @@
     n.bones = Math.max(0, (n.bones || 0) - dt);
     n.spikeMsgCd = Math.max(0, (n.spikeMsgCd || 0) - dt);
     n.boltCd = Math.max(0, (n.boltCd || 0) - dt);
-    tickBurn(n, dt);
+    tickBurn(n, dt, inp);
 
     let desired = n.vx;
     if (n.wallLock > 0) desired = n.vx;
