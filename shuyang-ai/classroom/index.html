@@ -5,37 +5,80 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>成长屋共学教室</title>
 <style>
-  :root{--bg:#0b1a12;--card:#12261a;--line:#2a5a3a;--txt:#e8f5ea}
+  :root{--bg:#0b1a12;--card:#12261a;--line:#2a5a3a;--txt:#e8f5ea;--chat-bg:#0e1f14}
   *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#1a3a24,var(--bg));color:var(--txt);min-height:100vh}
-  header{padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid #234}
+  body{margin:0;font-family:system-ui,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#1a3a24,var(--bg));color:var(--txt);min-height:100vh;display:flex;flex-direction:column}
+  header{padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid #234;flex-shrink:0}
   h1{font-size:1rem;margin:0;flex:1}
   .btn{border:0;border-radius:999px;padding:10px 16px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#78d484,#4ea85c);color:#083018}
   .btn.ghost{background:#1c3324;color:var(--txt);border:1px solid var(--line)}
   .btn:disabled{opacity:.5}
-  main{display:grid;grid-template-columns:1.1fr .9fr;gap:12px;padding:12px;max-width:1100px;margin:0 auto}
-  @media(max-width:800px){main{grid-template-columns:1fr}}
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;min-height:280px}
-  .vids{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
-  @media(max-width:700px){.vids{grid-template-columns:1fr 1fr}}
-  .tile{background:#000;border-radius:12px;aspect-ratio:4/3;overflow:hidden;position:relative;border:2px solid transparent}
+  .btn.send{padding:8px 14px;border-radius:10px;font-size:13px}
+
+  /* Desktop: left cams | center chat | right course (larger) */
+  main{
+    display:grid;
+    grid-template-columns: minmax(120px, 160px) minmax(220px, 1fr) minmax(0, 2.4fr);
+    gap:10px;
+    padding:10px;
+    flex:1;
+    min-height:0;
+    max-width:1400px;
+    width:100%;
+    margin:0 auto;
+  }
+  @media(max-width:900px){
+    main{
+      grid-template-columns:1fr;
+      grid-template-rows:auto auto 1fr;
+      max-width:560px;
+    }
+  }
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px;min-height:0;display:flex;flex-direction:column}
+  .panel h2{margin:0 0 8px;font-size:13px;font-weight:700;opacity:.9}
+  .hint{font-size:12px;opacity:.85;line-height:1.45;margin-bottom:8px}
+
+  /* Left: stacked portrait tiles */
+  .cams{gap:8px}
+  .vids{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    flex:1;
+    min-height:0;
+    overflow:auto;
+  }
+  @media(max-width:900px){
+    .vids{
+      flex-direction:row;
+      justify-content:center;
+      overflow-x:auto;
+    }
+  }
+  .tile{
+    background:#000;
+    border-radius:12px;
+    aspect-ratio:3/4;
+    overflow:hidden;
+    position:relative;
+    border:2px solid transparent;
+    flex-shrink:0;
+    width:100%;
+    max-height:none;
+  }
+  @media(max-width:900px){
+    .tile{width:30%;max-width:140px;aspect-ratio:3/4}
+  }
   .tile.online{border-color:#6dcf7a}
   .tile video{width:100%;height:100%;object-fit:cover;display:block}
-  .tile .name{position:absolute;left:8px;bottom:8px;background:#000a;padding:2px 8px;border-radius:8px;font-size:12px}
-  .tile .badge{position:absolute;right:8px;top:8px;background:#1e7a3a;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700}
+  .tile .name{position:absolute;left:6px;bottom:6px;background:#000a;padding:2px 7px;border-radius:8px;font-size:11px}
+  .tile .badge{position:absolute;right:6px;top:6px;background:#1e7a3a;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700}
   .tile.rain{background:linear-gradient(160deg,#1a3d2a,#0d2418)}
-  .tile.rain .avatar-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;font-weight:800}
-  .tile.rain .avatar-fallback .face{font-size:48px}
-  iframe{width:100%;height:min(70vh,520px);border:0;border-radius:12px;background:#000}
-  #log{font-size:12px;opacity:.85;white-space:pre-wrap;max-height:140px;overflow:auto}
-  .hint{font-size:13px;opacity:.9;line-height:1.5}
-
-  .tile img.avatar{width:100%;height:100%;object-fit:cover;object-position:center 20%;display:block}
-  .tile.rain img.avatar{object-position:center 18%}
+  .tile img.avatar{width:100%;height:100%;object-fit:cover;object-position:center 18%;display:block}
   .tile.live video{display:block;width:100%;height:100%;object-fit:cover}
   .tile.live img.avatar{display:none}
   .tile.live .badge{background:#2a6fd4}
-  .tile .badge{position:absolute;right:8px;top:8px;background:#1e7a3a;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700}
   .xy-bob{animation:xyBob 2.4s ease-in-out infinite;transform-origin:center bottom}
   @keyframes xyBob{
     0%,100%{transform:translateY(0) scale(1)}
@@ -43,6 +86,53 @@
   }
   .tile.rain.online{box-shadow:0 0 0 2px #6dcf7a, 0 0 18px #6dcf7a66}
   .tile.rain.speaking .xy-bob{animation-duration:0.9s}
+
+  /* Center: chat */
+  .chat{min-height:280px}
+  #log{
+    flex:1;
+    font-size:12px;
+    opacity:.9;
+    white-space:pre-wrap;
+    overflow:auto;
+    background:var(--chat-bg);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px;
+    margin:0 0 8px;
+    min-height:160px;
+    line-height:1.5;
+  }
+  .chat-compose{
+    display:flex;
+    gap:6px;
+    flex-shrink:0;
+  }
+  .chat-compose input{
+    flex:1;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:#0a1810;
+    color:var(--txt);
+    padding:8px 10px;
+    font-size:13px;
+    outline:none;
+  }
+  .chat-compose input:focus{border-color:#6dcf7a}
+
+  /* Right: course iframe — larger */
+  .course{min-height:0}
+  .course iframe{
+    width:100%;
+    flex:1;
+    min-height:min(72vh, 640px);
+    border:0;
+    border-radius:12px;
+    background:#000;
+  }
+  @media(max-width:900px){
+    .course iframe{min-height:55vh}
+  }
 </style>
 </head>
 <body>
@@ -53,8 +143,9 @@
   <button class="btn ghost" id="leave" disabled>离开</button>
 </header>
 <main>
-  <section class="panel">
-    <div class="hint">进房前三格默认是卡通形象（爸爸 / 芃芃 / 小雨）。点进房并允许摄像头后，才换成真人画面；小雨一直是角色头像动画。</div>
+  <section class="panel cams">
+    <h2>画面</h2>
+    <div class="hint">竖屏卡通形象；进房开摄像头后换成真人。小雨保持角色动画。</div>
     <div class="vids" id="vids">
       <div class="tile online" id="tile-dad">
         <img class="avatar" src="../avatars/dad-wuxin.jpg" alt="爸爸"/>
@@ -74,11 +165,20 @@
         <div class="name">小雨</div>
       </div>
     </div>
-    <pre id="log"></pre>
   </section>
-  <section class="panel">
-    <div class="hint">右边课（同屏示意）</div>
-    <iframe title="course" src="../learn/skeleton.html?v=mc12"></iframe>
+
+  <section class="panel chat">
+    <h2>聊天</h2>
+    <pre id="log"></pre>
+    <div class="chat-compose">
+      <input type="text" id="chatInput" placeholder="说点什么…" maxlength="500" autocomplete="off"/>
+      <button class="btn send" id="chatSend" type="button">发送</button>
+    </div>
+  </section>
+
+  <section class="panel course">
+    <h2>课程同屏</h2>
+    <iframe title="course" src="../learn/skeleton.html?v=mc13"></iframe>
   </section>
 </main>
 <script type="module">
@@ -87,8 +187,15 @@ const URL_WS = "wss://lucas-jqrm4vbp.livekit.cloud";
 const TOKENS = {"dad": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi54i454i4IiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoiZGFkIn0.q7ont9o7nqmVxFyxYBH3ALqj09Z6m1flYMAgsNEDaHU", "kid": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi6IqD6IqDIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoibHVjYXMifQ.9i_fVBr5Tu8ES-VSO_juYjLb5HGXGJTamXMomdYQY8k", "rain": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi5bCP6ZuoIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoieGlhb3l1In0.7jL1nsyCmFYK6XqGLNHp8xLDAtByQ_n6_zv2hH-3eBA"};
 const logEl = document.getElementById('log');
 const vids = document.getElementById('vids');
+const chatInput = document.getElementById('chatInput');
 function log(m){ logEl.textContent += m + '\n'; logEl.scrollTop = logEl.scrollHeight; console.log(m); }
+function appendChat(who, text){
+  const line = who ? `[${who}] ${text}` : text;
+  log(line);
+}
 let room = null;
+let myChatName = '我';
+
 function ensureVideoTile(id, name){
   let el;
   if (id === 'dad' || id === 'local-dad') el = document.getElementById('tile-dad');
@@ -127,33 +234,60 @@ async function joinRainPresence(){
     const rainRoom = new Room();
     await rainRoom.connect(URL_WS, TOKENS.rain);
     setRainOnline(true, '在线·听你们');
-    log('小雨已进房（旁听席）');
+    log('系统：小雨已进房（旁听席）');
     window.__rainRoom = rainRoom;
   } catch (e) {
     setRainOnline(true, '在线·示意');
-    log('小雨旁听: ' + (e.message||e));
+    log('系统：小雨旁听: ' + (e.message||e));
+  }
+}
+function setupChatHandlers(r){
+  r.on(RoomEvent.DataReceived, (payload, participant) => {
+    try {
+      const raw = new TextDecoder().decode(payload);
+      const msg = JSON.parse(raw);
+      if (msg && msg.t === 'chat' && typeof msg.text === 'string') {
+        const who = (msg.who) || (participant && (participant.name || participant.identity)) || '对方';
+        appendChat(who, msg.text);
+      }
+    } catch (_) { /* ignore non-chat */ }
+  });
+}
+async function sendChat(){
+  const text = (chatInput.value || '').trim();
+  if (!text) return;
+  chatInput.value = '';
+  appendChat(myChatName, text);
+  if (room && room.localParticipant) {
+    try {
+      const data = new TextEncoder().encode(JSON.stringify({ t: 'chat', who: myChatName, text }));
+      await room.localParticipant.publishData(data, { reliable: true });
+    } catch (e) {
+      log('系统：聊天发送失败（已本地显示）: ' + (e.message||e));
+    }
   }
 }
 async function join(role){
   if (room) return;
   room = new Room({ adaptiveStream: true, dynacast: true });
+  setupChatHandlers(room);
   room.on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
     if (participant.identity === 'xiaoyu') return;
     const el = ensureVideoTile(participant.identity, participant.name || participant.identity);
-    const v = el.querySelector('video');
     if (track.kind === Track.Kind.Video) showLiveCamera(el, track);
     if (track.kind === Track.Kind.Audio) { const a = track.attach(); a.autoplay = true; document.body.appendChild(a); }
   });
   room.on(RoomEvent.ParticipantConnected, (p) => {
     if (p.identity === 'xiaoyu') setRainOnline(true, '在线·听你们');
-    log('有人进房: ' + (p.name||p.identity));
+    log('系统：有人进房: ' + (p.name||p.identity));
   });
   room.on(RoomEvent.TrackUnsubscribed, (track) => track.detach());
-  room.on(RoomEvent.Disconnected, () => { log('已离开'); room = null; document.getElementById('leave').disabled = true; });
-  log('连接 LiveKit Cloud 作为 ' + role + ' …');
+  room.on(RoomEvent.Disconnected, () => { log('系统：已离开'); room = null; document.getElementById('leave').disabled = true; });
+  log('系统：连接 LiveKit Cloud 作为 ' + role + ' …');
   await room.connect(URL_WS, TOKENS[role]);
-  log('已进房: ' + room.name + ' 身份=' + room.localParticipant.identity);
+  log('系统：已进房: ' + room.name + ' 身份=' + room.localParticipant.identity);
   const localId = role === 'dad' ? 'dad' : 'lucas';
+  myChatName = role === 'dad' ? '爸爸' : '芃芃';
   const localName = role === 'dad' ? '爸爸（我）' : '芃芃（我）';
   try {
     const tracks = await createLocalTracks({ audio: true, video: true });
@@ -162,23 +296,27 @@ async function join(role){
       if (track.kind === Track.Kind.Video) showLiveCamera(local, track);
       await room.localParticipant.publishTrack(track);
     }
-    log('已发布本地音视频');
+    log('系统：已发布本地音视频');
   } catch (camErr) {
     ensureVideoTile(localId, localName + '·无摄像头');
-    log('摄像头不可用（进房仍成功）: ' + camErr.message);
+    log('系统：摄像头不可用（进房仍成功）: ' + camErr.message);
   }
   document.getElementById('leave').disabled = false;
   if (!window.__rainRoom) await joinRainPresence();
 }
-document.getElementById('joinDad').onclick = () => join('dad').catch(e => log('失败: ' + (e.message||e)));
-document.getElementById('joinKid').onclick = () => join('kid').catch(e => log('失败: ' + (e.message||e)));
+document.getElementById('joinDad').onclick = () => join('dad').catch(e => log('系统：失败: ' + (e.message||e)));
+document.getElementById('joinKid').onclick = () => join('kid').catch(e => log('系统：失败: ' + (e.message||e)));
 document.getElementById('leave').onclick = async () => {
   if (room) await room.disconnect();
   if (window.__rainRoom) { await window.__rainRoom.disconnect(); window.__rainRoom = null; }
   setRainOnline(false);
 };
+document.getElementById('chatSend').onclick = () => sendChat();
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
+});
 setRainOnline(true, '在线·待命');
-log('已接 LiveKit Cloud。点爸爸/芃芃进房。');
+log('系统：已接 LiveKit Cloud。点爸爸/芃芃进房。竖屏画面 · 中间聊天 · 右边课程。');
 </script>
 </body>
 </html>
