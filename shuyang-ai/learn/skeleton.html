@@ -2,33 +2,405 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#1d4e38">
-<title>3D骨头图 · 给澍暘看</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>3D骨头人 · 拖一拖</title>
+<script type="importmap">{"imports":{
+  "three":"../../vendor/three.module.js",
+  "three/addons/":"../../vendor/addons/"
+}}</script>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
+  html, body { margin: 0; }
   body {
-    margin: 0; min-height: 100dvh; font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: #122018; color: #eafff0; display: flex; flex-direction: column; align-items: center;
-    padding: 16px 16px 28px;
+    min-height: 100dvh;
+    font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    color: #eafff0;
+    background:
+      radial-gradient(700px 360px at 85% -5%, #3f8f4a44, transparent 55%),
+      radial-gradient(600px 320px at 8% 10%, #2a6b8844, transparent 50%),
+      linear-gradient(180deg, #0e1a14, #122018 50%, #1a2e24);
+    padding: calc(12px + env(safe-area-inset-top)) 14px calc(24px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; align-items: center;
   }
-  h1 { font-size: 1.35rem; margin: 8px 0 4px; text-align: center; }
-  p { margin: 0 0 14px; opacity: .9; text-align: center; line-height: 1.45; max-width: 36rem; }
-  img {
-    width: min(100%, 520px); height: auto; border-radius: 16px;
-    border: 2px solid #3f8f4a; background: #0b1410; box-shadow: 0 12px 40px #0008;
+  .wrap { width: min(100%, 480px); margin: 0 auto; }
+  h1 {
+    margin: 4px 0 6px; font-size: clamp(24px, 7vw, 32px); text-align: center;
+    font-weight: 800; line-height: 1.25;
   }
+  .tip {
+    margin: 0 auto 12px; text-align: center; font-size: clamp(15px, 4.2vw, 17px);
+    font-weight: 700; line-height: 1.45; opacity: .92; max-width: 22em;
+  }
+  .callout {
+    margin: 0 0 14px; padding: 12px 14px; border-radius: 16px;
+    background: #1a3a28cc; border: 2px solid #3f8f4a88;
+    font-size: clamp(15px, 4vw, 17px); font-weight: 800; line-height: 1.45; text-align: center;
+  }
+  .callout strong { color: #ffe7a0; }
+  .stage {
+    position: relative; width: 100%; aspect-ratio: 1 / 1.05; max-height: min(62dvh, 420px);
+    border-radius: 22px; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 70%, #243828, #0b1410 70%);
+    border: 2px solid #3f8f4a; box-shadow: 0 12px 40px #0008;
+    touch-action: none; -webkit-user-select: none; user-select: none;
+  }
+  .stage canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+  .badge {
+    position: absolute; left: 10px; top: 10px; z-index: 2;
+    padding: 6px 12px; border-radius: 999px; background: #2f7a45ee; color: #fff;
+    font-weight: 800; font-size: 14px; pointer-events: none;
+  }
+  .row {
+    display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+  }
+  .row button, a.btn {
+    appearance: none; flex: 1; min-width: 120px; min-height: 48px; border: 0; border-radius: 16px;
+    background: #2a5540; color: #fff; font-size: 16px; font-weight: 800;
+    cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .row button.primary {
+    background: linear-gradient(180deg, #78d484, #4ea85c); box-shadow: 0 3px 0 #2f6d3a; color: #083018;
+  }
+  .row button:active, a.btn:active { transform: translateY(1px); }
+  .hint { margin: 10px 0 0; text-align: center; font-size: 13px; opacity: .75; font-weight: 700; }
   a.back {
-    display: inline-block; margin-top: 18px; padding: 12px 22px; border-radius: 999px;
-    background: #2f7a45; color: #fff; text-decoration: none; font-weight: 700; font-size: 1.05rem;
+    display: block; margin: 18px auto 0; text-align: center;
+    padding: 14px 22px; border-radius: 999px; background: #2f7a45; color: #fff;
+    font-weight: 800; font-size: 1.05rem; text-decoration: none; box-shadow: 0 6px 0 #1d4e38;
+  }
+  .still {
+    margin-top: 16px; text-align: center;
+  }
+  .still details {
+    background: #121c16aa; border-radius: 14px; border: 1px solid #ffffff18; padding: 8px 12px;
+  }
+  .still summary {
+    cursor: pointer; font-weight: 800; font-size: 14px; list-style: none;
+  }
+  .still summary::-webkit-details-marker { display: none; }
+  .still img {
+    width: min(100%, 360px); height: auto; border-radius: 12px; margin-top: 10px;
+    border: 1px solid #3f8f4a66;
   }
 </style>
 </head>
 <body>
-  <h1>3D 人物的骨头图</h1>
-  <p>做游戏的人打开「开发模式」就能看见这层骨头：头、手臂、身体、腿连在一起，骨头一摆，皮就跟着动。</p>
-  <img src="3d-character-skeleton.jpg" alt="3D人物骨骼示意图：头、手臂、身体、腿">
-  <a class="back" href="../kid.html">回今晚课</a>
+<div class="wrap">
+  <h1>拖一拖：3D 骨头人</h1>
+  <p class="tip">用鼠标或手指拖，转一转看关节怎么动</p>
+  <p class="callout">2D游戏角色＝很多张画好的图；<strong>3D＝骨头架上再套皮。</strong></p>
+
+  <div class="stage" id="stage" aria-label="可拖动的3D骨头人">
+    <span class="badge">🦴 拖我转</span>
+    <canvas id="bone"></canvas>
+  </div>
+
+  <div class="row">
+    <button type="button" class="primary" id="bendKnee">弯一下膝盖</button>
+    <button type="button" id="bendArm">抬一下手臂</button>
+    <button type="button" id="resetPose">站直</button>
+  </div>
+  <p class="hint">双指捏可以放大缩小 · 单指拖着转</p>
+
+  <div class="still">
+    <details>
+      <summary>还可看一张开发模式骨头图 ▸</summary>
+      <img src="3d-character-skeleton.jpg" alt="3D人物骨骼示意图（静态）" loading="lazy">
+    </details>
+  </div>
+
+  <a class="back" href="../kid.html?v=bone3d1">回今晚课</a>
+  <div class="row" style="margin-top:10px">
+    <a class="btn" href="frame-anim.html?v=bone3d1">回动手页 · 逐帧</a>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const canvas = document.getElementById('bone');
+const stage = document.getElementById('stage');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+camera.position.set(2.6, 1.9, 3.4);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const key = new THREE.DirectionalLight(0xfff5e0, 1.15);
+key.position.set(3.5, 6, 2.5);
+scene.add(key);
+const fill = new THREE.DirectionalLight(0xa8d8ff, 0.35);
+fill.position.set(-3, 2, -2);
+scene.add(fill);
+
+// Cartoon bone palette (ivory / warm cream — not medical)
+const BONE = new THREE.MeshStandardMaterial({
+  color: 0xf2e6c9, roughness: 0.55, metalness: 0.05,
+});
+const JOINT = new THREE.MeshStandardMaterial({
+  color: 0xffe7a0, roughness: 0.4, metalness: 0.08,
+});
+const ACCENT = new THREE.MeshStandardMaterial({
+  color: 0xe8c878, roughness: 0.45, metalness: 0.05,
+});
+
+const figure = new THREE.Group();
+scene.add(figure);
+
+/** Create a bone cylinder between two world-ish local points, parented to `parent`. */
+function addBone(parent, ax, ay, az, bx, by, bz, radius = 0.055) {
+  const a = new THREE.Vector3(ax, ay, az);
+  const b = new THREE.Vector3(bx, by, bz);
+  const mid = a.clone().add(b).multiplyScalar(0.5);
+  const dir = b.clone().sub(a);
+  const len = dir.length();
+  const geo = new THREE.CylinderGeometry(radius, radius, len, 10);
+  const mesh = new THREE.Mesh(geo, BONE);
+  mesh.position.copy(mid);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+  parent.add(mesh);
+  return mesh;
+}
+
+function addJoint(parent, x, y, z, r = 0.09) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), JOINT);
+  m.position.set(x, y, z);
+  parent.add(m);
+  return m;
+}
+
+// Hierarchy for optional bends: hip → thigh → shin, shoulder → upper → forearm
+const hips = new THREE.Group();
+hips.position.set(0, 1.05, 0);
+figure.add(hips);
+
+// Pelvis / torso / head (static relative to hips root)
+addJoint(hips, 0, 0, 0, 0.11); // pelvis center
+addBone(hips, -0.16, 0, 0, 0.16, 0, 0, 0.05);
+addJoint(hips, -0.18, 0, 0, 0.09);
+addJoint(hips, 0.18, 0, 0, 0.09);
+
+// Spine
+addBone(hips, 0, 0.05, 0, 0, 0.45, 0, 0.06);
+addJoint(hips, 0, 0.45, 0, 0.08);
+addBone(hips, 0, 0.45, 0, 0, 0.78, 0, 0.055);
+addJoint(hips, 0, 0.78, 0, 0.085); // chest / neck base
+
+// Shoulders
+addBone(hips, -0.32, 0.76, 0, 0.32, 0.76, 0, 0.045);
+addJoint(hips, -0.34, 0.76, 0, 0.095);
+addJoint(hips, 0.34, 0.76, 0, 0.095);
+
+// Neck + head (cartoon sphere head)
+addBone(hips, 0, 0.78, 0, 0, 0.98, 0, 0.04);
+addJoint(hips, 0, 1.08, 0, 0.18); // head
+// tiny "face" dots so front is clear
+const faceDot = new THREE.Mesh(
+  new THREE.SphereGeometry(0.035, 10, 8),
+  new THREE.MeshBasicMaterial({ color: 0x3a2a10 })
+);
+faceDot.position.set(-0.06, 1.1, 0.15);
+hips.add(faceDot);
+const faceDot2 = faceDot.clone();
+faceDot2.position.x = 0.06;
+hips.add(faceDot2);
+const smile = new THREE.Mesh(
+  new THREE.TorusGeometry(0.06, 0.012, 6, 12, Math.PI),
+  new THREE.MeshBasicMaterial({ color: 0x3a2a10 })
+);
+smile.position.set(0, 1.02, 0.155);
+smile.rotation.x = Math.PI;
+hips.add(smile);
+
+// Arms — left
+const shoulderL = new THREE.Group();
+shoulderL.position.set(-0.34, 0.76, 0);
+hips.add(shoulderL);
+const upperArmL = new THREE.Group();
+shoulderL.add(upperArmL);
+addBone(upperArmL, 0, 0, 0, 0, -0.38, 0, 0.048);
+addJoint(upperArmL, 0, -0.38, 0, 0.075); // elbow
+const foreArmL = new THREE.Group();
+foreArmL.position.set(0, -0.38, 0);
+upperArmL.add(foreArmL);
+addBone(foreArmL, 0, 0, 0, 0, -0.34, 0, 0.042);
+addJoint(foreArmL, 0, -0.34, 0, 0.065); // wrist/hand blob
+
+// Arms — right
+const shoulderR = new THREE.Group();
+shoulderR.position.set(0.34, 0.76, 0);
+hips.add(shoulderR);
+const upperArmR = new THREE.Group();
+shoulderR.add(upperArmR);
+addBone(upperArmR, 0, 0, 0, 0, -0.38, 0, 0.048);
+addJoint(upperArmR, 0, -0.38, 0, 0.075);
+const foreArmR = new THREE.Group();
+foreArmR.position.set(0, -0.38, 0);
+upperArmR.add(foreArmR);
+addBone(foreArmR, 0, 0, 0, 0, -0.34, 0, 0.042);
+addJoint(foreArmR, 0, -0.34, 0, 0.065);
+
+// Legs — left
+const hipL = new THREE.Group();
+hipL.position.set(-0.18, 0, 0);
+hips.add(hipL);
+const thighL = new THREE.Group();
+hipL.add(thighL);
+addBone(thighL, 0, 0, 0, 0, -0.48, 0, 0.055);
+addJoint(thighL, 0, -0.48, 0, 0.085); // knee
+const shinL = new THREE.Group();
+shinL.position.set(0, -0.48, 0);
+thighL.add(shinL);
+addBone(shinL, 0, 0, 0, 0, -0.48, 0, 0.048);
+addJoint(shinL, 0, -0.48, 0, 0.07); // ankle
+// foot
+addBone(shinL, 0, -0.48, 0, 0, -0.48, 0.16, 0.04);
+addJoint(shinL, 0, -0.48, 0.16, 0.055);
+
+// Legs — right
+const hipR = new THREE.Group();
+hipR.position.set(0.18, 0, 0);
+hips.add(hipR);
+const thighR = new THREE.Group();
+hipR.add(thighR);
+addBone(thighR, 0, 0, 0, 0, -0.48, 0, 0.055);
+addJoint(thighR, 0, -0.48, 0, 0.085);
+const shinR = new THREE.Group();
+shinR.position.set(0, -0.48, 0);
+thighR.add(shinR);
+addBone(shinR, 0, 0, 0, 0, -0.48, 0, 0.048);
+addJoint(shinR, 0, -0.48, 0, 0.07);
+addBone(shinR, 0, -0.48, 0, 0, -0.48, 0.16, 0.04);
+addJoint(shinR, 0, -0.48, 0.16, 0.055);
+
+// Soft ground ring
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(1.35, 48),
+  new THREE.MeshStandardMaterial({ color: 0x1e3a28, roughness: 1 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = 0.02;
+scene.add(ground);
+const ring = new THREE.Mesh(
+  new THREE.TorusGeometry(1.2, 0.025, 8, 48),
+  ACCENT
+);
+ring.rotation.x = Math.PI / 2;
+ring.position.y = 0.03;
+scene.add(ring);
+
+// Place figure so feet sit near ground (hips at ~1.05, shin ends ~1.05-0.96≈0.09 — close enough)
+figure.position.y = 0;
+
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 1.05, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 2.2;
+controls.maxDistance = 7;
+controls.maxPolarAngle = Math.PI * 0.92;
+controls.enablePan = false;
+controls.update();
+
+function resize() {
+  const w = stage.clientWidth || 320;
+  const h = stage.clientHeight || 340;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false);
+}
+resize();
+new ResizeObserver(resize).observe(stage);
+
+// Mild idle sway (stops briefly while posing animation runs)
+let swayOn = true;
+let poseAnim = null; // { t0, dur, apply(u) }
+
+function resetPose() {
+  poseAnim = null;
+  thighL.rotation.set(0, 0, 0);
+  shinL.rotation.set(0, 0, 0);
+  thighR.rotation.set(0, 0, 0);
+  shinR.rotation.set(0, 0, 0);
+  upperArmL.rotation.set(0, 0, 0);
+  upperArmR.rotation.set(0, 0, 0);
+  foreArmL.rotation.set(0, 0, 0);
+  foreArmR.rotation.set(0, 0, 0);
+  shoulderL.rotation.set(0, 0, 0);
+  shoulderR.rotation.set(0, 0, 0);
+  hips.rotation.set(0, 0, 0);
+  swayOn = true;
+}
+
+function runPose(dur, apply) {
+  swayOn = false;
+  thighL.rotation.set(0, 0, 0);
+  shinL.rotation.set(0, 0, 0);
+  thighR.rotation.set(0, 0, 0);
+  shinR.rotation.set(0, 0, 0);
+  upperArmL.rotation.set(0, 0, 0);
+  upperArmR.rotation.set(0, 0, 0);
+  foreArmL.rotation.set(0, 0, 0);
+  foreArmR.rotation.set(0, 0, 0);
+  shoulderL.rotation.set(0, 0, 0);
+  shoulderR.rotation.set(0, 0, 0);
+  hips.rotation.set(0, 0, 0);
+  poseAnim = { t0: performance.now(), dur, apply };
+}
+
+document.getElementById('bendKnee').addEventListener('click', () => {
+  runPose(1400, (u) => {
+    // ease in-out: bend then return
+    const wave = Math.sin(u * Math.PI);
+    thighL.rotation.x = -0.55 * wave;
+    shinL.rotation.x = 1.15 * wave;
+  });
+});
+
+document.getElementById('bendArm').addEventListener('click', () => {
+  runPose(1400, (u) => {
+    const wave = Math.sin(u * Math.PI);
+    upperArmR.rotation.x = -1.2 * wave;
+    foreArmR.rotation.x = -0.6 * wave;
+  });
+});
+
+document.getElementById('resetPose').addEventListener('click', resetPose);
+
+function frame(now) {
+  if (poseAnim) {
+    const u = Math.min(1, (now - poseAnim.t0) / poseAnim.dur);
+    poseAnim.apply(u);
+    if (u >= 1) {
+      poseAnim = null;
+      thighL.rotation.x = 0;
+      shinL.rotation.x = 0;
+      upperArmR.rotation.x = 0;
+      foreArmR.rotation.x = 0;
+      swayOn = true;
+    }
+  } else if (swayOn) {
+    const t = now / 1000;
+    hips.rotation.y = Math.sin(t * 0.7) * 0.06;
+    upperArmL.rotation.x = Math.sin(t * 1.1) * 0.08;
+    upperArmR.rotation.x = Math.sin(t * 1.1 + 0.4) * -0.08;
+    thighL.rotation.x = Math.sin(t * 0.9) * 0.04;
+    thighR.rotation.x = Math.sin(t * 0.9 + Math.PI) * 0.04;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
 </body>
 </html>
