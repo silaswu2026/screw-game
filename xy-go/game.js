@@ -849,22 +849,42 @@
     }
     return { c0, c1, r: groundRow };
   }
-  /** Spawn a small floating island with water in its middle. */
+  /** Island terrain: land rim + water in the middle (safe for ninjas, hurts monsters). */
   function spawnWaterIsland(cMid, topRow) {
-    const half = 2;
+    const half = 3; // wider island so middle water is obvious
     const c0 = Math.max(2, cMid - half);
     const c1 = Math.min(cols - 3, cMid + half);
-    const r = Math.max(5, Math.min(rows - 4, topRow));
+    const r = Math.max(5, Math.min(rows - 5, topRow));
     for (let c = c0; c <= c1; c++) {
       setSolidCell(c, r, true);
       setSolidCell(c, r + 1, true);
+      if (r + 2 < rows) setSolidCell(c, r + 2, true);
     }
-    // water in the middle tile(s)
-    const mid0 = c0 + 1;
-    const mid1 = c1 - 1;
-    for (let c = mid0; c <= mid1; c++) setWaterCell(c, r, true);
-    if (mid0 > mid1) setWaterCell(c0 + half, r, true);
+    // water only in the middle section (leave solid shores)
+    const mid0 = c0 + 2;
+    const mid1 = c1 - 2;
+    for (let c = mid0; c <= mid1; c++) {
+      setWaterCell(c, r, true);
+      if (r + 1 < rows) setSolidCell(c, r + 1, true); // pool floor
+    }
     return { c0, c1, r };
+  }
+  /** Pyramid / mountain slope (金字塔): stepped triangle you can climb. */
+  function spawnPyramid(cMid, baseRow, height) {
+    height = Math.max(3, Math.min(height || 4, 6));
+    const baseRowClamped = Math.max(height + 1, Math.min(rows - 2, baseRow || 11));
+    const baseHalf = height;
+    const c0 = Math.max(1, cMid - baseHalf);
+    const c1 = Math.min(cols - 2, cMid + baseHalf);
+    for (let h = 0; h < height; h++) {
+      const row = baseRowClamped - h;
+      if (row < 1) break;
+      const inset = h;
+      const left = c0 + inset;
+      const right = c1 - inset;
+      for (let c = left; c <= right; c++) setSolidCell(c, row, true);
+    }
+    return { c0, c1, r: baseRowClamped - height + 1, h: height };
   }
   function seedWaterPools() {
     // Initial small terrains with water in the middle on each ground island
@@ -884,8 +904,11 @@
       }
     }
     // one floating water-island early-mid level
-    const floatC = Math.min(cols - 6, Math.max(10, Math.floor(cols * 0.35)));
+    const floatC = Math.min(cols - 8, Math.max(10, Math.floor(cols * 0.32)));
     spawnWaterIsland(floatC, 8);
+    // one pyramid mountain ahead
+    const pyrC = Math.min(cols - 10, Math.max(16, Math.floor(cols * 0.55)));
+    spawnPyramid(pyrC, 11, 4);
   }
   function nearAnyNinja(cx, cy, rad) {
     const rs = rad * rad;
@@ -900,27 +923,40 @@
     if (!ev) return;
     if (ev.kind === 'pool') carveWaterPool(ev.c, ev.r | 11, ev.w || 1);
     else if (ev.kind === 'island') spawnWaterIsland(ev.c, ev.r | 8);
+    else if (ev.kind === 'pyramid') spawnPyramid(ev.c, ev.r | 11, ev.h || 4);
     else if (ev.kind === 'sink') {
-      // sink a short top stretch into water
       for (let c = ev.c0; c <= ev.c1; c++) setWaterCell(c, ev.r, true);
       if (ev.r + 1 < rows) {
         for (let c = ev.c0; c <= ev.c1; c++) setSolidCell(c, ev.r + 1, true);
       }
     }
     if (announce && terraToastCd <= 0) {
-      toast(ev.kind === 'island' ? '小地形出现·中间有水！' : '地形变了·中间出现水域！');
+      const tip = ev.kind === 'pyramid' ? '金字塔山坡出现了！'
+        : ev.kind === 'island' ? '水中岛出现·中间有水（伤怪不伤人）！'
+        : '地形变了·中间出现水域！';
+      toast(tip);
       terraToastCd = 4;
     }
   }
   function pickTerraEvent() {
     const ground = 11;
     const focusX = player && !player.down ? player.x : (cols * T * 0.4);
-    // Prefer ahead of the lead player
     const aheadC = Math.floor(focusX / T) + 8 + (terraStep % 5) * 3;
-    const kindRoll = terraStep % 3;
+    const kindRoll = terraStep % 4;
+    // 0 island (water mid), 1 pyramid, 2 pool, 3 sink
     if (kindRoll === 0) {
+      const c = Math.max(6, Math.min(cols - 7, aheadC));
+      const r = 7 + (terraStep % 3);
+      if (!nearAnyNinja((c + 0.5) * T, r * T, 110)) return { kind: 'island', c, r };
+    }
+    if (kindRoll === 1) {
+      const c = Math.max(8, Math.min(cols - 9, aheadC + 2));
+      if (!nearAnyNinja((c + 0.5) * T, ground * T, 140)) {
+        return { kind: 'pyramid', c, r: ground, h: 3 + (terraStep % 3) };
+      }
+    }
+    if (kindRoll === 2) {
       let c = Math.max(4, Math.min(cols - 5, aheadC));
-      // find solid ground nearby
       for (let k = 0; k < 12; k++) {
         const cc = Math.max(3, Math.min(cols - 4, c + ((k % 2) ? k : -k)));
         if (solid[ground * cols + cc] || water[ground * cols + cc]) {
@@ -929,14 +965,6 @@
         }
       }
     }
-    if (kindRoll === 1) {
-      const c = Math.max(5, Math.min(cols - 6, aheadC));
-      const r = 7 + (terraStep % 3);
-      if (!nearAnyNinja((c + 0.5) * T, r * T, 100)) {
-        return { kind: 'island', c, r };
-      }
-    }
-    // sink: open water on a short solid top row
     let c0 = Math.max(3, Math.min(cols - 8, aheadC));
     for (let k = 0; k < 10; k++) {
       const cc = Math.max(3, Math.min(cols - 6, c0 + k));
@@ -947,6 +975,9 @@
         return { kind: 'sink', c0: a, c1: b, r: ground };
       }
     }
+    // fallback island
+    const fc = Math.max(6, Math.min(cols - 7, aheadC));
+    if (!nearAnyNinja((fc + 0.5) * T, 8 * T, 100)) return { kind: 'island', c: fc, r: 8 };
     return null;
   }
   function tickDynamicTerrain(dt) {
@@ -971,11 +1002,33 @@
     return water[r * cols + c] === 1;
   }
   function touchWater(n) {
-    if (!n || n.down || n.invuln > 0) return;
-    // splash slow while feet in water puddle
+    // Water never harms ninjas (no HP loss) — only a soft splash feel
+    if (!n || n.down) return;
     if (inWaterAt(n.x, n.y - 4) || inWaterAt(n.x, n.y + 2)) {
-      n.vx *= 0.82;
-      if (n.grounded) n.vy = Math.min(n.vy, 40);
+      n.vx *= 0.9;
+      if (n.grounded) n.vy = Math.min(n.vy, 60);
+    }
+  }
+  /** Water harms monsters (slimes); not ninjas. */
+  function hurtMonstersInWater(dt) {
+    for (let i = 0; i < slimes.length; i++) {
+      const m = slimes[i];
+      if (m.dead) continue;
+      m.waterHurtCd = Math.max(0, (m.waterHurtCd || 0) - dt);
+      if (!(inWaterAt(m.x, m.y - 4) || inWaterAt(m.x, m.y + 2))) continue;
+      if (m.waterHurtCd > 0) continue;
+      m.waterHurtCd = 0.45;
+      m.hp = Math.max(0, (m.hp || 1) - 1);
+      puff(m.x, m.y - 10, '#7ec8ff', 5);
+      sfx.slime();
+      if (m.hp <= 0) {
+        m.dead = true;
+        gotCoins++;
+        puff(m.x, m.y - 12, '#ffe14a', 8);
+      } else {
+        m.vy = -160;
+        m.dir *= -1;
+      }
     }
   }
 
@@ -2130,6 +2183,7 @@
     touchWater(player);
     if (coop) touchWater(p2);
     if (companion) touchWater(p3);
+    hurtMonstersInWater(dt);
     updateBombs(dt);
     updateFires(dt);
     updateBolts(dt);
