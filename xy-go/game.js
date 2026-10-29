@@ -1219,7 +1219,7 @@
       }
     }
   }
-  const BURN_WINDOW = 2.6; // seconds to shake L/R before HP loss
+  const BURN_WINDOW = 5.0; // 5s window: shake L/R to extinguish early, else -1 HP
   const BURN_SHAKES_NEED = 5; // quick direction flips to extinguish
   function tickBurn(n, dt, inp) {
     if (!n || n.down) return;
@@ -1283,7 +1283,7 @@
       n.burnTick = 0;
       n.bones = Math.max(n.bones || 0, 0.35);
       n.glow = Math.max(n.glow || 0, 0.35);
-      toast((n.palette === 'green' ? '绿' : '蓝') + '忍者着火！快左右晃灭火');
+      toast((n.palette === 'green' ? '绿' : '蓝') + '忍者着火！5秒内左右快晃可灭火');
       puff(n.x, n.y - 16, '#ff8c32', 10);
       sfx.bump();
       buzz(12);
