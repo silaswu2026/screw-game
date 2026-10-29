@@ -273,8 +273,8 @@
 
   // Green sheet is authored; blue/red get a source-atop tint so they don't look green.
   const SPRITE_TINT = {
-    blue: 'rgba(35, 120, 255, 0.58)',
-    red: 'rgba(230, 45, 45, 0.55)',
+    blue: 'rgba(20, 90, 255, 0.72)',
+    red: 'rgba(230, 35, 35, 0.68)',
   };
   let _tintCanvas = null;
   function drawSpriteFrame(name, face, alpha, drawH, palette) {
@@ -978,7 +978,14 @@
     resetBoss();
     resetNinja(player, checkpoint.x, checkpoint.y, 1);
     if (coop) resetNinja(p2, checkpoint.x - 40, checkpoint.y, 1);
-    if (companion) resetNinja(p3, checkpoint.x - 72, checkpoint.y, 1);
+    if (companion) {
+      resetNinja(p3, checkpoint.x - 72, checkpoint.y, 1);
+      aiBuddy.mode = 'wander';
+      aiBuddy.modeT = 2.5 + Math.random() * 2;
+      aiBuddy.dir = Math.random() < 0.5 ? -1 : 1;
+      aiBuddy.dirT = 0.8 + Math.random();
+      aiBuddy.jumpCd = 0.4;
+    }
     mode = 'play';
     cam.snap = true;
     syncChrome();
@@ -1472,30 +1479,87 @@
     if (coop && !p2.down && (player.down || p2.x > player.x + 8)) return p2;
     return player;
   }
+  // Red AI: mostly wander/roam; only sometimes follow (not stuck to players)
+  const aiBuddy = {
+    mode: 'wander', // 'wander' | 'follow'
+    modeT: 0,
+    dir: 1,         // -1 left, 0 idle, 1 right
+    dirT: 0,
+    jumpCd: 0,
+  };
+  function aiBuddyPickMode() {
+    // ~70% wander stretches, ~30% follow; wander lasts longer
+    if (Math.random() < 0.72) {
+      aiBuddy.mode = 'wander';
+      aiBuddy.modeT = 2.8 + Math.random() * 4.2; // 2.8–7s roam
+    } else {
+      aiBuddy.mode = 'follow';
+      aiBuddy.modeT = 1.2 + Math.random() * 2.0; // 1.2–3.2s brief follow
+    }
+  }
+  function aiBuddyPickDir() {
+    const r = Math.random();
+    if (r < 0.28) aiBuddy.dir = 0;
+    else if (r < 0.64) aiBuddy.dir = -1;
+    else aiBuddy.dir = 1;
+    aiBuddy.dirT = 0.55 + Math.random() * 1.6;
+  }
   function aiCompanionInput(dt) {
-    // Dumb follow AI: walk toward lead, jump gaps / when lead jumps, rare throw
     clearInput(input3);
     if (!companion || p3.down || p3.knockPhase) return input3;
+    aiBuddy.modeT -= dt;
+    aiBuddy.dirT -= dt;
+    aiBuddy.jumpCd = Math.max(0, aiBuddy.jumpCd - dt);
+    if (aiBuddy.modeT <= 0) aiBuddyPickMode();
+    if (aiBuddy.dirT <= 0) aiBuddyPickDir();
+
     const lead = companionLead();
-    if (lead.down) return input3;
-    const dx = lead.x - 40 - p3.x;
-    if (dx > 18) input3.right = true;
-    else if (dx < -28) input3.left = true;
-    // gap ahead?
-    const ahead = p3.x + (p3.face || 1) * 28;
-    const gc = Math.floor(ahead / T);
-    const gr = Math.floor((p3.y + 2) / T);
-    const hole = p3.grounded && !solidAt(gc, gr) && !solidAt(gc, gr + 1);
-    if ((hole || (!lead.grounded && lead.vy < -80) || (lead.y < p3.y - 36)) && p3.grounded) {
-      input3.jump = true;
-      input3.jumpPressed = true;
+    // Soft leash: if way behind while wandering, briefly follow so they don't soft-lock
+    if (aiBuddy.mode === 'wander' && lead && !lead.down && (lead.x - p3.x) > 420) {
+      aiBuddy.mode = 'follow';
+      aiBuddy.modeT = 1.4 + Math.random() * 1.2;
     }
-    // weakly toss if slime nearby
+
+    if (aiBuddy.mode === 'follow' && lead && !lead.down) {
+      const dx = lead.x - 40 - p3.x;
+      if (dx > 18) input3.right = true;
+      else if (dx < -28) input3.left = true;
+      const ahead = p3.x + (p3.face || 1) * 28;
+      const gc = Math.floor(ahead / T);
+      const gr = Math.floor((p3.y + 2) / T);
+      const hole = p3.grounded && !solidAt(gc, gr) && !solidAt(gc, gr + 1);
+      if ((hole || (!lead.grounded && lead.vy < -80) || (lead.y < p3.y - 36)) && p3.grounded) {
+        input3.jump = true;
+        input3.jumpPressed = true;
+      }
+    } else {
+      // Wander: random walk / idle; jump gaps or on whim
+      if (aiBuddy.dir > 0) input3.right = true;
+      else if (aiBuddy.dir < 0) input3.left = true;
+      const ahead = p3.x + (aiBuddy.dir || p3.face || 1) * 28;
+      const gc = Math.floor(ahead / T);
+      const gr = Math.floor((p3.y + 2) / T);
+      const hole = p3.grounded && aiBuddy.dir !== 0 && !solidAt(gc, gr) && !solidAt(gc, gr + 1);
+      if (hole && p3.grounded) {
+        input3.jump = true;
+        input3.jumpPressed = true;
+      } else if (p3.grounded && aiBuddy.jumpCd <= 0 && Math.random() < dt * 0.35) {
+        input3.jump = true;
+        input3.jumpPressed = true;
+        aiBuddy.jumpCd = 0.9 + Math.random() * 1.4;
+      }
+      // turn around at walls / map edge roughly
+      if (p3.onWall && aiBuddy.dir) {
+        aiBuddy.dir = -aiBuddy.dir;
+        aiBuddy.dirT = 0.4 + Math.random() * 0.8;
+      }
+    }
+    // weakly toss if slime nearby (either mode)
     for (let i = 0; i < slimes.length; i++) {
       const m = slimes[i];
       if (m.dead) continue;
       if (Math.abs(m.x - p3.x) < 120 && Math.abs(m.y - p3.y) < 40 && (m.x - p3.x) * (p3.face || 1) > 0) {
-        if (Math.random() < dt * 0.7) { input3.throw = true; input3.throwEdge = true; }
+        if (Math.random() < dt * 0.55) { input3.throw = true; input3.throwEdge = true; }
         break;
       }
     }
@@ -3547,7 +3611,7 @@
       syncCompanionUi();
       unlock();
       start(lv | 0, true);
-      toast('同机=一屏双人+红AI：绿芃芃 · 蓝爸爸 · 红小宇跟班');
+      toast('同机=一屏双人+红AI：绿芃芃 · 蓝爸爸 · 红小宇（乱逛）');
       return;
     }
     unlock();
@@ -3617,7 +3681,7 @@
   if (netJoinCBtn) netJoinCBtn.addEventListener('click', () => {
     wantCompanion = !wantCompanion;
     syncCompanionUi();
-    toast(wantCompanion ? '小宇AI跟班：开（笨笨跟着走）' : '小宇AI跟班：关');
+    toast(wantCompanion ? '小宇AI跟班：开（乱逛，偶尔跟着）' : '小宇AI跟班：关');
   });
   const castC = document.getElementById('castC');
   if (castC) castC.addEventListener('click', (e) => {
