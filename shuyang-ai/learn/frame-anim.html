@@ -183,7 +183,7 @@ video.teach {
     <h2><span class="n">3</span> 实践 · 对照小宇游戏</h2>
     <p class="big">打开小宇，看绿忍者倒地、怪物跳、尖刺动——心里默念：<strong>这是在换第几张？</strong></p>
     <div class="row" style="margin-top:12px">
-      <a class="btn primary" href="../../xy-go/" target="_blank" rel="noopener">打开小宇闯关</a>
+      <a class="btn primary" href="../../xy-go/" id="faPlayXyGo" rel="noopener">打开小宇闯关</a>
     </div>
     <div class="row" style="margin-top:8px">
       <a class="btn" href="../../xiao-yu/" target="_blank" rel="noopener">旧版小宇</a>
@@ -532,6 +532,20 @@ if (canvas) {
   });
   ro.observe(canvas);
 }
+</script>
+
+<script>
+(function(){
+  const a = document.getElementById('faPlayXyGo');
+  if (!a) return;
+  a.addEventListener('click', (ev) => {
+    if (!window.parent || window.parent === window) return; // top-level: follow href
+    ev.preventDefault();
+    try {
+      window.parent.postMessage({ type: 'course-view-request', mode: 'play', game: 'xy-go' }, '*');
+    } catch (_) {}
+  });
+})();
 </script>
 </body>
 </html>

@@ -173,9 +173,10 @@
     </details>
   </div>
 
-  <a class="back" href="../kid.html?v=mc12">回今晚课</a>
+  <a class="back" href="../kid.html?v=mc12" id="skelBackKid">回今晚课</a>
   <div class="row" style="margin-top:10px">
-    <a class="btn" href="frame-anim.html?v=mc12">回动手页 · 逐帧</a>
+    <a class="btn" href="frame-anim.html?v=mc12" id="skelToFrame">回动手页 · 逐帧</a>
+    <a class="btn primary" href="../../xy-go/" id="skelPlayGame" style="background:linear-gradient(180deg,#78d484,#4ea85c);color:#083018;border-color:transparent">去玩小宇闯关</a>
   </div>
 </div>
 
@@ -1493,6 +1494,29 @@ function loadImage(url) {
     lessonEl.innerHTML = '④ 绿色忍者皮肤加载失败——请检查网络后刷新';
   }
 })();
+
+// Classroom embed: play / nav links stay in parent course iframe (no full-page leave)
+(function bindClassroomEmbedLinks(){
+  const inFrame = window.parent && window.parent !== window;
+  function askParentPlay(ev){
+    if (!inFrame) return; // top-level: allow normal navigation to xy-go
+    ev.preventDefault();
+    try {
+      window.parent.postMessage({ type: 'course-view-request', mode: 'play', game: 'xy-go' }, '*');
+    } catch (_) {}
+  }
+  const play = document.getElementById('skelPlayGame');
+  if (play) play.addEventListener('click', askParentPlay);
+  // When embedded in classroom, keep "回今晚课" from blowing away the room — stay on skeleton
+  if (inFrame) {
+    const back = document.getElementById('skelBackKid');
+    if (back) back.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      try { window.parent.postMessage({ type: 'course-view-request', mode: 'course' }, '*'); } catch (_) {}
+    });
+  }
+})();
+
 </script>
 </body>
 </html>

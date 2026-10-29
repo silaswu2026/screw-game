@@ -243,7 +243,7 @@
         </div>
         ${dots(3)}
         <div class="dock">
-          <a class="btn" id="goPlay" href="${esc(day.dessert.play)}" target="_blank" rel="noopener noreferrer">${esc(day.dessert.label)}</a>
+          <a class="btn" id="goPlay" href="${esc(day.dessert.play)}" rel="noopener noreferrer">${esc(day.dessert.label)}</a>
           <button type="button" class="primary" data-act="star">得星星</button>
         </div>
       </section>`;
@@ -313,6 +313,15 @@
   }
 
   function onClick(e) {
+    // Classroom embed: 「去玩小宇闯关」swaps parent course iframe (no leave / no new tab)
+    const playA = e.target.closest('#goPlay');
+    if (playA && window.parent && window.parent !== window) {
+      e.preventDefault();
+      try {
+        window.parent.postMessage({ type: 'course-view-request', mode: 'play', game: 'xy-go' }, '*');
+      } catch (_) {}
+      return;
+    }
     const el = e.target.closest('[data-act]');
     if (!el) return;
     const act = el.dataset.act;

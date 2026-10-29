@@ -447,6 +447,38 @@
   .course{position:relative}
   .course-shell{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
   .course-shell iframe{flex:1;min-height:0;width:100%;border:0;border-radius:0;background:#000}
+  .course-play-bar{
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 0;
+  }
+  .course-play-bar .play-game-btn{
+    appearance:none;border:0;border-radius:999px;cursor:pointer;
+    padding:10px 18px;min-height:44px;font-size:15px;font-weight:800;
+    background:linear-gradient(180deg,#78d484,#4ea85c);color:#083018;
+    box-shadow:0 3px 0 #2f6d3a;
+    touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  }
+  .course-play-bar .play-game-btn:active{transform:translateY(1px)}
+  .course-shell.play-mode .course-flow{display:none !important}
+  .course-back-bar{
+    position:absolute;left:0;right:0;top:0;z-index:8;
+    display:none;align-items:center;gap:10px;
+    padding:8px 10px max(8px, env(safe-area-inset-top, 0px));
+    background:linear-gradient(180deg,#0f2218f5,#0f2218cc 70%,transparent);
+    pointer-events:none;
+  }
+  .course-shell.play-mode .course-back-bar{display:flex}
+  .course-back-bar .back-course-btn{
+    pointer-events:auto;appearance:none;border:2px solid #6dcf7a;border-radius:999px;cursor:pointer;
+    padding:10px 18px;min-height:44px;min-width:7em;font-size:15px;font-weight:800;
+    background:#1e7a3aee;color:#eafff0;
+    touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+    box-shadow:0 4px 16px #000a;
+  }
+  .course-back-bar .back-course-btn:active{transform:scale(.97)}
+  .course-back-bar .back-hint{
+    pointer-events:none;font-size:12px;font-weight:700;color:#cfead6;opacity:.9;
+  }
+  .course-shell.play-mode iframe{touch-action:manipulation}
   .course-flow{
     position:absolute;inset:0;z-index:5;
     display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
@@ -803,9 +835,18 @@
       <span class="ts-theme" id="todayTheme">加载中…</span>
       <p class="ts-overview" id="todayOverview"></p>
       <ul class="ts-steps" id="todaySteps"></ul>
+      <div class="course-play-bar">
+        <button type="button" class="play-game-btn" id="playGameBtn" aria-label="去玩小宇闯关">去玩小宇闯关</button>
+      </div>
     </div>
-    <div class="course-shell">
-      <iframe id="courseFrame" title="course" src="../learn/skeleton.html?v=mc23"></iframe>
+    <div class="course-shell" id="courseShell">
+      <div class="course-back-bar" id="courseBackBar" aria-live="polite">
+        <button type="button" class="back-course-btn" id="backCourseBtn" aria-label="返回课件">← 返回课件</button>
+        <span class="back-hint">同房一起回课</span>
+      </div>
+      <iframe id="courseFrame" title="course" src="../learn/skeleton.html?v=mc23"
+        allow="fullscreen; autoplay; gamepad; accelerometer; gyroscope; clipboard-write"
+        allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
       <div class="course-flow" id="courseFlow" role="dialog" aria-labelledby="cfTheme">
         <img class="xy-hero" src="../avatars/xiaoyu.jpg" alt="小雨" width="96" height="96"/>
         <div class="cf-body">
@@ -937,8 +978,13 @@ let coursePhase = 'intro'; // intro | steps | done
 let courseStepIdx = 0;
 let courseFrameReady = false;
 let pendingSkelStep = null; // last desired skeleton.html step (1 bones, 2 blocks, 3 fine, 4 skin)
+let courseViewMode = 'course'; // course | play — iframe hosts skeleton or xy-go
+const GAME_IFRAME_URL = '../../xy-go/'; // real parkour path in repo
 const courseFrame = document.getElementById('courseFrame');
 const courseFlow = document.getElementById('courseFlow');
+const courseShell = document.getElementById('courseShell');
+const playGameBtn = document.getElementById('playGameBtn');
+const backCourseBtn = document.getElementById('backCourseBtn');
 
 const remoteAudioEls = new Set();
 const xiaoyuAudioEls = new Set();
@@ -1139,6 +1185,46 @@ function setCourseFrameSrc(url){
   courseFrameReady = false;
   courseFrame.src = url;
 }
+function bustCourseUrl(url){
+  const raw = String(url || '');
+  const base = raw.split('?')[0];
+  let q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : '';
+  q = q.replace(/(^|&)_=\d+/g, '').replace(/^&/, '').replace(/&$/, '');
+  const bust = String(Date.now());
+  return base + '?' + (q ? q + '&' : '') + '_=' + bust;
+}
+function courseIframeUrl(){
+  if (courseData && courseData.iframe) return String(courseData.iframe);
+  return '../learn/skeleton.html?v=mc23';
+}
+/** Switch course panel iframe between skeleton lesson and xy-go 闯关 (same window). */
+function applyCourseView(mode, { publish = true } = {}){
+  const next = (mode === 'play') ? 'play' : 'course';
+  courseViewMode = next;
+  if (courseShell) courseShell.classList.toggle('play-mode', next === 'play');
+  if (playGameBtn) playGameBtn.disabled = (next === 'play');
+  if (next === 'play') {
+    // Hide lesson chrome so game fills the panel; keep classroom page
+    if (courseFlow) courseFlow.hidden = true;
+    setCourseFrameSrc(bustCourseUrl(GAME_IFRAME_URL));
+    log('系统：课程窗切换到小宇闯关（同屏，未离开教室）');
+  } else {
+    setCourseFrameSrc(bustCourseUrl(courseIframeUrl()));
+    // Restore steps / intro UI if we were mid-lesson
+    if (coursePhase === 'steps') showCourseStepsUi();
+    else if (coursePhase === 'intro') {
+      if (courseFlow) {
+        courseFlow.hidden = false;
+        courseFlow.classList.remove('steps-on');
+      }
+    }
+    // phase done → leave flow hidden
+    log('系统：课程窗已返回课件');
+  }
+  if (publish) {
+    publishRoomData({ t: 'course_view', mode: next });
+  }
+}
 function applySkelFromNet(msg){
   applyingRemoteSkel = true;
   postToCourse({
@@ -1171,10 +1257,17 @@ window.addEventListener('message', (ev) => {
     if (applyingRemoteSkel) return;
     pendingSkelStep = d.n;
     publishRoomData({ t: 'skel_step', n: d.n }, { reliable: true });
+    return;
+  }
+  // Child pages (skeleton / frame-anim / kid) ask parent to swap course panel to game
+  if (d.type === 'course-view-request' && (d.mode === 'play' || d.mode === 'course')) {
+    applyCourseView(d.mode, { publish: true });
   }
 });
 if (courseFrame) {
   courseFrame.addEventListener('load', () => {
+    // Only push skel steps while showing the skeleton lesson (not xy-go)
+    if (courseViewMode !== 'course') return;
     // Scripts in skeleton.html have run by the time iframe 'load' fires
     flushSkelStepToFrame();
   });
@@ -1260,6 +1353,7 @@ function markCourseStepActive(idx){
 }
 function goCourseStep(idx, { speak = true, publish = true } = {}){
   if (!courseData || !courseData.steps || !courseData.steps.length) return;
+  if (courseViewMode === 'play') applyCourseView('course', { publish: false });
   const i = Math.max(0, Math.min(courseData.steps.length - 1, idx));
   courseStepIdx = i;
   showCourseStepsUi();
@@ -1273,6 +1367,7 @@ function goCourseStep(idx, { speak = true, publish = true } = {}){
 }
 async function startCourseFlow({ publish = true } = {}){
   if (!courseData) return;
+  if (courseViewMode === 'play') applyCourseView('course', { publish: false });
   showCourseStepsUi();
   if (publish) await publishRoomData({ t: 'course', phase: 'start' });
   // Switch iframe to step1 (骨头) immediately — do not wait for overview TTS
@@ -1301,6 +1396,9 @@ async function loadCourseToday(){
     const res = await fetch('./course-today.json?v=' + encodeURIComponent(bust), { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     courseData = await res.json();
+    courseViewMode = 'course';
+    if (courseShell) courseShell.classList.remove('play-mode');
+    if (playGameBtn) playGameBtn.disabled = false;
     if (courseData.iframe && courseFrame) {
       const raw = String(courseData.iframe);
       const base = raw.split('?')[0];
@@ -1698,6 +1796,10 @@ function handleRoomDataMessage(msg, participant){
     applyCourseFromNet(msg);
     return;
   }
+  if (msg.t === 'course_view' && (msg.mode === 'play' || msg.mode === 'course')) {
+    applyCourseView(msg.mode, { publish: false });
+    return;
+  }
   if (msg.t === 'heard' && typeof msg.text === 'string') {
     const who = msg.who || '家人';
     const wake = !!msg.wake;
@@ -2007,6 +2109,14 @@ syncFsButton();
 document.querySelectorAll('.vids .tile[id^="tile-xiaoyu"]').forEach(el => {
   if (el.id !== 'tile-xiaoyu') el.remove();
 });
+playGameBtn?.addEventListener('click', (e) => {
+  e.preventDefault();
+  applyCourseView('play', { publish: true });
+});
+backCourseBtn?.addEventListener('click', (e) => {
+  e.preventDefault();
+  applyCourseView('course', { publish: true });
+});
 document.getElementById('cfStart')?.addEventListener('click', () => {
   startCourseFlow({ publish: true }).catch(err => log('系统：开始课程失败: ' + (err.message || err)));
 });
@@ -2032,9 +2142,14 @@ async function hardRefreshPage(){
   try {
     const frame = document.getElementById('courseFrame');
     if (frame) {
-      const raw = frame.getAttribute('src') || '../learn/skeleton.html?v=mc23';
+      // Always restore lesson shell on hard refresh (leave 闯关)
+      courseViewMode = 'course';
+      if (courseShell) courseShell.classList.remove('play-mode');
+      if (playGameBtn) playGameBtn.disabled = false;
+      const raw = courseIframeUrl();
       const base = raw.split('?')[0];
-      frame.setAttribute('src', base + '?v=mc23&_=' + bust);
+      const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : 'v=mc23';
+      frame.setAttribute('src', base + '?' + q + '&_=' + bust);
     }
   } catch (_) {}
   // Clear Cache Storage
