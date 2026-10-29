@@ -596,25 +596,36 @@ function addMcBox(part, x, y, z, w, h, d) {
   return mesh;
 }
 
-// Proportions ~ Steve-style, scaled to our figure (~hips origin)
-addMcBox('head',  0,      1.12, 0, 0.40, 0.40, 0.40);
-addMcBox('torso', 0,      0.44, 0, 0.40, 0.56, 0.20);
-addMcBox('armL', -0.30,  0.44, 0, 0.16, 0.56, 0.16);
-addMcBox('armR',  0.30,  0.44, 0, 0.16, 0.56, 0.16);
-addMcBox('legL', -0.11, -0.30, 0, 0.18, 0.60, 0.18);
-addMcBox('legR',  0.11, -0.30, 0, 0.18, 0.60, 0.18);
+// Steve-style, tight joins, arms clearly outside torso
+addMcBox('head',  0,     1.00, 0, 0.50, 0.50, 0.50);
+addMcBox('torso', 0,     0.50, 0, 0.50, 0.70, 0.28);
+addMcBox('armL', -0.40,  0.50, 0, 0.24, 0.70, 0.24);
+addMcBox('armR',  0.40,  0.50, 0, 0.24, 0.70, 0.24);
+addMcBox('legL', -0.14, -0.10, 0, 0.24, 0.70, 0.24);
+addMcBox('legR',  0.14, -0.10, 0, 0.24, 0.70, 0.24);
 console.info('[skeleton] MC 6-box body', mcBoxes.length);
 
-function buildMcSkins(partsImg, stickers) {
-  const S = 512;
-  // One coherent front map per body part — never stamped onto many small bricks
+function texFromImage(img) {
+  const tex = new THREE.Texture(img);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  tex.generateMipmaps = true;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  return tex;
+}
+
+function buildMcSkins(boxImgs) {
+  // Pre-baked square faces: art centered, no tiling, fills the front once
   const fronts = {
-    head:  stickerCover(stickers.head || stickers.full, [59, 0, 612, 335], '#1a1a1a', S, S),
-    torso: stickerCover(stickers.torso || stickers.full, [4, 293, 608, 649], '#1e3d22', S, Math.round(S * 1.4)),
-    armL:  paintCover(partsImg, 233, 369, 154, 292, '#2e5c32', S, Math.round(S * 1.4)),
-    armR:  paintCover(partsImg, 977, 54, 138, 272, '#2e5c32', S, Math.round(S * 1.4)),
-    legL:  stickerCover(stickers.legs || stickers.full, [20, 575, 300, 1047], '#1a1a1a', S, Math.round(S * 1.4)),
-    legR:  stickerCover(stickers.legs || stickers.full, [300, 575, 590, 1047], '#1a1a1a', S, Math.round(S * 1.4)),
+    head:  texFromImage(boxImgs.face),
+    torso: texFromImage(boxImgs.chest),
+    armL:  texFromImage(boxImgs.armL),
+    armR:  texFromImage(boxImgs.armR),
+    legL:  texFromImage(boxImgs.legs),
+    legR:  texFromImage(boxImgs.legs),
   };
   const sideHex = {
     head: 0x2a2a2a,
@@ -629,7 +640,7 @@ function buildMcSkins(partsImg, stickers) {
     box.skinMats = makeMcBoxMats(tex, sideHex[box.part] || 0x2e5c32);
     box.mesh.material = box.skinMats;
   }
-  console.info('[skeleton] MC skins ready (1 map / box front)');
+  console.info('[skeleton] MC skins ready (box-*.png fronts)');
 }
 
 function hideMcSkin() {
@@ -977,21 +988,19 @@ function loadImage(url) {
 
 (async () => {
   try {
-    const [partsImg, headImg, torsoImg, legsImg, fullImg] = await Promise.all([
-      loadImage('../../assets/sprites/mc-ninja/parts.png'),
-      loadImage('../../assets/sprites/mc-ninja/sticker-head.png'),
-      loadImage('../../assets/sprites/mc-ninja/sticker-torso.png'),
-      loadImage('../../assets/sprites/mc-ninja/sticker-legs.png'),
-      loadImage('../../assets/sprites/mc-ninja/sticker-full.png'),
+    const [face, chest, legs, armL, armR] = await Promise.all([
+      loadImage('../../assets/sprites/mc-ninja/box-face.png'),
+      loadImage('../../assets/sprites/mc-ninja/box-chest.png'),
+      loadImage('../../assets/sprites/mc-ninja/box-legs.png'),
+      loadImage('../../assets/sprites/mc-ninja/box-armL.png'),
+      loadImage('../../assets/sprites/mc-ninja/box-armR.png'),
     ]);
-    buildMcSkins(partsImg, {
-      head: headImg, torso: torsoImg, legs: legsImg, full: fullImg,
-    });
+    buildMcSkins({ face, chest, legs, armL, armR });
     skinReady = true;
     if (step === 4) showSkinStaggered();
   } catch (err) {
     console.error(err);
-    lessonEl.innerHTML = '④ 绿色忍者贴图加载失败——请检查网络后刷新';
+    lessonEl.innerHTML = '④ 绿色忍者皮肤加载失败——请检查网络后刷新';
   }
 })();
 </script>
