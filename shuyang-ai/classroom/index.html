@@ -146,6 +146,34 @@
     flex:0 0 auto;
     scroll-snap-align:start;
   }
+  .tile.joinable{
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    transition:transform .12s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .tile.joinable:hover,
+  .tile.joinable:focus-visible{
+    transform:translateY(-2px) scale(1.02);
+    box-shadow:0 6px 18px #0007;
+    outline:none;
+  }
+  .tile.joinable:active{transform:scale(.97)}
+  .tile.joinable.me{border-color:#8af0a0;box-shadow:0 0 0 2px #8af0a088}
+  .tile.joinable .tap-hint{
+    position:absolute;left:50%;bottom:22px;z-index:3;
+    transform:translateX(-50%);
+    background:#000c;color:#e8f5ea;
+    font-size:9px;font-weight:700;letter-spacing:.02em;
+    padding:2px 7px;border-radius:999px;
+    white-space:nowrap;pointer-events:none;
+    opacity:.92;
+  }
+  .tile.joinable.live .tap-hint,
+  .tile.joinable.me .tap-hint{display:none}
+  .tile.rain.digital{
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
   .tile-inner{
     position:absolute;inset:0;
     border-radius:inherit;
@@ -175,32 +203,85 @@
   .tile.rain.online{box-shadow:0 0 0 2px #6dcf7a, 0 0 14px #6dcf7a66}
   .tile.rain.speaking .xy-bob{animation-duration:0.9s}
 
-  /* 小雨表情（轻量 CSS / 叠加） */
+  /* 小雨：可爱数字人头部 + 情绪动画 */
+  .xy-glow{
+    position:absolute;inset:-2px;z-index:1;pointer-events:none;border-radius:inherit;
+    background:radial-gradient(circle at 50% 28%, #9dffb855, transparent 55%);
+    opacity:.55;mix-blend-mode:screen;
+  }
+  .xy-sparkles{
+    position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;
+  }
+  .xy-sparkles span{
+    position:absolute;font-size:11px;line-height:1;
+    animation:xySpark 1.6s ease-in-out infinite;
+  }
+  .xy-sparkles span:nth-child(1){left:12%;top:14%;animation-delay:0s}
+  .xy-sparkles span:nth-child(2){right:10%;top:22%;animation-delay:.35s}
+  .xy-sparkles span:nth-child(3){left:18%;top:40%;animation-delay:.7s}
   .xy-face{
-    position:absolute;left:50%;top:58%;
+    position:absolute;left:50%;top:56%;
     transform:translate(-50%,-50%);
-    font-size:clamp(18px, 28%, 36px);
-    line-height:1;
-    opacity:0;
-    pointer-events:none;
-    z-index:3;
+    font-size:clamp(16px, 26%, 34px);
+    line-height:1;opacity:0;pointer-events:none;z-index:4;
     filter:drop-shadow(0 2px 4px #0008);
     transition:opacity .2s ease, transform .25s ease;
   }
-  .tile.rain.expr-smile img.avatar{filter:saturate(1.15) brightness(1.06)}
-  .tile.rain.expr-surprise img.avatar{filter:saturate(1.2) contrast(1.05) brightness(1.08)}
-  .tile.rain.expr-think img.avatar{filter:saturate(.85) brightness(.96) hue-rotate(-8deg)}
-  .tile.rain.expr-cheer img.avatar{filter:saturate(1.25) brightness(1.1)}
-  .tile.rain.expr-smile .xy-face,
-  .tile.rain.expr-surprise .xy-face,
-  .tile.rain.expr-think .xy-face,
-  .tile.rain.expr-cheer .xy-face{opacity:1}
-  .tile.rain.expr-smile .xy-face{content:""}
-  .tile.rain.expr-smile .xy-face::before{content:"😊"}
-  .tile.rain.expr-surprise .xy-face::before{content:"😮"}
-  .tile.rain.expr-think .xy-face::before{content:"🤔"}
-  .tile.rain.expr-cheer .xy-face::before{content:"🥳"}
-  .tile.rain.expr-cheer .xy-bob{animation-duration:.7s}
+  .tile.rain img.avatar{
+    transform-origin:center 30%;
+  }
+  /* 静默 idle */
+  .tile.rain.mood-idle .xy-bob{animation:xyIdle 3.2s ease-in-out infinite}
+  .tile.rain.mood-idle .xy-glow{opacity:.35}
+  .tile.rain.mood-idle .xy-sparkles{opacity:0}
+  .tile.rain.mood-idle img.avatar{filter:saturate(.95) brightness(.98)}
+  /* 开心 happy */
+  .tile.rain.mood-happy .xy-bob{animation:xyHappy 1.4s ease-in-out infinite}
+  .tile.rain.mood-happy .xy-glow{opacity:.85;background:radial-gradient(circle at 50% 28%, #ffe08a66, #9dffb844 40%, transparent 60%)}
+  .tile.rain.mood-happy .xy-sparkles{opacity:.9}
+  .tile.rain.mood-happy .xy-face{opacity:1}
+  .tile.rain.mood-happy .xy-face::before{content:"😊"}
+  .tile.rain.mood-happy img.avatar{filter:saturate(1.2) brightness(1.08)}
+  /* 明星 / 兴奋 star */
+  .tile.rain.mood-star .xy-bob{animation:xyStar 0.85s ease-in-out infinite}
+  .tile.rain.mood-star .xy-glow{
+    opacity:1;
+    background:radial-gradient(circle at 50% 22%, #fff7a8aa, #ff9de266 35%, #9dffb833 55%, transparent 70%);
+    animation:xyPulse 1.1s ease-in-out infinite;
+  }
+  .tile.rain.mood-star .xy-sparkles{opacity:1}
+  .tile.rain.mood-star .xy-sparkles span{font-size:13px}
+  .tile.rain.mood-star .xy-face{opacity:1;transform:translate(-50%,-50%) scale(1.08)}
+  .tile.rain.mood-star .xy-face::before{content:"🌟"}
+  .tile.rain.mood-star img.avatar{filter:saturate(1.35) brightness(1.12) contrast(1.05)}
+  /* legacy expr aliases map to moods via JS; keep surprise/think/cheer soft hooks */
+  .tile.rain.expr-smile{/* noop marker */}
+  @keyframes xyIdle{
+    0%,100%{transform:translateY(0) rotate(-1deg)}
+    50%{transform:translateY(-4px) rotate(1deg)}
+  }
+  @keyframes xyHappy{
+    0%,100%{transform:translateY(0) scale(1)}
+    40%{transform:translateY(-8px) scale(1.04)}
+    70%{transform:translateY(-2px) scale(1.02)}
+  }
+  @keyframes xyStar{
+    0%,100%{transform:translateY(0) scale(1) rotate(0)}
+    25%{transform:translateY(-10px) scale(1.06) rotate(-3deg)}
+    50%{transform:translateY(-2px) scale(1.03) rotate(2deg)}
+    75%{transform:translateY(-8px) scale(1.05) rotate(-2deg)}
+  }
+  @keyframes xySpark{
+    0%,100%{opacity:.25;transform:translateY(0) scale(.85)}
+    50%{opacity:1;transform:translateY(-6px) scale(1.15)}
+  }
+  @keyframes xyPulse{
+    0%,100%{opacity:.75}
+    50%{opacity:1}
+  }
+  .room-note{
+    font-size:10px;opacity:.7;padding:0 10px 4px;line-height:1.35;
+  }
 
   /* 头顶冒泡 */
   .bubble{
@@ -434,45 +515,51 @@
 <main>
   <section class="panel course">
     <h2>课程同屏</h2>
-    <iframe title="course" src="../learn/skeleton.html?v=mc16"></iframe>
+    <iframe title="course" src="../learn/skeleton.html?v=mc17"></iframe>
   </section>
 
   <section class="panel cams">
     <h2>画面</h2>
     <div class="hint">竖屏卡通；进房开摄像头后换真人。说话会在头顶冒泡。小雨有表情。</div>
+    <p class="room-note">同房共学 · 点头像进房开摄像头（爸爸/妈妈/芃芃）· 点小雨切换心情</p>
     <div class="vids" id="vids">
-      <div class="tile online" id="tile-dad" data-role="dad">
+      <div class="tile online joinable" id="tile-dad" data-role="dad" role="button" tabindex="0" aria-label="点爸爸头像进房开摄像头" title="点一下开摄像头">
         <div class="tile-inner">
           <img class="avatar" src="../avatars/dad-wuxin.jpg" alt="爸爸"/>
           <video autoplay playsinline muted hidden></video>
           <div class="badge">卡通</div>
           <div class="name">爸爸</div>
+          <div class="tap-hint">点开摄像头</div>
         </div>
         <div class="bubble" aria-hidden="true"></div>
       </div>
-      <div class="tile online" id="tile-kid" data-role="kid">
+      <div class="tile online joinable" id="tile-kid" data-role="kid" role="button" tabindex="0" aria-label="点芃芃（伍澍暘）头像进房开摄像头" title="点一下开摄像头">
         <div class="tile-inner">
-          <img class="avatar" src="../avatars/pengpeng.jpg" alt="芃芃"/>
+          <img class="avatar" src="../avatars/pengpeng.jpg" alt="伍澍暘（芃芃）"/>
           <video autoplay playsinline muted hidden></video>
           <div class="badge">卡通</div>
           <div class="name">芃芃</div>
+          <div class="tap-hint">点开摄像头</div>
         </div>
         <div class="bubble" aria-hidden="true"></div>
       </div>
-      <div class="tile online" id="tile-mom" data-role="mom">
+      <div class="tile online joinable" id="tile-mom" data-role="mom" role="button" tabindex="0" aria-label="点妈妈头像进房开摄像头" title="点一下开摄像头">
         <div class="tile-inner">
           <img class="avatar" src="../avatars/mom-chunyan.jpg" alt="妈妈"/>
           <video autoplay playsinline muted hidden></video>
           <div class="badge">卡通</div>
           <div class="name">妈妈</div>
+          <div class="tap-hint">点开摄像头</div>
         </div>
         <div class="bubble" aria-hidden="true"></div>
       </div>
-      <div class="tile rain online" id="tile-xiaoyu" data-role="xiaoyu">
+      <div class="tile rain online digital mood-idle" id="tile-xiaoyu" data-role="xiaoyu" role="button" tabindex="0" aria-label="小雨数字人，点一下切换心情" title="点小雨切换心情">
         <div class="tile-inner">
+          <div class="xy-glow" aria-hidden="true"></div>
           <img class="avatar xy-bob" src="../avatars/xiaoyu.jpg" alt="小雨"/>
+          <div class="xy-sparkles" aria-hidden="true"><span>✨</span><span>⭐</span><span>💫</span></div>
           <div class="xy-face" aria-hidden="true"></div>
-          <div class="badge" id="rainBadge">在线·待命</div>
+          <div class="badge" id="rainBadge">在线·静默</div>
           <div class="name">小雨</div>
         </div>
         <div class="bubble" aria-hidden="true"></div>
@@ -581,7 +668,7 @@ function whoToTileId(who, identity){
   }
   const w = String(who || '');
   if (/爸爸|dad/i.test(w)) return 'tile-dad';
-  if (/芃芃|澍暘|kid|lucas/i.test(w)) return 'tile-kid';
+  if (/芃芃|伍澍暘|澍暘|kid|lucas/i.test(w)) return 'tile-kid';
   if (/妈妈|mom/i.test(w)) return 'tile-mom';
   if (/小雨|xiaoyu|rain/i.test(w)) return 'tile-xiaoyu';
   if (myRole === 'dad') return 'tile-dad';
@@ -619,36 +706,82 @@ function showBubble(tileEl, text){
     bubble.classList.remove('show');
   }, hideMs));
 }
-function setXiaoyuExpr(kind){
+function setXiaoyuMood(mood){
   const el = document.getElementById('tile-xiaoyu');
   if (!el) return;
-  el.classList.remove('expr-smile','expr-surprise','expr-think','expr-cheer');
-  if (!kind) return;
-  el.classList.add('expr-' + kind);
+  const allowed = ['idle','happy','star'];
+  const m = allowed.includes(mood) ? mood : 'idle';
+  el.classList.remove('mood-idle','mood-happy','mood-star','expr-smile','expr-surprise','expr-think','expr-cheer');
+  el.classList.add('mood-' + m);
+  const badge = document.getElementById('rainBadge');
+  if (badge && !badge.textContent.startsWith('离线')) {
+    badge.textContent = m === 'happy' ? '在线·开心' : m === 'star' ? '在线·明星' : '在线·静默';
+  }
   if (xyExprTimer) clearTimeout(xyExprTimer);
-  xyExprTimer = setTimeout(() => {
-    el.classList.remove('expr-smile','expr-surprise','expr-think','expr-cheer');
-  }, 3200);
+  if (m !== 'idle') {
+    xyExprTimer = setTimeout(() => setXiaoyuMood('idle'), 4200);
+  }
+}
+function setXiaoyuExpr(kind){
+  // map legacy reaction kinds → moods
+  if (kind === 'cheer' || kind === 'surprise') setXiaoyuMood('star');
+  else if (kind === 'smile' || kind === 'think') setXiaoyuMood('happy');
+  else if (!kind) setXiaoyuMood('idle');
+  else setXiaoyuMood('happy');
+}
+function cycleXiaoyuMood(){
+  const el = document.getElementById('tile-xiaoyu');
+  const order = ['idle','happy','star'];
+  let cur = 'idle';
+  for (const m of order) if (el.classList.contains('mood-' + m)) cur = m;
+  const next = order[(order.indexOf(cur) + 1) % order.length];
+  setXiaoyuMood(next);
+  const label = next === 'happy' ? '开心～' : next === 'star' ? '明星时刻！' : '静静陪你们';
+  showBubble(el, label);
 }
 function maybeXiaoyuReact(who, text, identity){
   const tileId = whoToTileId(who, identity);
-  // If message is from/about xiaoyu or reaction maps, show face on xiaoyu when she "speaks"
   if (tileId === 'tile-xiaoyu') {
     const expr = XY_EXPR[String(text||'').trim()] || (isEmojiOnly(text) ? 'cheer' : 'smile');
     setXiaoyuExpr(expr);
     return;
   }
-  // Kid-friendly: when anyone sends surprise/cheer emoji, xiaoyu mirrors lightly
   const expr = XY_EXPR[String(text||'').trim()];
-  if (expr === 'surprise' || expr === 'cheer') {
-    setXiaoyuExpr(expr);
-  }
+  if (expr === 'surprise' || expr === 'cheer') setXiaoyuExpr(expr);
+  else if (expr === 'smile') setXiaoyuMood('happy');
 }
 function presentMessage(who, text, identity){
   appendChat(who, text);
   const tile = document.getElementById(whoToTileId(who, identity));
   showBubble(tile, text);
   maybeXiaoyuReact(who, text, identity);
+}
+
+function markMeTile(){
+  document.querySelectorAll('.tile.joinable').forEach(t => t.classList.remove('me'));
+  if (!myRole) return;
+  const id = myRole === 'dad' ? 'tile-dad' : myRole === 'mom' ? 'tile-mom' : 'tile-kid';
+  const el = document.getElementById(id);
+  if (el) el.classList.add('me');
+}
+function resetLocalCameraTile(role){
+  const map = { dad:'tile-dad', kid:'tile-kid', mom:'tile-mom' };
+  const el = document.getElementById(map[role]);
+  if (!el) return;
+  el.classList.remove('live','me');
+  const v = el.querySelector('video');
+  if (v) {
+    try { v.srcObject = null; } catch(_){}
+    v.hidden = true;
+  }
+  const img = el.querySelector('img.avatar');
+  if (img) img.style.display = '';
+  const badge = el.querySelector('.badge');
+  if (badge) badge.textContent = '卡通';
+  const nameEl = el.querySelector('.name');
+  if (nameEl) {
+    nameEl.textContent = role === 'dad' ? '爸爸' : role === 'mom' ? '妈妈' : '芃芃';
+  }
 }
 
 function ensureVideoTile(id, name){
@@ -685,21 +818,23 @@ function showLiveCamera(el, track){
 }
 function setRainOnline(on, detail){
   document.getElementById('tile-xiaoyu').classList.toggle('online', !!on);
-  document.getElementById('rainBadge').textContent = on ? (detail || '在线·听你们') : '离线';
+  const badge = document.getElementById('rainBadge');
+  if (!on) badge.textContent = '离线';
+  else if (detail) badge.textContent = detail;
+  else if (!/^在线/.test(badge.textContent)) badge.textContent = '在线·静默';
 }
 async function joinRainPresence(){
   try {
     const rainRoom = new Room();
     await rainRoom.connect(URL_WS, TOKENS.rain);
-    setRainOnline(true, '在线·听你们');
-    log('系统：小雨已进房（旁听席）');
-    // listen so 小雨 presence can show bubbles if someone publishes as xiaoyu later
+    setRainOnline(true, '在线·静默');
+    setXiaoyuMood('idle');
+    log('系统：小雨已进同房（数字人旁听）');
     rainRoom.on(RoomEvent.DataReceived, (payload, participant) => {
       try {
         const raw = new TextDecoder().decode(payload);
         const msg = JSON.parse(raw);
         if (msg && msg.t === 'chat' && typeof msg.text === 'string') {
-          // ignore duplicates if main room also receives — only handle when no main room
           if (room) return;
           const who = msg.who || (participant && (participant.name || participant.identity)) || '对方';
           const identity = msg.id || (participant && participant.identity);
@@ -730,9 +865,8 @@ async function publishChat(text){
   const t = String(text || '').trim();
   if (!t) return;
   if (!myRole) {
-    // allow local demo bubble before join — default to dad tile visually but prompt
     presentMessage(myChatName, t, null);
-    log('系统：还没进房，气泡仅本地可见。点爸爸/芃芃/妈妈进房后可同步。');
+    log('系统：还没进房，气泡仅本地可见。点头像（爸爸/妈妈/芃芃）进同房后可同步。');
     return;
   }
   const identity = myRole === 'kid' ? 'lucas' : myRole;
@@ -764,66 +898,135 @@ function bindReactButtons(root){
 bindReactButtons(document.getElementById('reactBar'));
 bindReactButtons(document.getElementById('chatReacts'));
 
-async function join(role){
-  if (room) return;
-  room = new Room({ adaptiveStream: true, dynacast: true });
-  setupChatHandlers(room);
-  room.on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
-    if (participant.identity === 'xiaoyu') return;
-    const el = ensureVideoTile(participant.identity, participant.name || participant.identity);
-    if (track.kind === Track.Kind.Video) showLiveCamera(el, track);
-    if (track.kind === Track.Kind.Audio) { const a = track.attach(); a.autoplay = true; document.body.appendChild(a); }
-  });
-  room.on(RoomEvent.ParticipantConnected, (p) => {
-    if (p.identity === 'xiaoyu') setRainOnline(true, '在线·听你们');
-    log('系统：有人进房: ' + (p.name||p.identity));
-  });
-  room.on(RoomEvent.TrackUnsubscribed, (track) => track.detach());
-  room.on(RoomEvent.Disconnected, () => {
-    log('系统：已离开');
-    room = null; myRole = null; myChatName = '我';
-    document.getElementById('leave').disabled = true;
-  });
-  log('系统：连接 LiveKit Cloud 作为 ' + role + ' …');
-  await room.connect(URL_WS, TOKENS[role]);
-  log('系统：已进房: ' + room.name + ' 身份=' + room.localParticipant.identity);
-  myRole = role;
-  const localId = role === 'dad' ? 'dad' : role === 'mom' ? 'mom' : 'lucas';
-  myChatName = role === 'dad' ? '爸爸' : role === 'mom' ? '妈妈' : '芃芃';
-  const localName = myChatName + '（我）';
-  try {
-    const tracks = await createLocalTracks({ audio: true, video: true });
-    const local = ensureVideoTile(localId, localName);
-    for (const track of tracks) {
-      if (track.kind === Track.Kind.Video) showLiveCamera(local, track);
-      await room.localParticipant.publishTrack(track);
-    }
-    log('系统：已发布本地音视频');
-  } catch (camErr) {
-    ensureVideoTile(localId, localName + '·无摄像头');
-    log('系统：摄像头不可用（进房仍成功）: ' + camErr.message);
+let joining = false;
+async function leaveRoom({ keepRain = false } = {}){
+  const prev = myRole;
+  if (room) {
+    try { await room.disconnect(); } catch(_){}
+    room = null;
   }
-  document.getElementById('leave').disabled = false;
-  if (!window.__rainRoom) await joinRainPresence();
-  // 小雨打个招呼表情
-  setXiaoyuExpr('smile');
-  showBubble(document.getElementById('tile-xiaoyu'), '你好呀～');
+  if (!keepRain && window.__rainRoom) {
+    try { await window.__rainRoom.disconnect(); } catch(_){}
+    window.__rainRoom = null;
+    setRainOnline(false);
+  }
+  if (prev) resetLocalCameraTile(prev);
+  myRole = null;
+  myChatName = '我';
+  markMeTile();
+  document.getElementById('leave').disabled = true;
 }
+async function join(role){
+  if (!TOKENS[role]) { log('系统：未知角色 ' + role); return; }
+  if (joining) return;
+  if (myRole === role && room) {
+    log('系统：你已经是' + (role==='dad'?'爸爸':role==='mom'?'妈妈':'芃芃') + '，摄像头已开');
+    return;
+  }
+  joining = true;
+  try {
+    if (room) {
+      log('系统：切换角色，先离开再以新身份进同房…');
+      await leaveRoom({ keepRain: true });
+    }
+    room = new Room({ adaptiveStream: true, dynacast: true });
+    setupChatHandlers(room);
+    room.on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
+      if (participant.identity === 'xiaoyu') return;
+      const el = ensureVideoTile(participant.identity, participant.name || participant.identity);
+      if (track.kind === Track.Kind.Video) showLiveCamera(el, track);
+      if (track.kind === Track.Kind.Audio) { const a = track.attach(); a.autoplay = true; document.body.appendChild(a); }
+    });
+    room.on(RoomEvent.ParticipantConnected, (p) => {
+      if (p.identity === 'xiaoyu') setRainOnline(true, '在线·静默');
+      log('系统：同房有人进：' + (p.name||p.identity));
+    });
+    room.on(RoomEvent.TrackUnsubscribed, (track) => track.detach());
+    room.on(RoomEvent.Disconnected, () => {
+      // ignore disconnect during intentional switch (joining may still be true)
+      if (joining) return;
+      log('系统：已离开同房');
+      if (myRole) resetLocalCameraTile(myRole);
+      room = null; myRole = null; myChatName = '我';
+      markMeTile();
+      document.getElementById('leave').disabled = true;
+    });
+    const label = role === 'dad' ? '爸爸' : role === 'mom' ? '妈妈' : '芃芃（伍澍暘）';
+    log('系统：进入同房「chengzhangwu」作为 ' + label + ' …');
+    await room.connect(URL_WS, TOKENS[role]);
+    log('系统：已进同房: ' + room.name + ' · 身份=' + room.localParticipant.identity + ' · 一家人一起上课');
+    myRole = role;
+    const localId = role === 'dad' ? 'dad' : role === 'mom' ? 'mom' : 'lucas';
+    myChatName = role === 'dad' ? '爸爸' : role === 'mom' ? '妈妈' : '芃芃';
+    const localName = myChatName + '（我）';
+    try {
+      const tracks = await createLocalTracks({ audio: true, video: true });
+      const local = ensureVideoTile(localId, localName);
+      for (const track of tracks) {
+        if (track.kind === Track.Kind.Video) showLiveCamera(local, track);
+        await room.localParticipant.publishTrack(track);
+      }
+      log('系统：已打开摄像头并发布到同房');
+    } catch (camErr) {
+      ensureVideoTile(localId, localName + '·无摄像头');
+      log('系统：摄像头不可用（已进同房）: ' + camErr.message);
+    }
+    markMeTile();
+    document.getElementById('leave').disabled = false;
+    if (!window.__rainRoom) await joinRainPresence();
+    setXiaoyuMood('happy');
+    showBubble(document.getElementById('tile-xiaoyu'), '欢迎进班～');
+  } finally {
+    joining = false;
+  }
+}
+
+function onJoinableActivate(el){
+  const role = el && el.getAttribute('data-role');
+  if (!role || role === 'xiaoyu') return;
+  join(role).catch(e => log('系统：失败: ' + (e.message||e)));
+}
+['tile-dad','tile-kid','tile-mom'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    onJoinableActivate(el);
+  });
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onJoinableActivate(el);
+    }
+  });
+});
+const xyTile = document.getElementById('tile-xiaoyu');
+xyTile.addEventListener('click', (e) => {
+  e.preventDefault();
+  cycleXiaoyuMood();
+});
+xyTile.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    cycleXiaoyuMood();
+  }
+});
+
 document.getElementById('joinDad').onclick = () => join('dad').catch(e => log('系统：失败: ' + (e.message||e)));
 document.getElementById('joinKid').onclick = () => join('kid').catch(e => log('系统：失败: ' + (e.message||e)));
 document.getElementById('joinMom').onclick = () => join('mom').catch(e => log('系统：失败: ' + (e.message||e)));
 document.getElementById('leave').onclick = async () => {
-  if (room) await room.disconnect();
-  if (window.__rainRoom) { await window.__rainRoom.disconnect(); window.__rainRoom = null; }
-  setRainOnline(false);
-  myRole = null; myChatName = '我';
+  await leaveRoom({ keepRain: false });
+  setRainOnline(true, '在线·静默');
+  setXiaoyuMood('idle');
+  log('系统：已离开同房（小雨仍在示意席）');
 };
 document.getElementById('chatSend').onclick = () => sendChat();
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
 });
-setRainOnline(true, '在线·待命');
-log('系统：已接 LiveKit Cloud。点爸爸/芃芃/妈妈进房。说话会头顶冒泡；点 ！😄👍 发表情。');
+setRainOnline(true, '在线·静默');
+setXiaoyuMood('idle');
+log('系统：同房教室 chengzhangwu — 爸爸、妈妈、伍澍暘（芃芃）、小雨一起上课。点头像开摄像头；点小雨切换心情。');
 </script>
 </body>
 </html>
