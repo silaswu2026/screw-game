@@ -8,7 +8,7 @@
   :root{
     --bg:#0b1a12;--card:#12261a;--line:#2a5a3a;--txt:#e8f5ea;--chat-bg:#0e1f14;
     --safe-b:env(safe-area-inset-bottom,0px);
-    --chip-h:88px;
+    --chip-h:64px;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -24,10 +24,10 @@
   }
 
   header{
-    padding:8px 10px;
-    padding-top:max(8px, env(safe-area-inset-top, 0px));
+    padding:4px 8px;
+    padding-top:max(4px, env(safe-area-inset-top, 0px));
     display:flex;
-    gap:6px;
+    gap:4px;
     flex-wrap:nowrap;
     align-items:center;
     border-bottom:1px solid #234;
@@ -94,7 +94,7 @@
     font-weight:700;
     opacity:.75;
     letter-spacing:.04em;
-    padding:6px 10px 0;
+    padding:2px 8px 0;
   }
   .hint,.room-note{display:none!important}
 
@@ -121,15 +121,15 @@
     background:#0f2218;
     padding-bottom:0;
   }
-  .cams h2{padding:6px 10px 4px}
+  .cams h2{padding:2px 8px 2px}
   .vids{
     display:grid;
     grid-template-columns:auto auto auto;
     grid-template-areas:
       "xy kid mom"
       "dad kid mom";
-    gap:8px;
-    padding:8px 10px 8px;
+    gap:6px;
+    padding:4px 8px 6px;
     overflow-x:auto;
     overflow-y:visible;
     -webkit-overflow-scrolling:touch;
@@ -326,17 +326,20 @@
     100%{opacity:0;transform:translate(calc(-50% + var(--dx, 0px)), -88px) scale(1.05) rotate(var(--rot, 12deg))}
   }
 
-  /* 快捷表情条：两行六列共 12 */
+  /* 快捷表情条：单行六列 */
   .react-bar{
     display:grid;
     grid-template-columns:repeat(6, minmax(0, 1fr));
     grid-template-rows:auto;
-    gap:6px;
+    gap:8px;
     padding:6px 10px max(8px, var(--safe-b));
     background:#0f2218;
     flex-shrink:0;
     overflow:visible;
     max-width:100%;
+    width:100%;
+    box-sizing:border-box;
+    align-items:stretch;
   }
   .react-bar::-webkit-scrollbar{display:none}
   .react{
@@ -346,11 +349,15 @@
     border-radius:999px;
     min-width:0;
     width:100%;
-    height:36px;
-    padding:0 4px;
-    font-size:17px;
+    height:30px;
+    padding:0 2px;
+    font-size:15px;
     cursor:pointer;
     line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
   }
   .react:active{transform:scale(.94)}
   .react.bang{font-size:15px;font-weight:900}
@@ -474,8 +481,8 @@
   }
   .chat-compose input:focus{border-color:#6dcf7a}
 
-  @media(min-width:360px) and (orientation:portrait){ :root{--chip-h:92px} }
-  @media(min-width:390px) and (orientation:portrait){ :root{--chip-h:96px} }
+  @media(min-width:360px) and (orientation:portrait){ :root{--chip-h:68px} }
+  @media(min-width:390px) and (orientation:portrait){ :root{--chip-h:72px} }
 
   @media (orientation: landscape), (min-width: 600px){
     body{overflow:hidden}
@@ -490,7 +497,7 @@
 
     main{
       display:grid;
-      grid-template-columns:minmax(52px,72px) minmax(0,1fr);
+      grid-template-columns:minmax(44px,58px) minmax(0,1fr);
       grid-template-areas:"cams course";
       gap:4px;
       padding:4px;
@@ -514,7 +521,7 @@
     .room-note{display:none}
     .vids{
       display:flex;flex-direction:column;overflow:auto;overflow-x:hidden;
-      padding:6px 2px 2px;gap:10px;flex:1;min-height:0;scroll-snap-type:none;
+      padding:4px 2px 2px;gap:6px;flex:1;min-height:0;scroll-snap-type:none;
       grid-template-areas:none;
     }
     #tile-xiaoyu,#tile-dad,#tile-kid,#tile-mom{grid-area:auto;align-self:auto}
@@ -532,8 +539,8 @@
     .tile .name{left:3px;bottom:3px;padding:1px 5px;border-radius:6px;font-size:9px}
     .tile .badge{right:3px;top:3px;padding:1px 4px;border-radius:6px;font-size:8px}
     .like-float{font-size:18px}
-    .react-bar{padding:4px 6px 6px;gap:4px;background:transparent}.react{height:30px;font-size:14px}
-    .react{min-width:32px;height:30px;font-size:15px;padding:0 6px}
+    .react-bar{padding:4px 6px 6px;gap:6px;background:transparent;grid-template-columns:repeat(6,minmax(0,1fr))}
+    .react{min-width:0;height:28px;font-size:13px;padding:0 2px}
 
     .course{
       order:unset;grid-area:course;flex:unset;min-height:0;
@@ -552,26 +559,26 @@
 
   @media(min-width:901px){
     body{overflow:auto}
-    header{padding:10px 14px;gap:8px;flex-wrap:wrap}
+    header{padding:6px 12px;gap:6px;flex-wrap:wrap}
     h1{font-size:1rem}
     .btn{padding:10px 14px;font-size:13px}
     .btn.send{padding:8px 14px;border-radius:10px;font-size:13px}
 
     main{
-      grid-template-columns:minmax(88px,110px) minmax(0,1fr);
+      grid-template-columns:minmax(72px,92px) minmax(0,1fr);
       gap:10px;padding:10px;padding-bottom:0;max-width:1400px;
     }
     .panel{border-radius:16px;padding:10px}
-    .panel h2{font-size:13px;opacity:.9;padding:0 0 8px}
+    .panel h2{font-size:13px;opacity:.9;padding:0 0 4px}
     .hint{display:block;font-size:12px;opacity:.85;line-height:1.45;margin-bottom:8px}
     .cams{padding-bottom:0}
-    .vids{gap:18px;padding-top:28px}
+    .vids{gap:12px;padding-top:12px}
     .tile{border-radius:14px}
     .tile .name{left:6px;bottom:6px;padding:2px 7px;border-radius:8px;font-size:11px}
     .tile .badge{right:6px;top:6px;padding:2px 7px;border-radius:8px;font-size:10px}
     .like-float{font-size:24px}
-    .react-bar{padding:6px 8px 8px;gap:6px}.vol-bar{padding:4px 8px 2px}
-    .react{min-width:40px;height:36px;font-size:18px}
+    .react-bar{padding:6px 8px 8px;gap:8px;grid-template-columns:repeat(6,minmax(0,1fr))}.vol-bar{padding:4px 8px 2px}
+    .react{min-width:0;height:32px;font-size:16px;padding:0 2px}
     .course{border-radius:16px}
     .course h2{padding:0 0 8px}
     .course iframe{border-radius:12px;min-height:min(72vh,640px)}
