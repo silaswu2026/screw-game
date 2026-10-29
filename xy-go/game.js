@@ -168,6 +168,7 @@
   let spikes = [];
   let bombs = [];
   let fires = [];
+  let rockets = Array.from({ length: 24 }, () => ({ on: 0, x: 0, y: 0, vx: 0, life: 0, spin: 0 }));
   let bolts = [];
   let boss = null;
   let goal = { x: 0, y: 0 };
@@ -640,7 +641,7 @@
       springs: [],
       spikes: [[10, 11]],
       bombs: [[8, 11]],
-      fires: [],
+      fires: [[24, 11]],
       bolts: [],
       boss: { c: 58, name: '史莱姆王', kind: 'slime', hp: 4 },
       coins: [[4, 9], [6, 9], [12, 9], [18, 9], [24, 9], [30, 7], [38, 9], [44, 9], [52, 9], [62, 9]],
@@ -730,7 +731,7 @@
     },
     {
       name: '火焰栈道', en: 'Flame Bridge',
-      hint: '第5关·沼泽：喷火密集；着火快左右晃',
+      hint: '第5关·沼泽：发射器火箭；衣服着火5秒内快晃灭火',
       cols: 100, rows: 14, spawn: [2, 11], goal: [96, 11],
       checks: [[26, 11], [54, 11], [78, 11]],
       slimes: [[18, 11], [38, 11], [58, 11], [82, 11]], crates: [[22, 11], [62, 11]],
@@ -1259,8 +1260,13 @@
     });
     fires = (def.fires || []).map(([c, r]) => {
       const p = feet(c, r);
-      return { x: p.x, y: p.y, phase: (c % 7) * 0.37, on: false, jet: 0 };
+      // 发射器 at front: shoots rockets; clothes burn uses same 5s shake window
+      return {
+        x: p.x, y: p.y, phase: (c % 7) * 0.37, on: false, jet: 0,
+        facing: (c % 2 === 0) ? 1 : -1, cool: 0.4 + (c % 5) * 0.15, muzzle: 0,
+      };
     });
+    for (let k = 0; k < rockets.length; k++) rockets[k].on = 0;
     bolts = (def.bolts || []).map((s) => {
       const c0 = s[0], c1 = s.length > 1 ? s[1] : s[0];
       return {
@@ -1745,25 +1751,87 @@
       puff(n.x, n.y - 18, '#ff9a40', 3);
     }
   }
+  function spawnRocket(from, dir) {
+    let s = null;
+    for (let i = 0; i < rockets.length; i++) if (!rockets[i].on) { s = rockets[i]; break; }
+    if (!s) s = rockets[0];
+    s.on = 1;
+    s.x = from.x + dir * 18;
+    s.y = from.y - 22;
+    s.vx = dir * (220 + Math.random() * 40);
+    s.life = 2.8;
+    s.spin = 0;
+  }
   function touchFires(n) {
+    // muzzle flame close-range still ignites clothes
     if (!n || n.down || !fires.length) return;
     for (let i = 0; i < fires.length; i++) {
       const f = fires[i];
-      if (!f.on) continue;
-      if (Math.abs(n.x - f.x) < 20 && n.y > f.y - 70 && n.y < f.y + 10) {
+      if ((f.muzzle || 0) <= 0 && !f.on) continue;
+      if (Math.abs(n.x - f.x) < 22 && n.y > f.y - 56 && n.y < f.y + 10) {
         hurtFire(n);
         return;
       }
     }
   }
+  function touchRockets(n) {
+    if (!n || n.down) return;
+    for (let i = 0; i < rockets.length; i++) {
+      const s = rockets[i];
+      if (!s.on) continue;
+      if (Math.abs(n.x - s.x) < 18 && Math.abs(n.y - 28 - s.y) < 28) {
+        s.on = 0;
+        puff(s.x, s.y, '#ff8c32', 10);
+        hurtFire(n); // clothes catch fire → 5s window, shake to extinguish
+        return;
+      }
+    }
+  }
   function updateFires(dt) {
+    // Launchers (发射器): aim roughly at nearest living ninja, fire rockets on a cycle
     for (let i = 0; i < fires.length; i++) {
       const f = fires[i];
       f.phase = (f.phase || 0) + dt;
-      // cycle: 1.1s off, 1.4s on
-      const cycle = f.phase % 2.5;
-      f.on = cycle > 1.1;
-      f.jet = f.on ? Math.min(1, (cycle - 1.1) / 0.2) : Math.max(0, 1 - (cycle < 0.15 ? 0 : (2.5 - cycle) / 0.2));
+      f.cool = Math.max(0, (f.cool || 0) - dt);
+      f.muzzle = Math.max(0, (f.muzzle || 0) - dt);
+      // pick facing toward nearest ninja
+      let best = null, bestD = 1e9;
+      const cands = [player, (coop ? p2 : null), (companion ? p3 : null)];
+      for (let k = 0; k < cands.length; k++) {
+        const n = cands[k];
+        if (!n || n.down) continue;
+        const d = Math.abs(n.x - f.x);
+        if (d < bestD) { bestD = d; best = n; }
+      }
+      if (best) f.facing = best.x >= f.x ? 1 : -1;
+      // fire every ~2.2s when someone is in range
+      const cycle = f.phase % 2.2;
+      f.on = cycle > 1.55 && cycle < 1.85;
+      f.jet = f.on ? 1 : Math.max(0, 1 - Math.abs(cycle - 1.7) * 4);
+      if (f.cool <= 0 && best && bestD < 420 && bestD > 30) {
+        spawnRocket(f, f.facing || 1);
+        f.cool = 2.0 + (i % 3) * 0.25;
+        f.muzzle = 0.35;
+        puff(f.x + (f.facing || 1) * 16, f.y - 22, '#ffb040', 4);
+        sfx.bump();
+      }
+    }
+  }
+  function updateRockets(dt) {
+    for (let i = 0; i < rockets.length; i++) {
+      const s = rockets[i];
+      if (!s.on) continue;
+      s.life -= dt;
+      s.x += s.vx * dt;
+      s.spin = (s.spin || 0) + dt * 14;
+      s.y += Math.sin(s.spin) * 8 * dt; // slight bob
+      if (s.life <= 0) { s.on = 0; continue; }
+      const tc = Math.floor(s.x / T);
+      const tr = Math.floor(s.y / T);
+      if (solidAt(tc, tr)) {
+        s.on = 0;
+        puff(s.x, s.y, '#ff7a20', 6);
+      }
     }
   }
   function hurtBolt(n) {
@@ -2358,12 +2426,14 @@
     touchGrasslandTraps(player);
     touchSpikes(player);
     touchFires(player);
+    touchRockets(player);
     touchBolts(player);
     if (coop) {
       touchBombs(p2);
       touchGrasslandTraps(p2);
       touchSpikes(p2);
       touchFires(p2);
+      touchRockets(p2);
       touchBolts(p2);
     }
     if (companion) {
@@ -2371,6 +2441,7 @@
       touchGrasslandTraps(p3);
       touchSpikes(p3);
       touchFires(p3);
+      touchRockets(p3);
       touchBolts(p3);
     }
 
@@ -2914,42 +2985,73 @@
     }
   }
   function drawFireJet(f) {
+    // 发射器 launcher at the front — shoots rockets
     const x = f.x, y = f.y;
-    // ground nozzle
-    ctx.fillStyle = '#4a4a4a';
-    ctx.fillRect(x - 10, y - 4, 20, 8);
-    ctx.fillStyle = '#2a2a2a';
-    ctx.fillRect(x - 6, y - 10, 12, 8);
-    ctx.fillStyle = '#888';
-    ctx.fillRect(x - 4, y - 12, 8, 3);
-    if (!f.on && (f.jet || 0) <= 0) {
-      // idle ember
-      if (Math.sin(sim * 6 + x) > 0.4) {
-        ctx.fillStyle = '#ff6a20aa';
-        ctx.beginPath();
-        ctx.arc(x, y - 14, 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      return;
-    }
-    const h = 18 + (f.jet || 1) * 52;
-    const g = ctx.createLinearGradient(x, y - 8, x, y - 8 - h);
-    g.addColorStop(0, '#ffef8a');
-    g.addColorStop(0.35, '#ff8c20');
-    g.addColorStop(1, '#ff300080');
-    ctx.fillStyle = g;
+    const face = f.facing || 1;
+    // base plate
+    ctx.fillStyle = '#3a3a42';
+    ctx.fillRect(x - 14, y - 6, 28, 10);
+    ctx.fillStyle = '#222228';
+    ctx.fillRect(x - 10, y - 18, 20, 14);
+    // turret hinge
+    ctx.fillStyle = '#6a6a74';
     ctx.beginPath();
-    ctx.moveTo(x - 8, y - 8);
-    ctx.quadraticCurveTo(x - 14 - Math.sin(sim * 18) * 3, y - 8 - h * 0.55, x - 2, y - 8 - h);
-    ctx.quadraticCurveTo(x + 10 + Math.sin(sim * 22) * 3, y - 8 - h * 0.5, x + 8, y - 8);
+    ctx.arc(x, y - 20, 7, 0, Math.PI * 2);
+    ctx.fill();
+    // barrel pointing forward
+    ctx.save();
+    ctx.translate(x, y - 20);
+    ctx.fillStyle = '#4e4e58';
+    ctx.fillRect(face > 0 ? 0 : -22, -4, 22, 8);
+    ctx.fillStyle = '#8a8a96';
+    ctx.fillRect(face > 0 ? 18 : -26, -5, 8, 10);
+    // muzzle flash when firing
+    if ((f.muzzle || 0) > 0 || f.on) {
+      ctx.fillStyle = '#ffef8acc';
+      ctx.beginPath();
+      ctx.moveTo(face * 26, 0);
+      ctx.lineTo(face * (34 + (f.jet || 1) * 10), -6);
+      ctx.lineTo(face * (34 + (f.jet || 1) * 10), 6);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+    // warning lamp
+    ctx.fillStyle = (f.cool || 0) < 0.35 ? '#ff3030' : '#ffb020';
+    ctx.beginPath();
+    ctx.arc(x, y - 32, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  function drawRocket(s) {
+    if (!s.on) return;
+    const dir = s.vx >= 0 ? 1 : -1;
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    // body
+    ctx.fillStyle = '#d8dde8';
+    ctx.fillRect(dir > 0 ? -10 : -6, -4, 16, 8);
+    ctx.fillStyle = '#c0392b';
+    ctx.beginPath();
+    if (dir > 0) {
+      ctx.moveTo(6, -4); ctx.lineTo(14, 0); ctx.lineTo(6, 4);
+    } else {
+      ctx.moveTo(-6, -4); ctx.lineTo(-14, 0); ctx.lineTo(-6, 4);
+    }
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = '#fff6a0cc';
+    // fins
+    ctx.fillStyle = '#7f8c8d';
+    ctx.fillRect(dir > 0 ? -10 : 2, -7, 5, 3);
+    ctx.fillRect(dir > 0 ? -10 : 2, 4, 5, 3);
+    // exhaust flame
+    ctx.fillStyle = '#ff8c32';
     ctx.beginPath();
-    ctx.moveTo(x - 3, y - 10);
-    ctx.lineTo(x, y - 10 - h * 0.7);
-    ctx.lineTo(x + 3, y - 10);
+    ctx.moveTo(dir > 0 ? -10 : 10, 0);
+    ctx.lineTo(dir > 0 ? -18 - Math.random() * 4 : 18 + Math.random() * 4, -3);
+    ctx.lineTo(dir > 0 ? -18 : 18, 3);
+    ctx.closePath();
     ctx.fill();
+    ctx.restore();
   }
   function drawBolt(b) {
     const mid = (b.x0 + b.x1) / 2;
@@ -3223,6 +3325,7 @@
       }
     }
     for (let i = 0; i < fires.length; i++) drawFireJet(fires[i]);
+    for (let i = 0; i < rockets.length; i++) drawRocket(rockets[i]);
     for (let i = 0; i < bolts.length; i++) drawBolt(bolts[i]);
     for (let i = 0; i < bombs.length; i++) drawBombPad(bombs[i]);
     for (let i = 0; i < crates.length; i++) {
@@ -3772,6 +3875,7 @@
     for (let i = 0; i < springs.length; i++) springs[i].squish = Math.max(0, springs[i].squish - dt);
     updateBombs(dt);
     updateFires(dt);
+    updateRockets(dt);
     updateBolts(dt);
     player.phase += dt * 8;
     p2.phase += dt * 8;
