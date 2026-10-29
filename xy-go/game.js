@@ -1704,7 +1704,7 @@
     else if (Math.abs(n.vx) > 24) n.anim = 'run';
     else n.anim = 'idle';
 
-    n.phase += Math.abs(n.vx) * dt * 0.05;
+    n.phase += Math.abs(n.vx) * dt * 0.085;
     if (n.anim === 'run') n.locoT = (n.locoT || 0) + dt;
     else if (n.anim === 'idle') n.locoT = 0;
     dropTrail(n);
@@ -2123,10 +2123,14 @@
   function poseOf(anim, phase) {
     const s = Math.sin(phase);
     if (anim === 'run') {
+      // Natural walk: opposite arm/leg swing (like a person), arms a bit smaller than legs
+      const leg = s * 1.05;
+      const arm = -s * 0.72;
       return {
-        legL: s * 0.95, legR: -s * 0.95,
-        armL: -s * 0.9, armR: s * 0.9,
-        body: 0.16, bob: Math.abs(Math.sin(phase * 2)) * 2.4,
+        legL: leg, legR: -leg,
+        armL: arm, armR: -arm,
+        body: 0.06 + Math.abs(s) * 0.05,
+        bob: Math.abs(Math.sin(phase * 2)) * 3.0,
       };
     }
     if (anim === 'idle') {
@@ -2608,13 +2612,20 @@
     }
     let alpha = blink ? 0.45 : 1;
     if (n.flash > 0 && Math.sin(sim * 55) > 0) alpha = 0.5;
-    // Prefer Cocos-style sprite frames for idle/walk/jump (same cache as knockdown)
+    // Walk/run: procedural limbs so arms swing naturally (sprite walk frames had white hands / stiff arms).
+    // Idle/jump still prefer Cocos sprite frames.
     ctx.translate(0, -bob);
-    const fname = locoFrameName(n);
-    let ok = drawSpriteFrame(fname, n.face, alpha, 82, n.palette || 'green');
-    if (!ok) {
-      ok = drawHeroSprite(n.face, alpha, n.palette || 'green', 0);
-      if (!ok) drawHero(n.phase, n.anim, n.face, alpha, n.palette, Math.abs(n.vx));
+    let ok = false;
+    if (n.anim === 'run') {
+      drawHero(n.phase, 'run', n.face, alpha, n.palette, Math.abs(n.vx));
+      ok = true;
+    } else {
+      const fname = locoFrameName(n);
+      ok = drawSpriteFrame(fname, n.face, alpha, 82, n.palette || 'green');
+      if (!ok) {
+        ok = drawHeroSprite(n.face, alpha, n.palette || 'green', 0);
+        if (!ok) drawHero(n.phase, n.anim, n.face, alpha, n.palette, Math.abs(n.vx));
+      }
     }
     if (n.bones > 0) {
       ctx.globalAlpha = Math.min(1, n.bones / 0.2);
