@@ -58,7 +58,7 @@
     display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 12px;
   }
   .steps button {
-    appearance: none; width: 100%; min-height: 52px; border: 2px solid #3f8f4a66;
+    appearance: none; width: 100%; min-height: 46px; border: 2px solid #3f8f4a66;
     border-radius: 16px; background: #1e3a2c; color: #dff5e6;
     font-size: clamp(15px, 4vw, 17px); font-weight: 800; cursor: pointer;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent;
@@ -111,7 +111,7 @@
 <body>
 <div class="wrap">
   <h1>拖一拖：3D 骨头人</h1>
-  <p class="tip">先看骨头，再盖上大块颗粒拼成的人，再一张张贴上绿色忍者（头、身、手脚）</p>
+  <p class="tip">骨头 → 大块方块人 → 更细的小颗粒 → 再贴上逼真绿忍者皮肤</p>
   <p class="callout" id="lesson">① <strong>只看骨头</strong>——里面先有一副会动的骨头架。</p>
 
   <div class="stage" id="stage" aria-label="可拖动的3D骨头人">
@@ -119,15 +119,18 @@
     <canvas id="bone"></canvas>
   </div>
 
-  <div class="steps" role="group" aria-label="三步揭示">
+  <div class="steps" role="group" aria-label="四步揭示">
     <button type="button" class="active" id="stepBones" data-step="1">
       <span class="num">①</span> 只看骨头
     </button>
-    <button type="button" id="stepParticles" data-step="2">
-      <span class="num">②</span> 盖上颗粒模型
+    <button type="button" id="stepBig" data-step="2">
+      <span class="num">②</span> 大块方块人
     </button>
-    <button type="button" id="stepSkin" data-step="3">
-      <span class="num">③</span> 贴上皮肤
+    <button type="button" id="stepFine" data-step="3">
+      <span class="num">③</span> 更细的小颗粒
+    </button>
+    <button type="button" id="stepSkin" data-step="4">
+      <span class="num">④</span> 贴上逼真皮肤
     </button>
   </div>
 
@@ -145,9 +148,9 @@
     </details>
   </div>
 
-  <a class="back" href="../kid.html?v=bone3d7">回今晚课</a>
+  <a class="back" href="../kid.html?v=bone3d8">回今晚课</a>
   <div class="row" style="margin-top:10px">
-    <a class="btn" href="frame-anim.html?v=bone3d7">回动手页 · 逐帧</a>
+    <a class="btn" href="frame-anim.html?v=bone3d8">回动手页 · 逐帧</a>
   </div>
 </div>
 
@@ -400,6 +403,106 @@ addChunk(shinR, 0, -0.48, 0.08, 0.2, 0.12, 0.26, 14, 0.66);
 
 console.info('[skeleton] LEGO chunks', particles.length);
 
+// ─── Step 3: finer denser cubes (still readable, not dust) ───
+const fineParticles = [];
+let fineReveal = null;
+const FINE_COLORS = [
+  0x66bb6a, 0x43a047, 0x2e7d32, 0x81c784, 0xa5d6a7,
+  0xffcc80, 0xffab91, 0x90caf9, 0xce93d8, 0xffe082,
+  0x78909c, 0x546e7a, 0xb0bec5, 0xff8a65, 0x4dd0e1,
+];
+const fineMats = FINE_COLORS.map((c) =>
+  new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, metalness: 0.05 })
+);
+let fineSeq = 0;
+
+const fineGeoCache = {};
+function fineGeo(s) {
+  const k = (s * 100) | 0;
+  if (!fineGeoCache[k]) fineGeoCache[k] = new THREE.BoxGeometry(s, s, s);
+  return fineGeoCache[k];
+}
+function addFine(parent, x, y, z, size, colorIdx, delay) {
+  const s = size * (0.85 + (fineSeq % 5) * 0.04);
+  const mesh = new THREE.Mesh(
+    fineGeo(s),
+    fineMats[colorIdx % fineMats.length]
+  );
+  mesh.position.set(x, y, z);
+  mesh.rotation.y = ((colorIdx * 13) % 9) * 0.02;
+  mesh.visible = false;
+  mesh.scale.setScalar(0.01);
+  parent.add(mesh);
+  fineParticles.push({
+    mesh,
+    delay: delay ?? (fineSeq * 0.012) % 0.7,
+    colorMat: mesh.material,
+  });
+  fineSeq++;
+}
+
+function fillFineBox(parent, x0, y0, z0, x1, y1, z1, spacing, seed0) {
+  const nx = Math.max(2, Math.round(Math.abs(x1 - x0) / spacing));
+  const ny = Math.max(2, Math.round(Math.abs(y1 - y0) / spacing));
+  const nz = Math.max(2, Math.round(Math.abs(z1 - z0) / spacing));
+  let i = seed0;
+  for (let ix = 0; ix <= nx; ix++) {
+    for (let iy = 0; iy <= ny; iy++) {
+      for (let iz = 0; iz <= nz; iz++) {
+        const u = ix / nx, v = iy / ny, w = iz / nz;
+        const j = spacing * 0.15;
+        const jx = ((i * 17) % 10) / 10 * j - j / 2;
+        const jy = ((i * 29) % 10) / 10 * j - j / 2;
+        const jz = ((i * 43) % 10) / 10 * j - j / 2;
+        addFine(
+          parent,
+          x0 + (x1 - x0) * u + jx,
+          y0 + (y1 - y0) * v + jy,
+          z0 + (z1 - z0) * w + jz,
+          spacing * 0.85,
+          i,
+          (i * 0.012) % 0.7
+        );
+        i++;
+      }
+    }
+  }
+}
+
+function fillFineLimb(parent, y0, y1, radius, spacing, seed0) {
+  const len = Math.abs(y1 - y0);
+  const nAlong = Math.max(3, Math.round(len / spacing));
+  const nRad = Math.max(2, Math.round((radius * 2) / spacing));
+  let i = seed0;
+  for (let a = 0; a <= nAlong; a++) {
+    const y = y0 + (y1 - y0) * (a / nAlong);
+    for (let ix = -nRad; ix <= nRad; ix++) {
+      for (let iz = -nRad; iz <= nRad; iz++) {
+        const x = (ix / nRad) * radius;
+        const z = (iz / nRad) * radius;
+        if (x * x + z * z > radius * radius * 1.08) continue;
+        addFine(parent, x, y, z, spacing * 0.85, i, (i * 0.012) % 0.7);
+        i++;
+      }
+    }
+  }
+}
+
+// Denser than big bricks, still chunky cubes (~200–350)
+fillFineBox(hips, -0.2, 0.95, -0.18, 0.2, 1.22, 0.18, 0.125, 10); // head
+fillFineBox(hips, -0.22, 0.1, -0.14, 0.22, 0.78, 0.14, 0.125, 50); // torso
+fillFineBox(hips, -0.2, -0.05, -0.12, 0.2, 0.12, 0.12, 0.125, 90); // pelvis
+fillFineLimb(upperArmL, 0, -0.38, 0.1, 0.12, 120);
+fillFineLimb(foreArmL, 0, -0.34, 0.09, 0.12, 160);
+fillFineLimb(upperArmR, 0, -0.38, 0.1, 0.12, 200);
+fillFineLimb(foreArmR, 0, -0.34, 0.09, 0.12, 240);
+fillFineLimb(thighL, 0, -0.48, 0.11, 0.12, 280);
+fillFineLimb(shinL, 0, -0.48, 0.1, 0.12, 320);
+fillFineLimb(thighR, 0, -0.48, 0.11, 0.12, 360);
+fillFineLimb(shinR, 0, -0.48, 0.1, 0.12, 400);
+console.info('[skeleton] fine particles', fineParticles.length);
+
+
 // ─── Step 3: mc-ninja parts.png / full.png stickers (Sprites, real alpha) ───
 const skinPatches = [];
 let skinReveal = null;
@@ -525,18 +628,30 @@ const LESSONS = {
     badge: '🦴 只看骨头',
   },
   2: {
-    html: '② <strong>模型＝很多不同的大颗粒 / 方块拼起来的</strong>——一块一块拼成完整的人！',
-    badge: '🧱 颗粒模型',
+    html: '② <strong>大块方块人</strong>——模型＝很多不同的<strong>大颗粒 / 方块</strong>拼起来的（像积木）！',
+    badge: '🧱 大块方块',
   },
   3: {
-    html: '③ <strong>皮肤＝把绿色忍者一张张 / 一块块贴上去的</strong>——不是一下子画上去的！',
-    badge: '🥷 贴绿忍者',
+    html: '③ <strong>更细的小颗粒</strong>——同样是拼出来的，只是颗粒更小、更密，看起来更细腻。',
+    badge: '🟨 细颗粒',
+  },
+  4: {
+    html: '④ <strong>逼真皮肤</strong>——把绿色忍者<strong>一张张 / 一块块贴上去</strong>，就更像真人啦！',
+    badge: '🥷 逼真皮肤',
   },
 };
 
-function hideAllParticles() {
+function hideBigChunks() {
   particleReveal = null;
   for (const p of particles) {
+    p.mesh.visible = false;
+    p.mesh.scale.setScalar(0.01);
+  }
+}
+
+function hideFineParticles() {
+  fineReveal = null;
+  for (const p of fineParticles) {
     p.mesh.visible = false;
     p.mesh.scale.setScalar(0.01);
   }
@@ -550,8 +665,10 @@ function hideAllSkin() {
   }
 }
 
-function showParticlesAssembling() {
+/** Step ② big Minecraft / LEGO chunks */
+function showBigChunks() {
   hideAllSkin();
+  hideFineParticles();
   for (const p of particles) {
     p.mesh.visible = true;
     p.mesh.scale.setScalar(0.01);
@@ -560,47 +677,68 @@ function showParticlesAssembling() {
   particleReveal = { t0: performance.now(), dur: 1400 };
 }
 
+/** Step ③ finer denser cubes */
+function showFineAssembling() {
+  hideAllSkin();
+  // tuck big bricks away so fine layer reads clearly
+  hideBigChunks();
+  for (const p of fineParticles) {
+    p.mesh.visible = true;
+    p.mesh.scale.setScalar(0.01);
+    if (p.colorMat) p.mesh.material = p.colorMat;
+  }
+  fineReveal = { t0: performance.now(), dur: 1500 };
+}
+
+/** Step ④ realistic AI ninja stickers */
 function showSkinStaggered() {
   particleReveal = null;
-  // Keep chunky silhouette under skin, but mute rainbow voxels to calm green-grey
-  for (const p of particles) {
+  fineReveal = null;
+  // Soft fine under-structure; hide big bricks
+  hideBigChunks();
+  for (const p of fineParticles) {
     p.mesh.visible = true;
     p.mesh.scale.setScalar(1);
     p.mesh.material = CALM_CHUNK;
   }
   if (!skinReady) {
-    lessonEl.innerHTML = '③ 绿色忍者皮肤加载中…稍等一下';
+    lessonEl.innerHTML = '④ 绿色忍者皮肤加载中…稍等一下';
     return;
   }
   for (const s of skinPatches) {
     s.mesh.visible = true;
     s.mat.opacity = 0;
   }
-  skinReveal = { t0: performance.now(), dur: 2000 };
+  skinReveal = { t0: performance.now(), dur: 2200 };
 }
 
 function setStep(n) {
   step = n;
   document.getElementById('stepBones').classList.toggle('active', n === 1);
-  document.getElementById('stepParticles').classList.toggle('active', n === 2);
-  document.getElementById('stepSkin').classList.toggle('active', n === 3);
+  document.getElementById('stepBig').classList.toggle('active', n === 2);
+  document.getElementById('stepFine').classList.toggle('active', n === 3);
+  document.getElementById('stepSkin').classList.toggle('active', n === 4);
   const L = LESSONS[n];
   lessonEl.innerHTML = L.html;
   badgeEl.textContent = L.badge;
 
   if (n === 1) {
-    hideAllParticles();
+    hideBigChunks();
+    hideFineParticles();
     hideAllSkin();
   } else if (n === 2) {
-    showParticlesAssembling();
+    showBigChunks();
+  } else if (n === 3) {
+    showFineAssembling();
   } else {
     showSkinStaggered();
   }
 }
 
 document.getElementById('stepBones').addEventListener('click', () => setStep(1));
-document.getElementById('stepParticles').addEventListener('click', () => setStep(2));
-document.getElementById('stepSkin').addEventListener('click', () => setStep(3));
+document.getElementById('stepBig').addEventListener('click', () => setStep(2));
+document.getElementById('stepFine').addEventListener('click', () => setStep(3));
+document.getElementById('stepSkin').addEventListener('click', () => setStep(4));
 
 function resetPose() {
   poseAnim = null;
@@ -695,6 +833,24 @@ function frame(now) {
       }
     }
     if (u >= 1.35 && allDone) particleReveal = null;
+  }
+
+  if (fineReveal) {
+    const u = (now - fineReveal.t0) / fineReveal.dur;
+    let allDone = true;
+    for (const p of fineParticles) {
+      const local = (u - p.delay) / 0.28;
+      if (local < 0) {
+        p.mesh.scale.setScalar(0.01);
+        allDone = false;
+      } else if (local < 1) {
+        p.mesh.scale.setScalar(Math.max(0.01, easeOutBack(local)));
+        allDone = false;
+      } else {
+        p.mesh.scale.setScalar(1);
+      }
+    }
+    if (u >= 1.35 && allDone) fineReveal = null;
   }
 
   if (skinReveal) {
