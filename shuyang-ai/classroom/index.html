@@ -23,7 +23,7 @@
     overflow:hidden;
   }
 
-  /* ===== MOBILE-FIRST (WeChat ~390px) ===== */
+  /* ===== MOBILE-FIRST portrait: course + cams only ===== */
   header{
     padding:8px 10px;
     padding-top:max(8px, env(safe-area-inset-top, 0px));
@@ -60,6 +60,13 @@
   .btn.ghost{background:#1c3324;color:var(--txt);border:1px solid var(--line)}
   .btn:disabled{opacity:.5}
   .btn.send{padding:10px 14px;border-radius:12px;font-size:14px}
+  .btn.chat-toggle{position:relative}
+  .btn.chat-toggle.has-new::after{
+    content:"";
+    position:absolute;top:2px;right:2px;
+    width:8px;height:8px;border-radius:50%;
+    background:#ff5a5a;box-shadow:0 0 0 2px #0d1f14;
+  }
 
   main{
     flex:1;
@@ -92,10 +99,9 @@
   }
   .hint{display:none}
 
-  /* Course: largest on phone — almost full width, top */
   .course{
     order:1;
-    flex:1.35 1 0;
+    flex:1 1 0;
     min-height:0;
     border-bottom:1px solid var(--line);
   }
@@ -109,12 +115,12 @@
     background:#000;
   }
 
-  /* Cams: horizontal portrait chips under course */
   .cams{
     order:2;
     flex:0 0 auto;
-    border-bottom:1px solid var(--line);
+    border-bottom:0;
     background:#0f2218;
+    padding-bottom:max(6px, var(--safe-b));
   }
   .cams h2{padding:6px 10px 4px}
   .vids{
@@ -164,33 +170,79 @@
   .tile.rain.online{box-shadow:0 0 0 2px #6dcf7a, 0 0 14px #6dcf7a66}
   .tile.rain.speaking .xy-bob{animation-duration:0.9s}
 
-  /* Chat: bottom sheet — thumb reach */
-  .chat{
-    order:3;
-    flex:0 0 auto;
-    max-height:38dvh;
-    min-height:148px;
-    background:#0c1c13;
-    border-top:1px solid var(--line);
-    border-radius:16px 16px 0 0;
-    box-shadow:0 -8px 28px #0006;
-    padding-bottom:max(8px, var(--safe-b));
-    z-index:15;
+  /* ===== Chat modal (hidden by default) ===== */
+  .chat-backdrop{
+    position:fixed;
+    inset:0;
+    background:#000a;
+    z-index:40;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    padding:0;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .18s ease;
   }
-  .chat h2{padding:8px 12px 4px}
+  .chat-backdrop.open{
+    opacity:1;
+    pointer-events:auto;
+  }
+  .chat-modal{
+    width:100%;
+    max-width:480px;
+    max-height:min(72dvh, 520px);
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px 16px 0 0;
+    box-shadow:0 -12px 40px #0008;
+    display:flex;
+    flex-direction:column;
+    padding:10px 12px max(12px, var(--safe-b));
+    transform:translateY(12px);
+    transition:transform .18s ease;
+    min-height:0;
+  }
+  .chat-backdrop.open .chat-modal{transform:translateY(0)}
+  .chat-modal-head{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-shrink:0;
+    margin-bottom:8px;
+  }
+  .chat-modal-head h2{
+    margin:0;
+    flex:1;
+    font-size:14px;
+    font-weight:800;
+    opacity:.95;
+    padding:0;
+  }
+  .chat-close{
+    border:0;
+    background:#1c3324;
+    color:var(--txt);
+    border:1px solid var(--line);
+    width:36px;height:36px;
+    border-radius:10px;
+    font-size:18px;
+    line-height:1;
+    cursor:pointer;
+    flex-shrink:0;
+  }
   #log{
     flex:1;
-    font-size:12px;
+    font-size:13px;
     opacity:.92;
     white-space:pre-wrap;
     overflow:auto;
     background:var(--chat-bg);
     border:1px solid var(--line);
-    border-radius:10px;
-    padding:8px 10px;
-    margin:0 10px 8px;
-    min-height:64px;
-    max-height:22dvh;
+    border-radius:12px;
+    padding:10px 12px;
+    margin:0 0 10px;
+    min-height:120px;
     line-height:1.45;
     -webkit-overflow-scrolling:touch;
   }
@@ -198,7 +250,6 @@
     display:flex;
     gap:8px;
     flex-shrink:0;
-    padding:0 10px 4px;
   }
   .chat-compose input{
     flex:1;
@@ -207,12 +258,11 @@
     background:#0a1810;
     color:var(--txt);
     padding:11px 12px;
-    font-size:16px; /* avoid iOS zoom */
+    font-size:16px;
     outline:none;
   }
   .chat-compose input:focus{border-color:#6dcf7a}
 
-  /* Slightly larger chips on tall portrait phones */
   @media(min-width:360px) and (orientation:portrait){
     :root{--chip-h:92px}
   }
@@ -220,9 +270,7 @@
     :root{--chip-h:96px}
   }
 
-  /* ===== LANDSCAPE / WIDE: cams | chat | course (横版) =====
-     Phone held sideways, or any viewport ≥600px — horizontal 3-zone
-     before waiting for the 901px desktop polish. */
+  /* ===== LANDSCAPE / WIDE: cams | course (no chat column) ===== */
   @media (orientation: landscape), (min-width: 600px){
     body{overflow:hidden}
     header{
@@ -237,8 +285,8 @@
 
     main{
       display:grid;
-      grid-template-columns:minmax(72px,110px) minmax(140px,1fr) minmax(0,2.4fr);
-      grid-template-areas:"cams chat course";
+      grid-template-columns:minmax(72px,120px) minmax(0,1fr);
+      grid-template-areas:"cams course";
       gap:6px;
       padding:6px;
       padding-bottom:max(6px, env(safe-area-inset-bottom, 0px));
@@ -268,6 +316,7 @@
       min-height:0;
       border:1px solid var(--line);
       background:var(--card);
+      padding-bottom:6px;
     }
     .vids{
       flex-direction:column;
@@ -291,36 +340,6 @@
     .tile .name{left:3px;bottom:3px;padding:1px 5px;border-radius:6px;font-size:9px}
     .tile .badge{right:3px;top:3px;padding:1px 4px;border-radius:6px;font-size:8px}
 
-    .chat{
-      order:unset;
-      grid-area:chat;
-      flex:unset;
-      max-height:none;
-      min-height:0;
-      border-radius:12px;
-      border:1px solid var(--line);
-      box-shadow:none;
-      background:var(--card);
-      padding-bottom:6px;
-    }
-    .chat h2{padding:0 0 4px}
-    #log{
-      margin:0 0 6px;
-      min-height:0;
-      max-height:none;
-      flex:1;
-      padding:6px 8px;
-      font-size:11px;
-      line-height:1.4;
-      border-radius:8px;
-    }
-    .chat-compose{padding:0;gap:6px}
-    .chat-compose input{
-      font-size:14px;
-      padding:8px 10px;
-      border-radius:10px;
-    }
-
     .course{
       order:unset;
       grid-area:course;
@@ -336,6 +355,14 @@
       min-height:0;
       height:auto;
     }
+
+    .chat-backdrop{align-items:center;padding:16px}
+    .chat-modal{
+      border-radius:16px;
+      max-height:min(80dvh, 560px);
+      width:min(92vw, 420px);
+      box-shadow:0 16px 48px #000a;
+    }
   }
 
   /* ===== DESKTOP polish (≥901px) ===== */
@@ -347,7 +374,7 @@
     .btn.send{padding:8px 14px;border-radius:10px;font-size:13px}
 
     main{
-      grid-template-columns:minmax(120px,150px) minmax(200px,1fr) minmax(0,2.6fr);
+      grid-template-columns:minmax(120px,150px) minmax(0,1fr);
       gap:10px;
       padding:10px;
       max-width:1400px;
@@ -359,30 +386,11 @@
     .panel h2{font-size:13px;opacity:.9;padding:0 0 8px}
     .hint{display:block;font-size:12px;opacity:.85;line-height:1.45;margin-bottom:8px}
 
-    .cams{background:var(--card)}
+    .cams{background:var(--card);padding-bottom:10px}
     .vids{gap:8px}
-    .tile{
-      border-radius:14px;
-    }
+    .tile{border-radius:14px}
     .tile .name{left:6px;bottom:6px;padding:2px 7px;border-radius:8px;font-size:11px}
     .tile .badge{right:6px;top:6px;padding:2px 7px;border-radius:8px;font-size:10px}
-
-    .chat{
-      min-height:280px;
-      border-radius:16px;
-      padding-bottom:10px;
-    }
-    .chat h2{padding:0 0 8px}
-    #log{
-      margin:0 0 8px;
-      min-height:160px;
-      padding:10px;
-      font-size:12px;
-      line-height:1.5;
-      border-radius:10px;
-    }
-    .chat-compose{gap:8px}
-    .chat-compose input{font-size:13px;padding:8px 10px;border-radius:10px}
 
     .course{border-radius:16px}
     .course h2{padding:0 0 8px}
@@ -390,12 +398,21 @@
       border-radius:12px;
       min-height:min(72vh,640px);
     }
+
+    .chat-modal{
+      width:min(92vw, 460px);
+      max-height:min(78vh, 600px);
+      padding:14px;
+    }
+    #log{font-size:13px;padding:12px;min-height:180px}
+    .chat-compose input{font-size:14px;padding:10px 12px}
   }
 </style>
 </head>
 <body>
 <header>
   <h1>成长屋共学教室</h1>
+  <button class="btn ghost chat-toggle" id="openChat" type="button" aria-haspopup="dialog" aria-controls="chatBackdrop">聊天</button>
   <button class="btn" id="joinDad">爸爸进房</button>
   <button class="btn" id="joinKid">芃芃进房</button>
   <button class="btn ghost" id="leave" disabled>离开</button>
@@ -403,7 +420,7 @@
 <main>
   <section class="panel course">
     <h2>课程同屏</h2>
-    <iframe title="course" src="../learn/skeleton.html?v=mc14"></iframe>
+    <iframe title="course" src="../learn/skeleton.html?v=mc15"></iframe>
   </section>
 
   <section class="panel cams">
@@ -435,16 +452,22 @@
       </div>
     </div>
   </section>
+</main>
 
-  <section class="panel chat">
-    <h2>聊天</h2>
+<div class="chat-backdrop" id="chatBackdrop" role="dialog" aria-modal="true" aria-labelledby="chatTitle" hidden>
+  <div class="chat-modal" id="chatModal">
+    <div class="chat-modal-head">
+      <h2 id="chatTitle">聊天</h2>
+      <button type="button" class="chat-close" id="closeChat" aria-label="关闭">×</button>
+    </div>
     <pre id="log"></pre>
     <div class="chat-compose">
       <input type="text" id="chatInput" placeholder="说点什么…" maxlength="500" autocomplete="off"/>
       <button class="btn send" id="chatSend" type="button">发送</button>
     </div>
-  </section>
-</main>
+  </div>
+</div>
+
 <script type="module">
 import { Room, RoomEvent, createLocalTracks, Track } from 'https://cdn.jsdelivr.net/npm/livekit-client@2.9.9/+esm';
 const URL_WS = "wss://lucas-jqrm4vbp.livekit.cloud";
@@ -452,7 +475,40 @@ const TOKENS = {"dad": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi54i454i4IiwidmlkZW8iOns
 const logEl = document.getElementById('log');
 const vids = document.getElementById('vids');
 const chatInput = document.getElementById('chatInput');
-function log(m){ logEl.textContent += m + '\n'; logEl.scrollTop = logEl.scrollHeight; console.log(m); }
+const chatBackdrop = document.getElementById('chatBackdrop');
+const openChatBtn = document.getElementById('openChat');
+const closeChatBtn = document.getElementById('closeChat');
+let chatOpen = false;
+
+function openChat(){
+  chatOpen = true;
+  chatBackdrop.hidden = false;
+  requestAnimationFrame(() => chatBackdrop.classList.add('open'));
+  openChatBtn.classList.remove('has-new');
+  openChatBtn.setAttribute('aria-expanded', 'true');
+  setTimeout(() => chatInput.focus(), 200);
+}
+function closeChat(){
+  chatOpen = false;
+  chatBackdrop.classList.remove('open');
+  openChatBtn.setAttribute('aria-expanded', 'false');
+  setTimeout(() => { if (!chatOpen) chatBackdrop.hidden = true; }, 200);
+}
+openChatBtn.addEventListener('click', () => chatOpen ? closeChat() : openChat());
+closeChatBtn.addEventListener('click', closeChat);
+chatBackdrop.addEventListener('click', (e) => { if (e.target === chatBackdrop) closeChat(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && chatOpen) { e.preventDefault(); closeChat(); }
+});
+
+function log(m){
+  logEl.textContent += m + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+  console.log(m);
+  if (!chatOpen && !String(m).startsWith('系统：已接')) {
+    openChatBtn.classList.add('has-new');
+  }
+}
 function appendChat(who, text){
   const line = who ? `[${who}] ${text}` : text;
   log(line);
@@ -580,7 +636,7 @@ chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
 });
 setRainOnline(true, '在线·待命');
-log('系统：已接 LiveKit Cloud。点爸爸/芃芃进房。横屏：画面|聊天|课程；竖屏：课程上·头像横滑·聊天下。');
+log('系统：已接 LiveKit Cloud。点爸爸/芃芃进房。点「聊天」打开弹窗。');
 </script>
 </body>
 </html>
