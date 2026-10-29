@@ -34,7 +34,7 @@ button{font:inherit;font-weight:900;border:0;cursor:pointer}
 #mode2.on{background:linear-gradient(#9be7ff,#3db7e8);color:#083044;box-shadow:0 4px 0 #1d7eab}
 #play{background:linear-gradient(#ffe14a,#ffb703);color:#6a3b00;border-radius:999px;padding:14px 28px;font-size:22px;box-shadow:0 6px 0 #e09a00;min-width:180px}
 #play:active{transform:translateY(4px);box-shadow:0 2px 0 #e09a00}
-.picks{display:flex;gap:8px;margin-top:10px}
+.picks{flex-wrap:wrap;display:flex;gap:8px;margin-top:10px}
 .picks button{background:#fff;color:#1d3557;border-radius:16px;padding:10px 12px;min-width:76px;box-shadow:0 4px 0 #c9e6ff;font-size:15px}
 .picks button:active{transform:translateY(3px)}
 .keys{margin-top:8px;color:#fff;font-weight:800;font-size:13px;text-shadow:0 2px 0 #1d355788}
@@ -112,3 +112,11 @@ button{font:inherit;font-weight:900;border:0;cursor:pointer}
 #netJoinC.netCastBtn{background:linear-gradient(#ffb4b4,#e53935);color:#4a0000;box-shadow:0 5px 0 #c62828}
 .netCastBtn small{font-size:11px;font-weight:800;opacity:.9}
 .cast img{object-position:center top}
+
+/* two-player mode: hide C */
+.picks button{min-width:64px}
+.netHint{max-width:92vw;line-height:1.35}
+
+#bar3.hidden{display:none!important}
+#netJoinC.on{outline:3px solid #fff;filter:brightness(1.05)}
+#castC.on{border-color:#ff5a5a;box-shadow:0 4px 0 #c62828}

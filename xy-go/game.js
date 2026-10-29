@@ -1,5 +1,6 @@
-// Forest parkour. Knockdown uses Cocos-style sprite frames (sprites/green sheet).
-// Portraits for run/idle; plain metal headband plate. Blue afterimages stay blue.
+// 闯关平台 (8 levels, two-player A/B). Controlled move/jump — no auto-run.
+// Knockdown uses Cocos-style sprite frames (sprites/green sheet).
+// Traps: spike / bomb / fire jet / lightning with color immunities.
 (function () {
   const T = 40;
   const GRAV = 1650;
@@ -54,10 +55,10 @@
   let netPickLv = 0;
   let netGuestPrev = { left: false, right: false, jump: false, throw: false };
   let netOutAcc = 0;
-  const NET_PREFIX = 'xygo';
-  const NET_SLOTS = 8;
-  const NET_PROBE_MS = 1500;
-  const NET_FIND_MS = 75000;
+  const NET_PREFIX = 'xygo2';
+  const NET_SLOTS = 12;
+  const NET_PROBE_MS = 900;
+  const NET_FIND_MS = 90000;
   const NET_PEER_OPTS = {
     debug: 0,
     config: {
@@ -97,6 +98,8 @@
   let springs = [];
   let spikes = [];
   let bombs = [];
+  let fires = [];
+  let bolts = [];
   let boss = null;
   let goal = { x: 0, y: 0 };
   let spawn = { x: 80, y: 200 };
@@ -127,11 +130,16 @@
       anim: 'idle', phase: 0, palette: palette,
       hp: MAX_HP, down: false, downT: 0, springCd: 0, springLock: 0,
       shake: 0, flash: 0, glow: 0, bones: 0, spikeMsgCd: 0,
+      burnT: 0, burnTick: 0, boltCd: 0,
       knockT: 0, knockPhase: null, knockAnimT: 0,
     };
   }
   const player = makeNinja('green');
   const p2 = makeNinja('blue');
+  const p3 = makeNinja('red'); // optional C companion (dumb local AI)
+  let companion = false; // C on/off
+  let wantCompanion = false;
+  const input3 = blankInput();
 
   const PALETTE = {
     green: { scarf: '#1fa85a', sash: '#2fbe62', band: '#178a45', eye: '#7dff6a', plate: '#e6ebf0' },
@@ -140,19 +148,18 @@
   };
   let pickColor = 'green';
   function applyPickColors() {
-    if (netRole === 'host') {
-      player.palette = 'green';
+    // Humans: A green + B blue. C is always red companion when enabled.
+    player.palette = 'green';
+    p2.palette = 'blue';
+    p3.palette = 'red';
+    if (!netRole && pickColor === 'blue') {
+      player.palette = 'blue';
+      p2.palette = 'green';
+    } else if (!netRole && pickColor === 'red' && !wantCompanion) {
+      // single-player cosmetic red only when C companion off
+      player.palette = 'red';
       p2.palette = 'blue';
-      return;
     }
-    if (netRole === 'guest') {
-      // 本机操纵的角色：B蓝或C红；对方主机仍是绿+蓝权威里的对应位
-      player.palette = 'green';
-      p2.palette = pickColor === 'red' ? 'red' : 'blue';
-      return;
-    }
-    player.palette = pickColor;
-    p2.palette = pickColor === 'blue' ? 'green' : (pickColor === 'red' ? 'blue' : 'blue');
   }
 
   const NINJA_IMG = { green: null, blue: null, red: null };
@@ -448,62 +455,207 @@
   const LEVELS = [
     {
       name: '林间晨跑', en: 'Forest Jog',
-      hint: '前方草地上有炸弹！踩上去会爆炸  Bomb on the grass',
-      cols: 80, rows: 14, spawn: [3, 11], goal: [75, 11],
-      checks: [[41, 11]],
-      slimes: [[28, 11]], crates: [[22, 11]], walls: [], springs: [],
-      spikes: [[12, 14]],
-      bombs: [[7, 11]],
-      boss: { c: 68, name: '史莱姆王', kind: 'slime', hp: 5 },
-      coins: [[4, 9], [6, 9], [8, 9], [10, 9], [12, 9], [15, 8], [16, 7], [17, 8], [21, 9], [25, 9], [30, 9], [34, 9], [37, 8], [38, 7], [39, 8], [43, 9], [47, 9], [55, 9], [59, 8], [60, 7], [61, 8], [65, 9], [69, 9], [73, 9]],
-      stars: [[50, 8]],
+      hint: '第1关：慢慢走，学跳与踩陷阱  Easy — move yourself',
+      cols: 70, rows: 14, spawn: [2, 11], goal: [66, 11],
+      checks: [[34, 11]],
+      slimes: [[22, 11]], crates: [[16, 11]],
+      walls: [{ l0: 28, l1: 29, r0: 33, r1: 34, top: 8 }],
+      springs: [],
+      spikes: [[10, 11]],
+      bombs: [[8, 11]],
+      fires: [],
+      bolts: [],
+      boss: { c: 58, name: '史莱姆王', kind: 'slime', hp: 4 },
+      coins: [[4, 9], [6, 9], [12, 9], [18, 9], [24, 9], [30, 7], [38, 9], [44, 9], [52, 9], [62, 9]],
+      stars: [[30, 6]],
       build(box) {
         box(0, 14, 11, 13);
-        box(18, 36, 11, 13);
-        box(40, 58, 11, 13);
-        box(62, 79, 11, 13);
-        box(48, 52, 9, 10);
+        box(17, 40, 11, 13);
+        box(43, 69, 11, 13);
+        box(28, 29, 8, 10);
+        box(33, 34, 8, 10);
+        box(33, 38, 8, 8);
       },
     },
     {
-      name: '苔岩小径', en: 'Moss Wall',
-      hint: '踩红弹簧，或贴墙再蹬  Spring or wall-jump',
-      cols: 88, rows: 14, spawn: [3, 11], goal: [82, 11],
-      checks: [[16, 11], [40, 11]],
-      slimes: [[54, 11]], crates: [[62, 11]],
-      walls: [{ l0: 30, l1: 31, r0: 35, r1: 36, top: 7 }],
-      springs: [[29, 11]],
-      boss: { c: 72, name: '野猪', kind: 'boar', hp: 6 },
-      coins: [[5, 9], [9, 9], [13, 9], [22, 8], [27, 9], [33, 9], [33, 7], [44, 9], [50, 9], [58, 9], [66, 9], [72, 9], [78, 9]],
-      stars: [[33, 5]],
+      name: '苔岩小径', en: 'Moss Path',
+      hint: '第2关：弹簧+矮墙；喷火初见  Spring & fire intro',
+      cols: 82, rows: 14, spawn: [2, 11], goal: [78, 11],
+      checks: [[20, 11], [48, 11]],
+      slimes: [[26, 11], [54, 11]], crates: [[18, 11]],
+      walls: [{ l0: 36, l1: 37, r0: 41, r1: 42, top: 7 }],
+      springs: [[35, 11]],
+      spikes: [[12, 13]],
+      bombs: [[44, 11]],
+      fires: [[30, 11]],
+      bolts: [],
+      boss: { c: 70, name: '野猪', kind: 'boar', hp: 5 },
+      coins: [[5, 9], [10, 9], [16, 9], [24, 9], [32, 9], [39, 7], [46, 9], [56, 9], [64, 9], [74, 9]],
+      stars: [[39, 5]],
       build(box) {
-        box(0, 20, 11, 13);
-        box(24, 87, 11, 13);
-        box(30, 31, 7, 10);
-        box(35, 36, 7, 10);
-        box(35, 46, 7, 7);
+        box(0, 22, 11, 13);
+        box(25, 58, 11, 13);
+        box(61, 81, 11, 13);
+        box(36, 37, 7, 10);
+        box(41, 42, 7, 10);
+        box(41, 50, 7, 7);
       },
     },
     {
       name: '萤火树冠', en: 'Firefly Canopy',
-      hint: '收集星星，打败影子  Grab stars, beat the shadow',
-      cols: 100, rows: 14, spawn: [2, 11], goal: [94, 11],
-      checks: [[74, 11]],
-      slimes: [[14, 11], [36, 11]], crates: [[32, 11]],
+      hint: '第3关：闪电初见；蓝免疫闪电  Lightning intro',
+      cols: 92, rows: 14, spawn: [2, 11], goal: [88, 11],
+      checks: [[30, 11], [60, 11]],
+      slimes: [[18, 11], [40, 11], [66, 11]], crates: [[24, 11]],
+      walls: [{ l0: 48, l1: 49, r0: 53, r1: 54, top: 7 }],
+      springs: [[47, 11]],
+      spikes: [[14, 15]],
+      bombs: [[56, 11]],
+      fires: [[34, 11]],
+      bolts: [[22, 23], [72, 73]],
+      boss: { c: 80, name: '影忍者', kind: 'shadow', hp: 6 },
+      coins: [[5, 9], [12, 9], [20, 9], [28, 9], [36, 9], [44, 9], [51, 7], [58, 9], [68, 9], [76, 9], [84, 9]],
+      stars: [[51, 5], [64, 8]],
+      build(box) {
+        box(0, 26, 11, 13);
+        box(29, 64, 11, 13);
+        box(67, 91, 11, 13);
+        box(48, 49, 7, 10);
+        box(53, 54, 7, 10);
+        box(53, 60, 7, 7);
+        box(20, 22, 9, 10);
+      },
+    },
+    {
+      name: '尖刺走廊', en: 'Spike Hall',
+      hint: '第4关：尖刺增多；绿免疫尖刺  More spikes',
+      cols: 96, rows: 14, spawn: [2, 11], goal: [92, 11],
+      checks: [[28, 11], [56, 11]],
+      slimes: [[20, 11], [44, 11], [70, 11]], crates: [[16, 11], [60, 11]],
+      walls: [{ l0: 32, l1: 33, r0: 37, r1: 38, top: 7 }],
+      springs: [[31, 11], [64, 11]],
+      spikes: [[8, 10], [24, 26], [48, 50], [76, 78]],
+      bombs: [[40, 11]],
+      fires: [[52, 11]],
+      bolts: [[66, 67]],
+      boss: { c: 84, name: '刺甲虫', kind: 'slime', hp: 6 },
+      coins: [[5, 9], [14, 9], [22, 9], [30, 9], [35, 7], [42, 9], [54, 9], [62, 9], [72, 9], [80, 9], [88, 9]],
+      stars: [[35, 5]],
+      build(box) {
+        box(0, 18, 11, 13);
+        box(21, 46, 11, 13);
+        box(49, 74, 11, 13);
+        box(77, 95, 11, 13);
+        box(32, 33, 7, 10);
+        box(37, 38, 7, 10);
+        box(37, 44, 7, 7);
+      },
+    },
+    {
+      name: '火焰栈道', en: 'Flame Bridge',
+      hint: '第5关：喷火密集；红免疫喷火  Fire gauntlet',
+      cols: 100, rows: 14, spawn: [2, 11], goal: [96, 11],
+      checks: [[26, 11], [54, 11], [78, 11]],
+      slimes: [[18, 11], [38, 11], [58, 11], [82, 11]], crates: [[22, 11], [62, 11]],
       walls: [{ l0: 44, l1: 45, r0: 49, r1: 50, top: 7 }],
       springs: [[43, 11]],
-      boss: { c: 88, name: '影忍者', kind: 'shadow', hp: 7 },
-      coins: [[4, 9], [8, 9], [12, 9], [16, 9], [23, 8], [28, 9], [34, 9], [40, 9], [47, 8], [47, 6], [56, 6], [63, 9], [68, 9], [76, 9], [84, 9], [90, 9]],
-      stars: [[21, 8], [47, 5], [58, 6]],
+      spikes: [[12, 13], [70, 71]],
+      bombs: [[32, 11], [86, 11]],
+      fires: [[10, 11], [28, 11], [40, 11], [56, 11], [74, 11]],
+      bolts: [[64, 65]],
+      boss: { c: 90, name: '炎猪', kind: 'boar', hp: 7 },
+      coins: [[5, 9], [16, 9], [24, 9], [36, 9], [47, 7], [52, 9], [60, 9], [68, 9], [80, 9], [88, 9], [94, 9]],
+      stars: [[47, 5], [76, 8]],
       build(box) {
-        box(0, 22, 11, 13);
-        box(25, 78, 11, 13);
-        box(82, 99, 11, 13);
-        box(18, 20, 10, 10);
-        box(21, 22, 9, 10);
+        box(0, 20, 11, 13);
+        box(23, 52, 11, 13);
+        box(55, 80, 11, 13);
+        box(83, 99, 11, 13);
         box(44, 45, 7, 10);
         box(49, 50, 7, 10);
-        box(49, 60, 7, 7);
+        box(49, 58, 7, 7);
+      },
+    },
+    {
+      name: '雷鸣谷口', en: 'Thunder Gate',
+      hint: '第6关：闪电增多；蓝免疫  Thunder gauntlet',
+      cols: 104, rows: 14, spawn: [2, 11], goal: [100, 11],
+      checks: [[28, 11], [56, 11], [80, 11]],
+      slimes: [[16, 11], [36, 11], [52, 11], [72, 11], [88, 11]], crates: [[24, 11], [64, 11]],
+      walls: [{ l0: 40, l1: 41, r0: 45, r1: 46, top: 7 }],
+      springs: [[39, 11], [76, 11]],
+      spikes: [[10, 11], [60, 61]],
+      bombs: [[48, 11]],
+      fires: [[32, 11], [84, 11]],
+      bolts: [[8, 9], [20, 22], [34, 35], [54, 56], [68, 69], [90, 91]],
+      boss: { c: 94, name: '雷影', kind: 'shadow', hp: 8 },
+      coins: [[5, 9], [14, 9], [26, 9], [38, 9], [43, 7], [50, 9], [58, 9], [66, 9], [78, 9], [86, 9], [96, 9]],
+      stars: [[43, 5], [70, 8]],
+      build(box) {
+        box(0, 24, 11, 13);
+        box(27, 58, 11, 13);
+        box(61, 86, 11, 13);
+        box(89, 103, 11, 13);
+        box(40, 41, 7, 10);
+        box(45, 46, 7, 10);
+        box(45, 52, 7, 7);
+      },
+    },
+    {
+      name: '炸弹矿坑', en: 'Bomb Pit',
+      hint: '第7关：炸弹连环；全员会被炸倒  Bomb chain',
+      cols: 110, rows: 14, spawn: [2, 11], goal: [106, 11],
+      checks: [[30, 11], [58, 11], [84, 11]],
+      slimes: [[18, 11], [34, 11], [50, 11], [70, 11], [90, 11]], crates: [[14, 11], [46, 11], [78, 11]],
+      walls: [{ l0: 62, l1: 63, r0: 67, r1: 68, top: 7 }],
+      springs: [[61, 11]],
+      spikes: [[22, 23], [74, 75]],
+      bombs: [[10, 11], [26, 11], [42, 11], [54, 11], [80, 11], [96, 11]],
+      fires: [[38, 11], [86, 11]],
+      bolts: [[16, 17], [48, 49]],
+      boss: { c: 100, name: '矿霸', kind: 'boar', hp: 9 },
+      coins: [[5, 9], [12, 9], [20, 9], [28, 9], [36, 9], [44, 9], [52, 9], [65, 7], [72, 9], [82, 9], [92, 9], [102, 9]],
+      stars: [[65, 5], [88, 8]],
+      build(box) {
+        box(0, 22, 11, 13);
+        box(25, 56, 11, 13);
+        box(59, 88, 11, 13);
+        box(91, 109, 11, 13);
+        box(62, 63, 7, 10);
+        box(67, 68, 7, 10);
+        box(67, 76, 7, 7);
+      },
+    },
+    {
+      name: '终极试炼', en: 'Final Trial',
+      hint: '第8关：四陷阱+多怪+楼梯  All traps — hard',
+      cols: 120, rows: 14, spawn: [2, 11], goal: [116, 11],
+      checks: [[26, 11], [52, 11], [78, 11], [100, 11]],
+      slimes: [[14, 11], [30, 11], [46, 11], [62, 11], [82, 11], [98, 11]], crates: [[20, 11], [56, 11], [88, 11]],
+      walls: [
+        { l0: 36, l1: 37, r0: 41, r1: 42, top: 7 },
+        { l0: 90, l1: 91, r0: 95, r1: 96, top: 7 },
+      ],
+      springs: [[35, 11], [89, 11]],
+      spikes: [[8, 10], [40, 42], [70, 72], [104, 106]],
+      bombs: [[24, 11], [50, 11], [76, 11], [108, 11]],
+      fires: [[18, 11], [44, 11], [66, 11], [86, 11], [112, 11]],
+      bolts: [[12, 13], [32, 34], [58, 59], [80, 81], [102, 103]],
+      boss: { c: 110, name: '终焉影', kind: 'shadow', hp: 10 },
+      coins: [[5, 9], [16, 9], [22, 9], [28, 9], [38, 7], [48, 9], [54, 9], [64, 9], [74, 9], [84, 9], [93, 7], [106, 9], [114, 9]],
+      stars: [[38, 5], [68, 8], [93, 5]],
+      build(box) {
+        box(0, 22, 11, 13);
+        box(25, 48, 11, 13);
+        box(51, 74, 11, 13);
+        box(77, 100, 11, 13);
+        box(103, 119, 11, 13);
+        box(36, 37, 7, 10);
+        box(41, 42, 7, 10);
+        box(41, 48, 7, 7);
+        box(90, 91, 7, 10);
+        box(95, 96, 7, 10);
+        box(95, 104, 7, 7);
       },
     },
   ];
@@ -527,6 +679,7 @@
     n.anim = 'idle'; n.hp = MAX_HP; n.down = false; n.downT = 0;
     n.springCd = 0; n.springLock = 0;
     n.shake = 0; n.flash = 0; n.glow = 0; n.bones = 0; n.spikeMsgCd = 0;
+    n.burnT = 0; n.burnTick = 0; n.boltCd = 0;
     n.knockT = 0; n.knockPhase = null; n.knockAnimT = 0;
   }
 
@@ -565,6 +718,17 @@
       const p = feet(c, r);
       return { x: p.x, y: p.y, armed: true, boomT: 0, cd: 0, fuse: 0 };
     });
+    fires = (def.fires || []).map(([c, r]) => {
+      const p = feet(c, r);
+      return { x: p.x, y: p.y, phase: (c % 7) * 0.37, on: false, jet: 0 };
+    });
+    bolts = (def.bolts || []).map((s) => {
+      const c0 = s[0], c1 = s.length > 1 ? s[1] : s[0];
+      return {
+        c0, c1, x0: c0 * T, x1: (c1 + 1) * T,
+        y: 11 * T, phase: (c0 % 5) * 0.8, strike: 0, warn: 0,
+      };
+    });
     goal = feet(def.goal[0], def.goal[1]);
     spawn = feet(def.spawn[0], def.spawn[1]);
     checkpoint = { x: spawn.x, y: spawn.y };
@@ -595,6 +759,7 @@
     gotStars = 0;
     resetNinja(player, spawn.x, spawn.y, 1);
     resetNinja(p2, spawn.x - 36, spawn.y, 1);
+    resetNinja(p3, spawn.x - 72, spawn.y, 1);
     for (let k = 0; k < shurikens.length; k++) shurikens[k].on = 0;
     for (let k = 0; k < trails.length; k++) trails[k].on = 0;
     cam.snap = true;
@@ -611,11 +776,17 @@
     starN.textContent = '⭐ ' + gotStars;
     hp1.style.width = Math.max(0, player.hp) * 20 + '%';
     hp2.style.width = Math.max(0, p2.hp) * 20 + '%';
+    const hp3el = document.getElementById('hp3');
+    const bar3 = document.getElementById('bar3');
+    if (hp3el) hp3el.style.width = Math.max(0, p3.hp) * 20 + '%';
     bar2.classList.toggle('hidden', !coop && !netRole);
+    if (bar3) bar3.classList.toggle('hidden', !companion);
     const b1 = document.querySelector('#bars .bar span');
     const b2 = document.querySelector('#bar2 span');
-    if (b1) b1.textContent = netRole === 'guest' ? 'A绿' : (player.palette === 'red' ? '红' : player.palette === 'blue' ? '蓝' : '绿');
-    if (b2) b2.textContent = netRole ? 'B蓝' : (p2.palette === 'red' ? '红' : '蓝');
+    const b3 = bar3 ? bar3.querySelector('span') : null;
+    if (b1) b1.textContent = netRole === 'guest' ? 'A绿' : (player.palette === 'red' ? '红' : player.palette === 'blue' ? '蓝' : 'A绿');
+    if (b2) b2.textContent = netRole ? 'B蓝' : (coop ? 'B蓝' : '蓝');
+    if (b3) b3.textContent = 'C红';
   }
   function syncChrome() {
     menu.classList.toggle('hidden', mode !== 'title');
@@ -646,6 +817,7 @@
     netGuestPrev = { left: false, right: false, jump: false, throw: false };
     coop = !!coopFlag;
     wantCoop = coop;
+    companion = !!wantCompanion;
     mode1.classList.toggle('on', !coop);
     mode2.classList.toggle('on', coop);
     applyPickColors();
@@ -653,7 +825,7 @@
     loadLevel(i);
     syncChrome();
     if (netRole === 'host' && netConn && netLinked) {
-      netSend({ t: 'go', lv: levelIndex });
+      netSend({ t: 'go', lv: levelIndex, cp: companion ? 1 : 0 });
       netSnapAcc = 0;
     }
   }
@@ -704,6 +876,7 @@
     resetBoss();
     resetNinja(player, checkpoint.x, checkpoint.y, 1);
     if (coop) resetNinja(p2, checkpoint.x - 40, checkpoint.y, 1);
+    if (companion) resetNinja(p3, checkpoint.x - 72, checkpoint.y, 1);
     mode = 'play';
     cam.snap = true;
     syncChrome();
@@ -916,11 +1089,146 @@
     }
   }
   function hurtSpike(n) {
-    // Spikes decorative tonight — explosion is the demo trap.
-    void n;
+    // Green immune; blue/red: shake + color glow + flash + skeleton + HP
+    if (!n || n.down || mode !== 'play') return;
+    if (n.palette === 'green') {
+      if ((n.spikeMsgCd || 0) <= 0) { toast('绿忍者免疫尖刺'); n.spikeMsgCd = 1.2; }
+      return;
+    }
+    if (n.invuln > 0 || n.knockPhase) return;
+    n.hp -= 1;
+    n.invuln = 0.7;
+    n.shake = 0.35;
+    n.flash = 0.22;
+    n.glow = 0.45;
+    n.bones = 0.55;
+    n.vy = -180;
+    n.grounded = false;
+    sfx.bump();
+    buzz(18);
+    toast((n.palette === 'blue' ? '蓝' : '红') + '忍者踩尖刺 -1');
+    puff(n.x, n.y - 10, n.palette === 'blue' ? '#8fd4ff' : '#ff8a80', 8);
+    if (n.hp <= 0) { n.hp = 0; downOrOver(n); }
   }
   function touchSpikes(n) {
-    void n;
+    if (!n || n.down || !spikes.length) return;
+    for (let i = 0; i < spikes.length; i++) {
+      const s = spikes[i];
+      if (n.x >= s.x0 - 4 && n.x <= s.x1 + 4 && n.y > s.y - 6 && n.y < s.y + 18) {
+        hurtSpike(n);
+        return;
+      }
+    }
+  }
+  function tickBurn(n, dt) {
+    if (!n || n.down) return;
+    if ((n.burnT || 0) <= 0) { n.burnT = 0; n.burnTick = 0; return; }
+    n.burnT = Math.max(0, n.burnT - dt);
+    n.burnTick = (n.burnTick || 0) + dt;
+    n.bones = Math.max(n.bones || 0, 0.2);
+    if (n.burnTick >= 1.0) {
+      n.burnTick = 0;
+      if (n.invuln <= 0) {
+        n.hp -= 1;
+        n.flash = 0.12;
+        puff(n.x, n.y - 28, '#ff8c32', 4);
+        sfx.bump();
+        if (n.hp <= 0) { n.hp = 0; downOrOver(n); }
+      }
+    }
+    if (Math.random() < dt * 8) puff(n.x + (Math.random() - 0.5) * 16, n.y - 20 - Math.random() * 20, '#ff7a20', 1);
+  }
+  function hurtFire(n) {
+    // Red immune; green/blue: burn 10s DoT after leave (refresh while in jet)
+    if (!n || n.down || mode !== 'play') return;
+    if (n.palette === 'red') {
+      if ((n.spikeMsgCd || 0) <= 0) { toast('红忍者免疫喷火'); n.spikeMsgCd = 1.2; }
+      return;
+    }
+    const was = n.burnT || 0;
+    n.burnT = 10;
+    n.bones = Math.max(n.bones || 0, 0.35);
+    n.glow = Math.max(n.glow || 0, 0.3);
+    if (was <= 0) {
+      toast((n.palette === 'green' ? '绿' : '蓝') + '忍者灼伤！离开后烧10秒');
+      puff(n.x, n.y - 16, '#ff8c32', 10);
+      sfx.bump();
+      buzz(12);
+    }
+  }
+  function touchFires(n) {
+    if (!n || n.down || !fires.length) return;
+    for (let i = 0; i < fires.length; i++) {
+      const f = fires[i];
+      if (!f.on) continue;
+      if (Math.abs(n.x - f.x) < 20 && n.y > f.y - 70 && n.y < f.y + 10) {
+        hurtFire(n);
+        return;
+      }
+    }
+  }
+  function updateFires(dt) {
+    for (let i = 0; i < fires.length; i++) {
+      const f = fires[i];
+      f.phase = (f.phase || 0) + dt;
+      // cycle: 1.1s off, 1.4s on
+      const cycle = f.phase % 2.5;
+      f.on = cycle > 1.1;
+      f.jet = f.on ? Math.min(1, (cycle - 1.1) / 0.2) : Math.max(0, 1 - (cycle < 0.15 ? 0 : (2.5 - cycle) / 0.2));
+    }
+  }
+  function hurtBolt(n) {
+    // Blue immune; green/red: skeleton + HP on hit only (no DoT)
+    if (!n || n.down || mode !== 'play') return;
+    if (n.palette === 'blue') {
+      if ((n.spikeMsgCd || 0) <= 0) { toast('蓝忍者免疫闪电'); n.spikeMsgCd = 1.2; }
+      return;
+    }
+    if ((n.boltCd || 0) > 0 || n.invuln > 0) return;
+    n.hp -= 1;
+    n.invuln = 0.55;
+    n.boltCd = 0.8;
+    n.bones = 0.7;
+    n.flash = 0.28;
+    n.shake = 0.3;
+    n.glow = 0.4;
+    sfx.bump();
+    buzz(22);
+    toast((n.palette === 'green' ? '绿' : '红') + '忍者被雷劈 -1');
+    puff(n.x, n.y - 40, '#cce6ff', 12);
+    if (n.hp <= 0) { n.hp = 0; downOrOver(n); }
+  }
+  function touchBolts(n) {
+    if (!n || n.down || !bolts.length) return;
+    for (let i = 0; i < bolts.length; i++) {
+      const b = bolts[i];
+      if (b.strike <= 0) continue;
+      if (n.x >= b.x0 - 6 && n.x <= b.x1 + 6 && n.y > b.y - 90 && n.y < b.y + 12) {
+        hurtBolt(n);
+        return;
+      }
+    }
+  }
+  function updateBolts(dt) {
+    for (let i = 0; i < bolts.length; i++) {
+      const b = bolts[i];
+      b.phase = (b.phase || 0) + dt;
+      if (b.strike > 0) {
+        b.strike = Math.max(0, b.strike - dt);
+        b.warn = 0;
+        continue;
+      }
+      // warn 0.45s then strike 0.28s, period ~3.2s
+      const cycle = b.phase % 3.2;
+      if (cycle > 2.4 && cycle < 2.85) {
+        b.warn = (cycle - 2.4) / 0.45;
+      } else if (cycle >= 2.85 && cycle < 3.13) {
+        if (b.warn > 0 || b.strike <= 0) b.strike = 0.28;
+        b.warn = 0;
+      } else {
+        b.warn = 0;
+      }
+    }
   }
   function startKnockdown(n) {
     n.knockPhase = 'prone';
@@ -1057,7 +1365,42 @@
     }
   }
 
-  function controlNinja(n, inp, dt) {
+  function companionLead() {
+    // follow the human who is farthest ahead (A or B)
+    if (coop && !p2.down && (player.down || p2.x > player.x + 8)) return p2;
+    return player;
+  }
+  function aiCompanionInput(dt) {
+    // Dumb follow AI: walk toward lead, jump gaps / when lead jumps, rare throw
+    clearInput(input3);
+    if (!companion || p3.down || p3.knockPhase) return input3;
+    const lead = companionLead();
+    if (lead.down) return input3;
+    const dx = lead.x - 40 - p3.x;
+    if (dx > 18) input3.right = true;
+    else if (dx < -28) input3.left = true;
+    // gap ahead?
+    const ahead = p3.x + (p3.face || 1) * 28;
+    const gc = Math.floor(ahead / T);
+    const gr = Math.floor((p3.y + 2) / T);
+    const hole = p3.grounded && !solidAt(gc, gr) && !solidAt(gc, gr + 1);
+    if ((hole || (!lead.grounded && lead.vy < -80) || (lead.y < p3.y - 36)) && p3.grounded) {
+      input3.jump = true;
+      input3.jumpPressed = true;
+    }
+    // weakly toss if slime nearby
+    for (let i = 0; i < slimes.length; i++) {
+      const m = slimes[i];
+      if (m.dead) continue;
+      if (Math.abs(m.x - p3.x) < 120 && Math.abs(m.y - p3.y) < 40 && (m.x - p3.x) * (p3.face || 1) > 0) {
+        if (Math.random() < dt * 0.7) { input3.throw = true; input3.throwEdge = true; }
+        break;
+      }
+    }
+    return input3;
+  }
+
+    function controlNinja(n, inp, dt) {
     if (n.down) {
       n.downT -= dt;
       n.vx = 0;
@@ -1115,6 +1458,8 @@
     n.glow = Math.max(0, (n.glow || 0) - dt);
     n.bones = Math.max(0, (n.bones || 0) - dt);
     n.spikeMsgCd = Math.max(0, (n.spikeMsgCd || 0) - dt);
+    n.boltCd = Math.max(0, (n.boltCd || 0) - dt);
+    tickBurn(n, dt);
 
     let desired = n.vx;
     if (n.wallLock > 0) desired = n.vx;
@@ -1125,7 +1470,7 @@
       else if (inp.right) desired = 270;
     } else if (inp.left && !inp.right) desired = -240;
     else if (inp.right && !inp.left) desired = 270;
-    else if (n.grounded) desired = netRole ? 0 : 200;
+    else if (n.grounded) desired = 0 /* no auto-run */;
     const accel = (n.grounded ? 2400 : 1400) * dt;
     const dv = desired - n.vx;
     n.vx += Math.max(-accel, Math.min(accel, dv));
@@ -1352,9 +1697,26 @@
     }
     controlNinja(player, input, dt);
     if (coop && mode === 'play') controlNinja(p2, input2, dt);
+    if (companion && mode === 'play') controlNinja(p3, aiCompanionInput(dt), dt);
     updateBombs(dt);
+    updateFires(dt);
+    updateBolts(dt);
     touchBombs(player);
-    if (coop) touchBombs(p2);
+    touchSpikes(player);
+    touchFires(player);
+    touchBolts(player);
+    if (coop) {
+      touchBombs(p2);
+      touchSpikes(p2);
+      touchFires(p2);
+      touchBolts(p2);
+    }
+    if (companion) {
+      touchBombs(p3);
+      touchSpikes(p3);
+      touchFires(p3);
+      touchBolts(p3);
+    }
 
     for (let i = 0; i < trails.length; i++) if (trails[i].on) {
       trails[i].life -= dt;
@@ -1484,6 +1846,10 @@
       grab(p2, coins, 26, 36, false);
       grab(p2, stars, 30, 40, true);
     }
+    if (companion) {
+      grab(p3, coins, 26, 36, false);
+      grab(p3, stars, 30, 40, true);
+    }
     const markCheck = (n) => {
       if (!n || n.down) return;
       for (let i = 0; i < checks.length; i++) {
@@ -1502,6 +1868,7 @@
     };
     markCheck(player);
     if (coop) markCheck(p2);
+    if (companion) markCheck(p3);
 
     if (mode === 'play') updateBoss(dt);
 
@@ -1518,27 +1885,31 @@
     const vw = viewW / zoom;
     const vh = viewH / zoom;
     let focus = player;
-    if (coop) {
+    if (coop || companion) {
       const a = player.down ? null : player;
-      const b = p2.down ? null : p2;
-      if (a && b && Math.abs(a.x - b.x) > vw * 0.7) {
-        const leader = a.x >= b.x ? a : b;
-        const trailer = leader === a ? b : a;
-        trailer.x = leader.x - (leader.face || 1) * 36;
-        trailer.y = leader.y;
-        trailer.vx = 0;
-        trailer.vy = 0;
-        trailer.grounded = true;
-        trailer.onWall = 0;
-      }
-      if (a && b) {
-        focus = { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y), face: a.face };
-      } else focus = a || b || player;
+      const b = (coop && !p2.down) ? p2 : null;
+      const c = (companion && !p3.down) ? p3 : null;
+      // soft leash stragglers
+      const living = [a, b, c].filter(Boolean);
+      if (living.length >= 2) {
+        const leader = living.reduce((p, n) => (n.x > p.x ? n : p), living[0]);
+        living.forEach((n) => {
+          if (n === leader) return;
+          if (leader.x - n.x > vw * 0.75) {
+            n.x = leader.x - (leader.face || 1) * 40;
+            n.y = leader.y;
+            n.vx = 0; n.vy = 0; n.grounded = true; n.onWall = 0;
+          }
+        });
+        const xs = living.map((n) => n.x);
+        const ys = living.map((n) => n.y);
+        focus = { x: xs.reduce((s, v) => s + v, 0) / xs.length, y: Math.min.apply(null, ys), face: leader.face };
+      } else focus = a || b || c || player;
     }
-    let tx = coop ? focus.x - vw * 0.45 : player.x + player.face * 60 - vw * 0.4;
+    let tx = (coop || companion) ? focus.x - vw * 0.45 : player.x + player.face * 60 - vw * 0.4;
     tx = Math.max(0, Math.min(tx, Math.max(0, cols * T - vw)));
     const worldH = rows * T;
-    let ty = (coop ? focus.y : player.y) - vh * (viewH > viewW ? 0.58 : 0.62);
+    let ty = ((coop || companion) ? focus.y : player.y) - vh * (viewH > viewW ? 0.58 : 0.62);
     ty = Math.max(-16, Math.min(ty, Math.max(-16, worldH - vh + 8)));
     if (cam.snap) { cam.x = tx; cam.y = ty; cam.snap = false; }
     else {
@@ -1546,7 +1917,7 @@
       cam.y += (ty - cam.y) * 0.16;
     }
 
-    const sp = Math.max(Math.hypot(player.vx, player.vy), coop ? Math.hypot(p2.vx, p2.vy) : 0);
+    const sp = Math.max(Math.hypot(player.vx, player.vy), coop ? Math.hypot(p2.vx, p2.vy) : 0, companion ? Math.hypot(p3.vx, p3.vy) : 0);
     updateWhoosh(sp, dt);
     syncHUD();
     if (netRole === 'host') netMaybeSnap(dt);
@@ -1882,6 +2253,78 @@
       ctx.fill();
     }
   }
+  function drawFireJet(f) {
+    const x = f.x, y = f.y;
+    // ground nozzle
+    ctx.fillStyle = '#4a4a4a';
+    ctx.fillRect(x - 10, y - 4, 20, 8);
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(x - 6, y - 10, 12, 8);
+    ctx.fillStyle = '#888';
+    ctx.fillRect(x - 4, y - 12, 8, 3);
+    if (!f.on && (f.jet || 0) <= 0) {
+      // idle ember
+      if (Math.sin(sim * 6 + x) > 0.4) {
+        ctx.fillStyle = '#ff6a20aa';
+        ctx.beginPath();
+        ctx.arc(x, y - 14, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      return;
+    }
+    const h = 18 + (f.jet || 1) * 52;
+    const g = ctx.createLinearGradient(x, y - 8, x, y - 8 - h);
+    g.addColorStop(0, '#ffef8a');
+    g.addColorStop(0.35, '#ff8c20');
+    g.addColorStop(1, '#ff300080');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x - 8, y - 8);
+    ctx.quadraticCurveTo(x - 14 - Math.sin(sim * 18) * 3, y - 8 - h * 0.55, x - 2, y - 8 - h);
+    ctx.quadraticCurveTo(x + 10 + Math.sin(sim * 22) * 3, y - 8 - h * 0.5, x + 8, y - 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#fff6a0cc';
+    ctx.beginPath();
+    ctx.moveTo(x - 3, y - 10);
+    ctx.lineTo(x, y - 10 - h * 0.7);
+    ctx.lineTo(x + 3, y - 10);
+    ctx.fill();
+  }
+  function drawBolt(b) {
+    const mid = (b.x0 + b.x1) / 2;
+    const w = b.x1 - b.x0;
+    if (b.warn > 0) {
+      ctx.fillStyle = 'rgba(180,220,255,' + (0.15 + 0.25 * b.warn) + ')';
+      ctx.fillRect(b.x0, b.y - 100, w, 100);
+      ctx.strokeStyle = 'rgba(255,255,120,' + (0.4 + 0.5 * b.warn) + ')';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 6]);
+      ctx.strokeRect(b.x0 + 2, b.y - 98, w - 4, 96);
+      ctx.setLineDash([]);
+    }
+    if (b.strike > 0) {
+      const a = Math.min(1, b.strike / 0.15);
+      ctx.strokeStyle = 'rgba(220,240,255,' + a + ')';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      let y = b.y - 110;
+      ctx.moveTo(mid + Math.sin(sim * 40) * 4, y);
+      while (y < b.y) {
+        y += 14;
+        ctx.lineTo(mid + (Math.random() - 0.5) * 22, y);
+      }
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,' + a + ')';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(200,230,255,' + (0.25 * a) + ')';
+      ctx.fillRect(b.x0, b.y - 100, w, 100);
+    }
+    // ground mark
+    ctx.fillStyle = '#6a7a8a';
+    ctx.fillRect(b.x0 + 4, b.y - 2, w - 8, 4);
+  }
   function drawBoneOverlay(face) {
     ctx.save();
     ctx.scale(face, 1);
@@ -2004,6 +2447,20 @@
       drawBoneOverlay(n.face);
       ctx.globalAlpha = 1;
     }
+    if ((n.burnT || 0) > 0) {
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = '#ff7a20';
+      for (let k = 0; k < 3; k++) {
+        const fx = (k - 1) * 8 + Math.sin(sim * 14 + k) * 2;
+        const fh = 10 + (k % 2) * 6 + Math.sin(sim * 20 + k * 2) * 3;
+        ctx.beginPath();
+        ctx.moveTo(fx - 4, -18);
+        ctx.lineTo(fx, -18 - fh);
+        ctx.lineTo(fx + 4, -18);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
     ctx.restore();
   }
   function drawWorld() {
@@ -2037,7 +2494,7 @@
       }
     }
     for (let i = 0; i < springs.length; i++) drawSpring(springs[i]);
-    // decorative spike tips on grass (non-damaging tonight)
+    // spikes on grass
     for (let i = 0; i < spikes.length; i++) {
       const s = spikes[i];
       for (let c = s.c0; c <= s.c1; c++) {
@@ -2057,6 +2514,8 @@
         }
       }
     }
+    for (let i = 0; i < fires.length; i++) drawFireJet(fires[i]);
+    for (let i = 0; i < bolts.length; i++) drawBolt(bolts[i]);
     for (let i = 0; i < bombs.length; i++) drawBombPad(bombs[i]);
     for (let i = 0; i < crates.length; i++) {
       const c = crates[i];
@@ -2149,6 +2608,7 @@
     }
     drawNinja(player);
     if (coop) drawNinja(p2);
+    if (companion) drawNinja(p3);
   }
   function drawSky() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -2346,11 +2806,11 @@
     const panel = document.getElementById('roomPanel');
     panel.classList.remove('hidden');
     panel.setAttribute('aria-hidden', 'false');
-    document.getElementById('roomTitle').textContent = kind === 'host' ? '玩家A' : '玩家B';
+    document.getElementById('roomTitle').textContent = kind === 'host' ? '玩家A · 芃芃' : '玩家B · 爸爸';
     document.getElementById('roomSub').textContent = kind === 'host'
-      ? '你是绿色忍者 · 等待玩家B自动配对'
-      : '你是蓝色忍者 · 正在寻找玩家A';
-    document.getElementById('roomWait').textContent = kind === 'host' ? '等待玩家B…' : '正在配对…';
+      ? '双人联网 · 绿忍者 · 等待玩家B（另一浏览器点玩家B）'
+      : '双人联网 · 蓝忍者 · 正在寻找玩家A';
+    document.getElementById('roomWait').textContent = kind === 'host' ? '等待玩家B…请对方开第二窗口点玩家B' : '正在配对…请确认玩家A已点好';
     document.getElementById('joinWait').textContent = '';
   }
   function netHideRoom() {
@@ -2430,6 +2890,7 @@
       fl: Math.round((n.flash || 0) * 100) / 100,
       gl: Math.round((n.glow || 0) * 100) / 100,
       bn: Math.round((n.bones || 0) * 100) / 100,
+      br: Math.round((n.burnT || 0) * 100) / 100,
     };
   }
   function netApplyNinja(n, s) {
@@ -2439,6 +2900,7 @@
     n.hp = s.hp; n.down = !!s.down; n.invuln = s.inv || 0; n.squash = s.sq || 0;
     n.knockPhase = s.kp || null; n.knockT = s.kt || 0;
     n.shake = s.sk || 0; n.flash = s.fl || 0; n.glow = s.gl || 0; n.bones = s.bn || 0;
+    n.burnT = s.br || 0;
   }
   function netBuildSnap() {
     const slimeBits = slimes.map((m) => (m.dead ? 1 : 0));
@@ -2469,19 +2931,25 @@
       Math.round((bb.boomT || 0) * 100) / 100,
       Math.round((bb.cd || 0) * 100) / 100,
     ]);
+    const fireBits = fires.map((ff) => [ff.on ? 1 : 0, Math.round((ff.jet || 0) * 100) / 100]);
+    const boltBits = bolts.map((bb) => [
+      Math.round((bb.strike || 0) * 100) / 100,
+      Math.round((bb.warn || 0) * 100) / 100,
+    ]);
     return {
       t: 'snap', m: mode, lv: levelIndex, sim: Math.round(sim * 60) / 60,
       c: gotCoins, s: gotStars,
-      p1: netPackNinja(player), p2: netPackNinja(p2),
+      p1: netPackNinja(player), p2: netPackNinja(p2), p3: companion ? netPackNinja(p3) : null,
+      cp: companion ? 1 : 0,
       sl: slimeBits, co: coinBits, st: starBits, cr: crateBits, ck: checkBits,
-      sh, b, bm: bombBits,
+      sh, b, bm: bombBits, fr: fireBits, bt: boltBits,
       cx: Math.round(checkpoint.x), cy: Math.round(checkpoint.y),
     };
   }
   function netMaybeSnap(dt) {
     if (!netLinked || netRole !== 'host' || mode === 'title') return;
     netSnapAcc += dt;
-    if (netSnapAcc < 1 / 18) return;
+    if (netSnapAcc < 1 / 22) return;
     netSnapAcc = 0;
     netSend(netBuildSnap());
   }
@@ -2513,6 +2981,10 @@
     gotStars = msg.s | 0;
     netApplyNinja(player, msg.p1);
     netApplyNinja(p2, msg.p2);
+    if (msg.cp) {
+      companion = true;
+      if (msg.p3) netApplyNinja(p3, msg.p3);
+    } else if (msg.cp === 0) companion = false;
     if (msg.sl) for (let i = 0; i < slimes.length && i < msg.sl.length; i++) slimes[i].dead = !!msg.sl[i];
     if (msg.co) for (let i = 0; i < coins.length && i < msg.co.length; i++) coins[i].got = !!msg.co[i];
     if (msg.st) for (let i = 0; i < stars.length && i < msg.st.length; i++) stars[i].got = !!msg.st[i];
@@ -2524,6 +2996,18 @@
         bombs[i].armed = !!a[0];
         bombs[i].boomT = a[1] || 0;
         bombs[i].cd = a[2] || 0;
+      }
+    }
+    if (msg.fr) {
+      for (let i = 0; i < fires.length && i < msg.fr.length; i++) {
+        fires[i].on = !!msg.fr[i][0];
+        fires[i].jet = msg.fr[i][1] || 0;
+      }
+    }
+    if (msg.bt) {
+      for (let i = 0; i < bolts.length && i < msg.bt.length; i++) {
+        bolts[i].strike = msg.bt[i][0] || 0;
+        bolts[i].warn = msg.bt[i][1] || 0;
       }
     }
     for (let i = 0; i < shurikens.length; i++) shurikens[i].on = 0;
@@ -2550,6 +3034,8 @@
     // guest: no world authority — camera + cosmetics only
     for (let i = 0; i < springs.length; i++) springs[i].squish = Math.max(0, springs[i].squish - dt);
     updateBombs(dt);
+    updateFires(dt);
+    updateBolts(dt);
     player.phase += dt * 8;
     p2.phase += dt * 8;
     // local decay of cosmetic knock FX between snaps
@@ -2558,6 +3044,8 @@
       n.flash = Math.max(0, (n.flash || 0) - dt);
       n.glow = Math.max(0, (n.glow || 0) - dt);
       n.bones = Math.max(0, (n.bones || 0) - dt);
+      n.burnT = Math.max(0, (n.burnT || 0) - dt);
+      n.boltCd = Math.max(0, (n.boltCd || 0) - dt);
       if (n.knockT > 0) n.knockT = Math.max(0, n.knockT - dt);
     });
     for (let i = 0; i < parts.length; i++) {
@@ -2589,7 +3077,7 @@
     }
     // send local input to host (~30Hz)
     netOutAcc += dt;
-    if (netOutAcc >= 1 / 30 && netLinked) {
+    if (netOutAcc >= 1 / 36 && netLinked) {
       netOutAcc = 0;
       netSend({
         t: 'in',
@@ -2625,9 +3113,12 @@
       unlock();
       coop = true;
       wantCoop = true;
+      wantCompanion = !!msg.cp;
+      companion = !!msg.cp;
       netRole = 'guest';
       netLinked = true;
       start(msg.lv | 0, true);
+      companion = !!msg.cp;
       syncChrome();
       toast('开始！你是蓝色忍者');
     } else if (msg.t === 'snap') {
@@ -2680,7 +3171,7 @@
       const t = (err && err.type) || '';
       fail(t || 'error');
     });
-    setTimeout(() => { if (!settled) fail('timeout'); }, 5000);
+    setTimeout(() => { if (!settled) fail('timeout'); }, 3200);
   }
   function netOpenHost() {
     if (!netEnsurePeerJs()) return;
@@ -2779,9 +3270,9 @@
         round += 1;
         const ids = netPairIds();
         netSetWait('正在配对…第' + round + '轮（确认对方已是玩家A）');
-        for (let s = 0; s < ids.length; s += 4) {
+        for (let s = 0; s < ids.length; s += 6) {
           if (netMatchAbort || netLinked) return;
-          const batch = ids.slice(s, s + 4);
+          const batch = ids.slice(s, s + 6);
           const won = await netProbeBatch(peer, batch);
           if (won && won.conn) {
             netCode = won.id;
@@ -2790,7 +3281,7 @@
             return;
           }
         }
-        await new Promise((r) => setTimeout(r, 250));
+        await new Promise((r) => setTimeout(r, 120));
       }
       if (!netLinked) {
         netSetWait('没找到玩家A。请双方取消后：先A后B；微信请用右上角「浏览器打开」');
@@ -2849,10 +3340,14 @@
   document.querySelectorAll('#castRow .cast').forEach((btn) => {
     btn.addEventListener('click', () => {
       if (netRole) return;
+      if (btn.id === 'castC') return; // handled by companion toggle
       pickColor = btn.getAttribute('data-color') || 'green';
-      document.querySelectorAll('#castRow .cast').forEach((b) => b.classList.toggle('on', b === btn));
+      document.querySelectorAll('#castRow .cast').forEach((b) => {
+        if (b.id === 'castC') return;
+        b.classList.toggle('on', b === btn);
+      });
       applyPickColors();
-      toast(pickColor === 'green' ? '绿忍者（玩家A）' : pickColor === 'blue' ? '蓝忍者（玩家B）' : '红忍者（可选）');
+      toast(pickColor === 'green' ? '绿忍者（玩家A）' : '蓝忍者（玩家B）');
     });
   });
   mode1.addEventListener('click', () => {
@@ -2904,13 +3399,35 @@
   });
   document.getElementById('netHost').addEventListener('click', () => { pickColor = 'green'; netOpenHost(); });
   document.getElementById('netJoin').addEventListener('click', () => { pickColor = 'blue'; netOpenJoin(); });
+  function syncCompanionUi() {
+    const btn = document.getElementById('netJoinC');
+    const cast = document.getElementById('castC');
+    if (btn) {
+      btn.classList.toggle('on', wantCompanion);
+      btn.setAttribute('aria-pressed', wantCompanion ? 'true' : 'false');
+    }
+    if (cast) cast.classList.toggle('on', wantCompanion);
+  }
   const netJoinCBtn = document.getElementById('netJoinC');
   if (netJoinCBtn) netJoinCBtn.addEventListener('click', () => {
-    pickColor = 'red';
-    // 三人房：先按玩家B通道加入，进房后显示红忍者；完整三人同步下一轮补齐
-    toast('玩家C · 红忍者小宇');
-    netOpenJoin();
+    wantCompanion = !wantCompanion;
+    syncCompanionUi();
+    toast(wantCompanion ? '小宇AI跟班：开（笨笨跟着走）' : '小宇AI跟班：关');
   });
+  const castC = document.getElementById('castC');
+  if (castC) castC.addEventListener('click', (e) => {
+    // toggle companion instead of picking red as main (unless shift)
+    e.stopImmediatePropagation();
+    wantCompanion = !wantCompanion;
+    if (wantCompanion) pickColor = 'green';
+    syncCompanionUi();
+    document.querySelectorAll('#castRow .cast').forEach((b) => {
+      if (b.id === 'castC') return;
+      b.classList.toggle('on', b.getAttribute('data-color') === pickColor);
+    });
+    toast(wantCompanion ? '小宇AI跟班：开' : '小宇AI跟班：关');
+  });
+  syncCompanionUi();
   document.getElementById('roomClose').addEventListener('click', () => netBackMenu());
   const roomStartBtn = document.getElementById('roomStart');
   if (roomStartBtn) roomStartBtn.addEventListener('click', () => netHostStart());
@@ -2981,8 +3498,10 @@
         grounded: player.grounded, onWall: player.onWall, anim: player.anim, face: player.face,
         coins: gotCoins, stars: gotStars, slimes: alive, shurikens: flying,
         checkpointX: checkpoint.x, whooshLevel, whooshBurst, errors,
-        coop, hp: player.hp, p2x: p2.x, p2y: p2.y, p2hp: p2.hp,
+        coop, companion, hp: player.hp, p2x: p2.x, p2y: p2.y, p2hp: p2.hp,
+        p3x: p3.x, p3y: p3.y, p3hp: p3.hp, p3anim: p3.anim,
         bossHp: boss ? boss.hp : 0, bossAlive: !!(boss && boss.alive),
+        levels: LEVELS.length,
         netRole, netCode, netLinked,
       };
     },
