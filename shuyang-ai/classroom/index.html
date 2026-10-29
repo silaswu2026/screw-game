@@ -126,7 +126,7 @@
     display:flex;
     flex-direction:row;
     gap:8px;
-    padding:28px 10px 8px; /* room for text bubbles above tiles */
+    padding:8px 10px 8px;
     overflow-x:auto;
     overflow-y:visible;
     -webkit-overflow-scrolling:touch;
@@ -140,7 +140,7 @@
     aspect-ratio:3/4;
     height:var(--chip-h);
     width:auto;
-    overflow:visible; /* bubbles above head */
+    overflow:hidden;
     position:relative;
     border:2px solid transparent;
     flex:0 0 auto;
@@ -284,42 +284,8 @@
   }
 
   /* 文字气泡：完全在头像格上方，不挡脸 */
-  .bubble{
-    position:absolute;
-    left:50%;
-    bottom:calc(100% + 10px);
-    transform:translateX(-50%) translateY(6px) scale(.94);
-    max-width:min(120px, 36vw);
-    background:#fffef8ee;
-    color:#1a2e20;
-    border:1.5px solid #6dcf7a;
-    border-radius:12px;
-    padding:4px 8px;
-    font-size:11px;
-    font-weight:700;
-    line-height:1.25;
-    text-align:center;
-    white-space:pre-wrap;
-    word-break:break-word;
-    box-shadow:0 4px 12px #0005;
-    opacity:0;
-    pointer-events:none;
-    z-index:6;
-    transition:opacity .2s ease, transform .26s ease;
-  }
-  .bubble::after{
-    content:"";
-    position:absolute;
-    left:50%;
-    top:100%;
-    transform:translateX(-50%);
-    border:5px solid transparent;
-    border-top-color:#6dcf7a;
-  }
-  .bubble.show{
-    opacity:1;
-    transform:translateX(-50%) translateY(0) scale(1);
-  }
+  /* speech bubbles removed — avatars stay clean; Douyin likes (.like-float) kept */
+  .bubble{display:none !important}
 
   /* 抖音点赞：表情从头像升起漂浮淡出（不挡脸） */
   .like-layer{
@@ -442,10 +408,10 @@
 
     main{
       display:grid;
-      grid-template-columns:minmax(80px,130px) minmax(0,1fr);
+      grid-template-columns:minmax(52px,72px) minmax(0,1fr);
       grid-template-areas:"cams course";
-      gap:6px;
-      padding:6px;
+      gap:4px;
+      padding:4px;
       padding-bottom:0;
       max-width:100%;
       flex:1;
@@ -459,20 +425,21 @@
 
     .cams{
       order:unset;grid-area:cams;flex:unset;max-height:none;min-height:0;
-      border:1px solid var(--line);background:var(--card);padding-bottom:0;
+      border:1px solid var(--line);background:var(--card);padding:4px;
       display:flex;flex-direction:column;
     }
+    .cams h2{font-size:9px;padding:0 0 2px}
+    .room-note{display:none}
     .vids{
       flex-direction:column;overflow:auto;overflow-x:hidden;
-      padding:22px 4px 4px;gap:16px;flex:1;min-height:0;scroll-snap-type:none;
+      padding:6px 2px 2px;gap:10px;flex:1;min-height:0;scroll-snap-type:none;
     }
     .tile{
       width:100%;height:auto;max-height:none;aspect-ratio:3/4;
-      border-radius:10px;flex:0 0 auto;
+      border-radius:8px;flex:0 0 auto;
     }
     .tile .name{left:3px;bottom:3px;padding:1px 5px;border-radius:6px;font-size:9px}
     .tile .badge{right:3px;top:3px;padding:1px 4px;border-radius:6px;font-size:8px}
-    .bubble{font-size:10px;max-width:96%;padding:3px 6px;bottom:calc(100% + 8px)}
     .like-float{font-size:18px}
     .react-bar{padding:4px 4px 6px;gap:4px;background:transparent}
     .react{min-width:32px;height:30px;font-size:15px;padding:0 6px}
@@ -480,8 +447,9 @@
     .course{
       order:unset;grid-area:course;flex:unset;min-height:0;
       border:1px solid var(--line);background:var(--card);
+      padding:4px;
     }
-    .course h2{padding:0 0 4px}
+    .course h2{padding:0 0 2px;font-size:10px}
     .course iframe{border-radius:8px;flex:1;min-height:0;height:auto}
 
     .chat-backdrop{align-items:center;padding:16px}
@@ -499,7 +467,7 @@
     .btn.send{padding:8px 14px;border-radius:10px;font-size:13px}
 
     main{
-      grid-template-columns:minmax(120px,150px) minmax(0,1fr);
+      grid-template-columns:minmax(88px,110px) minmax(0,1fr);
       gap:10px;padding:10px;padding-bottom:0;max-width:1400px;
     }
     .panel{border-radius:16px;padding:10px}
@@ -510,7 +478,6 @@
     .tile{border-radius:14px}
     .tile .name{left:6px;bottom:6px;padding:2px 7px;border-radius:8px;font-size:11px}
     .tile .badge{right:6px;top:6px;padding:2px 7px;border-radius:8px;font-size:10px}
-    .bubble{font-size:12px;max-width:120%;bottom:calc(100% + 12px)}
     .like-float{font-size:24px}
     .react-bar{padding:6px 2px 8px;gap:6px}
     .react{min-width:40px;height:36px;font-size:18px}
@@ -520,6 +487,86 @@
     .chat-modal{width:min(92vw, 460px);max-height:min(78vh, 600px);padding:14px}
     #log{font-size:13px;padding:12px;min-height:160px}
     .chat-compose input{font-size:14px;padding:10px 12px}
+  }
+
+
+  .tile.loading .tile-spin{
+    display:flex;
+  }
+  .tile-spin{
+    display:none;
+    position:absolute;inset:0;z-index:5;
+    align-items:center;justify-content:center;
+    background:#000a;
+    border-radius:inherit;
+    pointer-events:none;
+  }
+  .tile-spin::before{
+    content:"";
+    width:28px;height:28px;
+    border:3px solid #ffffff44;
+    border-top-color:#8af0a0;
+    border-radius:50%;
+    animation:tileSpin .7s linear infinite;
+  }
+  .tile-spin span{
+    position:absolute;bottom:18%;
+    font-size:10px;font-weight:700;color:#e8f5ea;
+    text-shadow:0 1px 2px #000a;
+  }
+  @keyframes tileSpin{to{transform:rotate(360deg)}}
+  /* Course fullscreen: hide chrome, teaching fills viewport */
+  body.course-fs header,
+  body.course-fs .cams,
+  body.course-fs .room-note{display:none !important}
+  body.course-fs main{
+    display:flex !important;
+    flex-direction:column !important;
+    grid-template-columns:unset !important;
+    grid-template-areas:unset !important;
+    gap:0 !important;
+    padding:0 !important;
+    max-width:none !important;
+  }
+  body.course-fs .course{
+    order:unset !important;
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    border:0 !important;
+    border-radius:0 !important;
+    padding:0 !important;
+    background:#000;
+  }
+  body.course-fs .course h2{display:none}
+  body.course-fs .course iframe{
+    border-radius:0 !important;
+    flex:1 !important;
+    min-height:100% !important;
+    height:100% !important;
+  }
+  .fs-btn{
+    position:fixed;
+    right:max(10px, env(safe-area-inset-right, 0px));
+    bottom:max(10px, env(safe-area-inset-bottom, 0px));
+    z-index:40;
+    width:40px;height:40px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:#0f2218ee;
+    color:var(--txt);
+    font-size:18px;line-height:1;
+    cursor:pointer;
+    backdrop-filter:blur(8px);
+    box-shadow:0 4px 16px #0008;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .fs-btn:active{transform:scale(.96)}
+  body.course-fs .fs-btn{
+    background:#1e7a3aee;
+    border-color:#6dcf7a;
+  }
+  @media (orientation: landscape), (min-width: 600px){
+    .fs-btn{width:36px;height:36px;font-size:16px;border-radius:10px}
   }
 </style>
 </head>
@@ -541,7 +588,7 @@
   <section class="panel cams">
     <h2>画面</h2>
     <div class="hint">竖屏卡通；进房开摄像头后换真人。说话会在头顶冒泡。小雨有表情。</div>
-    <p class="room-note">同房共学 · 点头像进房开摄像头（爸爸/妈妈/芃芃）· 点小雨切换心情</p>
+    <p class="room-note">同房共学 · 点头像进房开摄像头（爸爸/妈妈/芃芃）· 点小雨开口/静音</p>
     <div class="vids" id="vids">
       <div class="tile online joinable" id="tile-dad" data-role="dad" role="button" tabindex="0" aria-label="点爸爸头像进房开摄像头" title="点一下开摄像头">
         <div class="tile-inner">
@@ -550,8 +597,8 @@
           <div class="badge">卡通</div>
           <div class="name">爸爸</div>
           <div class="tap-hint">点开摄像头</div>
+          <div class="tile-spin" aria-hidden="true"><span>打开中…</span></div>
         </div>
-        <div class="bubble" aria-hidden="true"></div>
       </div>
       <div class="tile online joinable" id="tile-kid" data-role="kid" role="button" tabindex="0" aria-label="点芃芃（伍澍暘）头像进房开摄像头" title="点一下开摄像头">
         <div class="tile-inner">
@@ -560,8 +607,8 @@
           <div class="badge">卡通</div>
           <div class="name">芃芃</div>
           <div class="tap-hint">点开摄像头</div>
+          <div class="tile-spin" aria-hidden="true"><span>打开中…</span></div>
         </div>
-        <div class="bubble" aria-hidden="true"></div>
       </div>
       <div class="tile online joinable" id="tile-mom" data-role="mom" role="button" tabindex="0" aria-label="点妈妈头像进房开摄像头" title="点一下开摄像头">
         <div class="tile-inner">
@@ -570,10 +617,10 @@
           <div class="badge">卡通</div>
           <div class="name">妈妈</div>
           <div class="tap-hint">点开摄像头</div>
+          <div class="tile-spin" aria-hidden="true"><span>打开中…</span></div>
         </div>
-        <div class="bubble" aria-hidden="true"></div>
       </div>
-      <div class="tile rain online digital mood-idle" id="tile-xiaoyu" data-role="xiaoyu" role="button" tabindex="0" aria-label="小雨数字人，点一下切换心情" title="点小雨切换心情">
+      <div class="tile rain online digital mood-idle" id="tile-xiaoyu" data-role="xiaoyu" role="button" tabindex="0" aria-label="小雨数字人，点一下开口或静音" title="点小雨：开口/静音">
         <div class="tile-inner">
           <div class="xy-glow" aria-hidden="true"></div>
           <img class="avatar xy-bob" src="../avatars/xiaoyu.jpg" alt="小雨"/>
@@ -582,7 +629,6 @@
           <div class="badge" id="rainBadge">在线·静默</div>
           <div class="name">小雨</div>
         </div>
-        <div class="bubble" aria-hidden="true"></div>
       </div>
     </div>
     <div class="react-bar" id="reactBar" aria-label="快捷表情">
@@ -638,6 +684,7 @@ let myChatName = '我';
 let myRole = null; // dad | kid | mom
 const bubbleTimers = new WeakMap();
 let xyExprTimer = null;
+let xiaoyuSpeakActive = false;
 
 function openChat(){
   chatOpen = true;
@@ -672,13 +719,17 @@ function appendChat(who, text){
   log(who ? `[${who}] ${text}` : text);
 }
 
+function isXiaoyuIdentity(identity){
+  const id = String(identity || '').toLowerCase();
+  return id === 'xiaoyu' || id === 'rain' || id === 'xiaoyu-listener' || id.startsWith('xiaoyu');
+}
 function identityToTileId(identity){
   if (!identity) return null;
   const id = String(identity).toLowerCase();
   if (id === 'dad' || id === 'local-dad') return 'tile-dad';
   if (id === 'lucas' || id === 'kid') return 'tile-kid';
   if (id === 'mom' || id === 'chunyan') return 'tile-mom';
-  if (id === 'xiaoyu' || id === 'rain') return 'tile-xiaoyu';
+  if (isXiaoyuIdentity(id)) return 'tile-xiaoyu';
   return 'tile-' + identity;
 }
 function whoToTileId(who, identity){
@@ -734,30 +785,11 @@ function spawnLikeFloat(tileEl, emoji){
   }
 }
 function showBubble(tileEl, text){
+  /* speech bubbles removed — only Douyin float likes for reactions */
   if (!tileEl) return;
   const t = String(text || '').trim();
   if (!t) return;
-  // 表情/点赞 → 抖音漂浮，不挡脸
-  if (isEmojiOnly(t)) {
-    spawnLikeFloat(tileEl, t);
-    return;
-  }
-  // 文字气泡：贴在格子上方外侧
-  let bubble = tileEl.querySelector(':scope > .bubble');
-  if (!bubble) {
-    bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    tileEl.appendChild(bubble);
-  }
-  bubble.textContent = t.length > 36 ? t.slice(0, 35) + '…' : t;
-  bubble.classList.remove('show');
-  void bubble.offsetWidth;
-  bubble.classList.add('show');
-  const prev = bubbleTimers.get(tileEl);
-  if (prev) clearTimeout(prev);
-  bubbleTimers.set(tileEl, setTimeout(() => {
-    bubble.classList.remove('show');
-  }, 3600));
+  if (REACTIONS.has(t) || isEmojiOnly(t)) spawnLikeFloat(tileEl, t);
 }
 function setXiaoyuMood(mood){
   const el = document.getElementById('tile-xiaoyu');
@@ -768,7 +800,9 @@ function setXiaoyuMood(mood){
   el.classList.add('mood-' + m);
   const badge = document.getElementById('rainBadge');
   if (badge && !badge.textContent.startsWith('离线')) {
-    badge.textContent = m === 'happy' ? '在线·开心' : m === 'star' ? '在线·明星' : '在线·静默';
+    // Prefer speak-mode badge; mood is visual on the avatar only
+    if (typeof xiaoyuSpeakActive !== 'undefined' && xiaoyuSpeakActive) badge.textContent = '在线·可开口';
+    else badge.textContent = m === 'happy' ? '在线·开心' : m === 'star' ? '在线·明星' : '在线·静默';
   }
   if (xyExprTimer) clearTimeout(xyExprTimer);
   if (m !== 'idle') {
@@ -789,8 +823,7 @@ function cycleXiaoyuMood(){
   for (const m of order) if (el.classList.contains('mood-' + m)) cur = m;
   const next = order[(order.indexOf(cur) + 1) % order.length];
   setXiaoyuMood(next);
-  const label = next === 'happy' ? '开心～' : next === 'star' ? '明星时刻！' : '静静陪你们';
-  showBubble(el, label);
+  /* mood visual only — no text bubble */
 }
 function maybeXiaoyuReact(who, text, identity){
   const tileId = whoToTileId(who, identity);
@@ -821,7 +854,8 @@ function resetLocalCameraTile(role){
   const map = { dad:'tile-dad', kid:'tile-kid', mom:'tile-mom' };
   const el = document.getElementById(map[role]);
   if (!el) return;
-  el.classList.remove('live','me');
+  el.classList.remove('live','me','loading');
+  setTileLoading(el, false);
   const v = el.querySelector('video');
   if (v) {
     try { v.srcObject = null; } catch(_){}
@@ -842,13 +876,13 @@ function ensureVideoTile(id, name){
   if (id === 'dad' || id === 'local-dad') el = document.getElementById('tile-dad');
   else if (id === 'lucas' || id === 'kid') el = document.getElementById('tile-kid');
   else if (id === 'mom' || id === 'chunyan') el = document.getElementById('tile-mom');
-  else if (id === 'xiaoyu' || id === 'rain') el = document.getElementById('tile-xiaoyu');
+  else if (isXiaoyuIdentity(id)) el = document.getElementById('tile-xiaoyu');
   else {
     el = document.getElementById('tile-'+id);
     if (!el) {
       el = document.createElement('div');
       el.className = 'tile'; el.id = 'tile-'+id;
-      el.innerHTML = '<div class="tile-inner"><img class="avatar" alt=""/><video autoplay playsinline muted hidden></video><div class="badge">卡通</div><div class="name"></div></div><div class="bubble" aria-hidden="true"></div>';
+      el.innerHTML = '<div class="tile-inner"><img class="avatar" alt=""/><video autoplay playsinline muted hidden></video><div class="badge">卡通</div><div class="name"></div><div class="tile-spin" aria-hidden="true"><span>打开中…</span></div></div>';
       vids.insertBefore(el, document.getElementById('tile-xiaoyu'));
     }
   }
@@ -856,6 +890,21 @@ function ensureVideoTile(id, name){
   if (nameEl) nameEl.textContent = name;
   el.classList.add('online');
   return el;
+}
+
+function setTileLoading(el, on){
+  if (!el) return;
+  el.classList.toggle('loading', !!on);
+  el.setAttribute('aria-busy', on ? 'true' : 'false');
+  let spin = el.querySelector('.tile-spin');
+  if (on && !spin) {
+    spin = document.createElement('div');
+    spin.className = 'tile-spin';
+    spin.setAttribute('aria-hidden', 'true');
+    spin.innerHTML = '<span>打开中…</span>';
+    const inner = el.querySelector('.tile-inner') || el;
+    inner.appendChild(spin);
+  }
 }
 function showLiveCamera(el, track){
   const v = el.querySelector('video');
@@ -866,6 +915,7 @@ function showLiveCamera(el, track){
   v.hidden = false;
   v.muted = (el.id === 'tile-dad' || el.id === 'tile-kid' || el.id === 'tile-mom');
   el.classList.add('live');
+  setTileLoading(el, false);
   if (img) img.style.display = 'none';
   if (badge) badge.textContent = '摄像头';
 }
@@ -896,29 +946,66 @@ async function joinRainPresence(){
     log('系统：小雨旁听: ' + (e.message||e));
   }
 }
+function applyXiaoyuSpeakUi(on){
+  xiaoyuSpeakActive = !!on;
+  const el = document.getElementById('tile-xiaoyu');
+  if (el) el.classList.toggle('speaking', xiaoyuSpeakActive);
+  const badge = document.getElementById('rainBadge');
+  if (badge) {
+    if (!el || !el.classList.contains('online')) badge.textContent = '离线';
+    else badge.textContent = xiaoyuSpeakActive ? '在线·可开口' : '在线·静默';
+  }
+  if (xiaoyuSpeakActive) setXiaoyuMood('happy');
+  else setXiaoyuMood('idle');
+}
+async function publishXiaoyuActive(on){
+  const payload = new TextEncoder().encode(JSON.stringify({ t: 'xiaoyu_active', on: !!on }));
+  const lp = (room && room.localParticipant)
+    || (window.__rainRoom && window.__rainRoom.localParticipant);
+  if (!lp) {
+    log('系统：请先点爸爸/妈妈/芃芃头像进房，再点小雨开口');
+    return false;
+  }
+  try {
+    await lp.publishData(payload, { reliable: true });
+    return true;
+  } catch (e) {
+    log('系统：无法通知小雨开口: ' + (e.message || e));
+    return false;
+  }
+}
+async function toggleXiaoyuSpeak(){
+  const next = !xiaoyuSpeakActive;
+  // Optimistic UI; listener echoes xiaoyu_active for sync
+  applyXiaoyuSpeakUi(next);
+  if (next) setXiaoyuMood('star'); // brief "activated" feedback; mood cycle still available via apply
+  const ok = await publishXiaoyuActive(next);
+  if (!ok) applyXiaoyuSpeakUi(false);
+  else log(next ? '系统：已点小雨 — 可以开口（再点静音）' : '系统：小雨已静音旁听');
+}
 function handleRoomDataMessage(msg, participant){
   if (!msg || typeof msg !== 'object') return;
+  if (msg.t === 'xiaoyu_active') {
+    applyXiaoyuSpeakUi(!!msg.on);
+    return;
+  }
   if (msg.t === 'heard' && typeof msg.text === 'string') {
     const who = msg.who || '家人';
     const wake = !!msg.wake;
+    // STT log only — no avatar text bubbles
     log(wake
       ? `小雨听到了（喊到她）：[${who}] ${msg.text}`
       : `小雨听到了：[${who}] ${msg.text}`);
-    const xy = document.getElementById('tile-xiaoyu');
-    if (wake) {
-      showBubble(xy, '我在～');
-      setXiaoyuMood('happy');
-    } else {
-      showBubble(xy, '…');
-      setXiaoyuMood('idle');
-    }
     return;
   }
   if (msg.t === 'chat' && typeof msg.text === 'string') {
     const who = (msg.who) || (participant && (participant.name || participant.identity)) || '对方';
     const identity = msg.id || (participant && participant.identity);
+    const fromXy = isXiaoyuIdentity(identity) || who === '小雨';
+    // Gate 小雨 reply bubbles/chat behind speak mode (system messages always ok)
+    if (fromXy && who !== '系统' && !xiaoyuSpeakActive) return;
     presentMessage(who, msg.text, identity);
-    if (identity === 'xiaoyu' || who === '小雨') {
+    if (fromXy && who === '小雨') {
       setXiaoyuMood(msg.mood === 'star' ? 'star' : 'happy');
     }
   }
@@ -994,21 +1081,35 @@ async function join(role){
     return;
   }
   joining = true;
+  const tileMap = { dad:'tile-dad', kid:'tile-kid', mom:'tile-mom' };
+  const loadingTile = document.getElementById(tileMap[role]);
+  setTileLoading(loadingTile, true);
   try {
     if (room) {
       log('系统：切换角色，先离开再以新身份进同房…');
       await leaveRoom({ keepRain: true });
+      setTileLoading(loadingTile, true);
     }
     room = new Room({ adaptiveStream: true, dynacast: true });
     setupChatHandlers(room);
     room.on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
-      if (participant.identity === 'xiaoyu') return;
+      // One 小雨 only: cartoon tile. Never spawn tile for xiaoyu / xiaoyu-listener.
+      if (isXiaoyuIdentity(participant.identity)) {
+        setRainOnline(true, xiaoyuSpeakActive ? '在线·可开口' : '在线·静默');
+        if (track.kind === Track.Kind.Audio) {
+          const a = track.attach(); a.autoplay = true; document.body.appendChild(a);
+        }
+        return;
+      }
       const el = ensureVideoTile(participant.identity, participant.name || participant.identity);
       if (track.kind === Track.Kind.Video) showLiveCamera(el, track);
       if (track.kind === Track.Kind.Audio) { const a = track.attach(); a.autoplay = true; document.body.appendChild(a); }
     });
     room.on(RoomEvent.ParticipantConnected, (p) => {
-      if (p.identity === 'xiaoyu') setRainOnline(true, '在线·静默');
+      if (isXiaoyuIdentity(p.identity)) {
+        setRainOnline(true, xiaoyuSpeakActive ? '在线·可开口' : '在线·静默');
+        return;
+      }
       log('系统：同房有人进：' + (p.name||p.identity));
     });
     room.on(RoomEvent.TrackUnsubscribed, (track) => track.detach());
@@ -1039,15 +1140,20 @@ async function join(role){
       log('系统：已打开摄像头并发布到同房');
     } catch (camErr) {
       ensureVideoTile(localId, localName + '·无摄像头');
+      setTileLoading(loadingTile, false);
       log('系统：摄像头不可用（已进同房）: ' + camErr.message);
     }
     markMeTile();
     document.getElementById('leave').disabled = false;
     if (!window.__rainRoom) await joinRainPresence();
-    setXiaoyuMood('happy');
-    showBubble(document.getElementById('tile-xiaoyu'), '欢迎进班～');
+    /* no auto welcome bubble */
+  } catch (joinErr) {
+    setTileLoading(loadingTile, false);
+    throw joinErr;
   } finally {
     joining = false;
+    // If still not live (e.g. connect failed before tracks), drop spinner
+    if (loadingTile && !loadingTile.classList.contains('live')) setTileLoading(loadingTile, false);
   }
 }
 
@@ -1072,12 +1178,12 @@ function onJoinableActivate(el){
 const xyTile = document.getElementById('tile-xiaoyu');
 xyTile.addEventListener('click', (e) => {
   e.preventDefault();
-  cycleXiaoyuMood();
+  toggleXiaoyuSpeak().catch(err => log('系统：小雨开口失败: ' + (err.message||err)));
 });
 xyTile.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault();
-    cycleXiaoyuMood();
+    toggleXiaoyuSpeak().catch(err => log('系统：小雨开口失败: ' + (err.message||err)));
   }
 });
 
@@ -1085,6 +1191,10 @@ document.getElementById('joinDad').onclick = () => join('dad').catch(e => log('�
 document.getElementById('joinKid').onclick = () => join('kid').catch(e => log('系统：失败: ' + (e.message||e)));
 document.getElementById('joinMom').onclick = () => join('mom').catch(e => log('系统：失败: ' + (e.message||e)));
 document.getElementById('leave').onclick = async () => {
+  if (xiaoyuSpeakActive) {
+    applyXiaoyuSpeakUi(false);
+    try { await publishXiaoyuActive(false); } catch(_){}
+  }
   await leaveRoom({ keepRain: false });
   setRainOnline(true, '在线·静默');
   setXiaoyuMood('idle');
@@ -1096,7 +1206,34 @@ chatInput.addEventListener('keydown', (e) => {
 });
 setRainOnline(true, '在线·静默');
 setXiaoyuMood('idle');
-log('系统：同房教室 — 点头像开摄像头。小雨旁听可听语音；喊「小雨」她才回。');
+applyXiaoyuSpeakUi(false);
+const courseFsBtn = document.getElementById('courseFsBtn');
+function setCourseFullscreen(on){
+  document.body.classList.toggle('course-fs', !!on);
+  if (courseFsBtn) {
+    courseFsBtn.setAttribute('aria-label', on ? '退出课程全屏' : '课程全屏');
+    courseFsBtn.title = on ? '退出全屏' : '课程全屏';
+    courseFsBtn.textContent = on ? '✕' : '⛶';
+  }
+}
+if (courseFsBtn) {
+  courseFsBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    setCourseFullscreen(!document.body.classList.contains('course-fs'));
+  });
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.body.classList.contains('course-fs')) {
+    e.preventDefault();
+    setCourseFullscreen(false);
+  }
+});
+// Remove any stray duplicate 小雨 tiles from older sessions / bad ids
+document.querySelectorAll('.vids .tile[id^="tile-xiaoyu"]').forEach(el => {
+  if (el.id !== 'tile-xiaoyu') el.remove();
+});
+log('系统：同房教室 — 点头像开摄像头。点小雨才开口；右下角可课程全屏。');
 </script>
+<button type="button" class="fs-btn" id="courseFsBtn" aria-label="课程全屏" title="课程全屏">⛶</button>
 </body>
 </html>

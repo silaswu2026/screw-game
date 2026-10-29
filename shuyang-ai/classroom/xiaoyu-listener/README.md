@@ -4,10 +4,11 @@
 
 ## 行为
 
-1. **先听**：进房后静默旁听，不抢话。
-2. **欢迎**：爸爸 / 芃芃 / 妈妈带摄像头进房后，稍等再说「欢迎爸爸进来」等（不是笼统的「欢迎你」）。
-3. **唤醒才回**：日常只听；话里出现 **「小雨」**（也认误称「小宇」）才回复。
-4. 教室页通过 `publishData` 收到 `{t:'heard'}` / `{t:'chat', who:'小雨'}`，头顶冒泡。
+1. **先听**：进房后静默旁听，不抢话。持久进程（`./run.sh`），不依赖家人登录触发。
+2. **不自动欢迎**：有人带摄像头进房时不说话。
+3. **点小雨才开口**：教室页点小雨头像发 `{t:'xiaoyu_active', on:true}` 后，才允许 TTS / 小雨 chat 气泡；再点可关闭。
+4. **唤醒词**：仅在 speak mode 开启时，话里出现 **「小雨」**（也认「小宇」）才回复。
+5. STT 始终旁听，并 `publishData` `{t:'heard'}` 给教室页做检测/日志。
 
 ## 密钥（不要提交）
 
@@ -22,7 +23,6 @@ STT 走 **LiveKit Inference**（`deepgram/nova-3`），一般**不需要**单独
 
 - `ENABLE_TTS=0` — 只发文字冒泡，不开语音轨
 - `STT_LANGUAGE=zh`
-- `WELCOME_DELAY_S=1.6`
 
 ## 在本机 / box 运行
 
@@ -31,7 +31,7 @@ cd shuyang-ai/classroom/xiaoyu-listener
 ./run.sh
 ```
 
-保持该进程运行；家人在 https://silaswu2026.github.io/shuyang-chengzhangwu/shuyang-ai/classroom/ 点头像进房后，小雨即可听。
+保持该进程运行；家人在 https://silaswu2026.github.io/shuyang-chengzhangwu/shuyang-ai/classroom/ 打开教室即可旁听。点小雨头像后才开口。
 
 ## 状态说明
 
@@ -39,7 +39,9 @@ cd shuyang-ai/classroom/xiaoyu-listener
 |------|------|
 | 进同房订阅音频 | ✅ `listen.py` |
 | STT（Inference） | ✅ 需 LiveKit Cloud 开通 Inference / 有额度 |
-| 欢迎语 + 唤醒词 | ✅ |
+| 点头像 speak mode | ✅ `{t:'xiaoyu_active'}` |
+| 欢迎语 | ❌ 已关闭 |
+| 唤醒词自动回 | ⚠️ 仅 speak mode 开时 |
 | TTS 开口 | ⚠️ 依赖 Inference TTS；失败时仍有文字冒泡 |
 | 完整对话 LLM | ❌ 未接；唤醒后仅短回复 |
 

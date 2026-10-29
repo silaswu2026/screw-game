@@ -3,9 +3,9 @@
 小雨同房旁听：先听，不抢话。
 - 加入 LiveKit room（默认 chengzhangwu）身份 xiaoyu-listener
 - 订阅家人音频 → LiveKit Inference STT（无需单独 Deepgram key）
-- 有人带摄像头进房：稍等后说「欢迎爸爸/芃芃/妈妈进来」
-- 日常只静默听；仅当话里喊到「小雨」（或误称「小宇」）才回复/冒泡
-- 通过 publishData 推给教室页：{t:'heard'} / {t:'chat', who:'小雨', ...}
+- 始终旁听并 publish {t:'heard'}；开口（TTS + 小雨 chat 气泡）须教室页点小雨激活
+- 教室页 publishData {t:'xiaoyu_active', on:true|false} 开关 speak mode
+- 通过 publishData 推给教室页：{t:'heard'} / {t:'chat', who:'小雨', ...} / {t:'xiaoyu_active'}
 
 Secrets: .env or LIVEKIT_* env — never commit.
 """
@@ -39,10 +39,9 @@ IDENTITY = os.environ.get("XIAOYU_IDENTITY", "xiaoyu-listener").strip()
 STT_MODEL = os.environ.get("STT_MODEL", "deepgram/nova-3").strip()
 STT_LANGUAGE = os.environ.get("STT_LANGUAGE", "zh").strip()
 TTS_MODEL = os.environ.get("TTS_MODEL", "cartesia/sonic-3").strip()
-WELCOME_DELAY_S = float(os.environ.get("WELCOME_DELAY_S", "1.6"))
 ENABLE_TTS = os.environ.get("ENABLE_TTS", "1").strip() not in ("0", "false", "no")
 
-# Wake words: canonical 小雨; family sometimes says 小宇
+# Wake words: canonical 小雨; family sometimes says 小宇 — only reply when speak mode on
 WAKE_RE = re.compile(r"(小雨|小宇|xiaoyu|xiao.?yu)", re.I)
 
 ROLE_LABEL = {
@@ -90,17 +89,18 @@ class XiaoyuListener:
     def __init__(self) -> None:
         self.room = rtc.Room()
         self._stt_tasks: dict[str, asyncio.Task] = {}
-        self._welcomed: set[str] = set()
         self._audio_ready = asyncio.Event()
         self._listen_started_at = 0.0
         self._tts = None
         self._audio_source: rtc.AudioSource | None = None
         self._audio_track: rtc.LocalAudioTrack | None = None
         self._speak_lock = asyncio.Lock()
+        # Gate ALL spoken output until classroom page activates 小雨
+        self._speak_active = False
 
     async def start(self) -> None:
         token = mint_token()
-        log.info("connecting to %s room=%s as %s (LISTEN FIRST)", LIVEKIT_URL, ROOM_NAME, IDENTITY)
+        log.info("connecting to %s room=%s as %s (LISTEN FIRST, speak gated)", LIVEKIT_URL, ROOM_NAME, IDENTITY)
 
         @self.room.on("track_subscribed")
         def _on_track_subscribed(
@@ -114,13 +114,11 @@ class XiaoyuListener:
                 log.info("audio subscribed: %s (%s) — 静默旁听", participant.identity, label_for(participant))
                 self._audio_ready.set()
                 self._ensure_stt(participant, track)
-            elif track.kind == rtc.TrackKind.KIND_VIDEO:
-                asyncio.create_task(self._maybe_welcome(participant))
+            # video: no auto-welcome
 
         @self.room.on("participant_connected")
         def _on_participant_connected(participant: rtc.RemoteParticipant):
             log.info("participant connected: %s name=%s", participant.identity, participant.name)
-            # video may arrive later via track_subscribed
 
         @self.room.on("track_unsubscribed")
         def _on_track_unsubscribed(
@@ -134,25 +132,47 @@ class XiaoyuListener:
         @self.room.on("participant_disconnected")
         def _on_participant_disconnected(participant: rtc.RemoteParticipant):
             self._stop_stt(participant.identity)
-            self._welcomed.discard(participant.identity)
+
+        @self.room.on("data_received")
+        def _on_data_received(data: rtc.DataPacket):
+            asyncio.create_task(self._on_data(data))
 
         await self.room.connect(LIVEKIT_URL, token)
         self._listen_started_at = time.time()
-        log.info("joined — 先听，不抢话。唤醒词：小雨（也认小宇）")
+        log.info("joined — 先听；开口需教室页点小雨 (xiaoyu_active)")
 
-        await self._publish_system("小雨已进同房旁听，先听你们说～")
+        await self._publish_system("小雨已进同房旁听（默默听；点小雨才开口）")
         # existing participants
         for p in self.room.remote_participants.values():
             for pub in p.track_publications.values():
                 if pub.track and pub.track.kind == rtc.TrackKind.KIND_AUDIO:
                     self._audio_ready.set()
                     self._ensure_stt(p, pub.track)
-                if pub.track and pub.track.kind == rtc.TrackKind.KIND_VIDEO:
-                    asyncio.create_task(self._maybe_welcome(p))
 
         # stay alive
         while True:
             await asyncio.sleep(3600)
+
+    async def _on_data(self, data: rtc.DataPacket) -> None:
+        try:
+            raw = data.data
+            if isinstance(raw, memoryview):
+                raw = raw.tobytes()
+            msg = json.loads(raw.decode("utf-8"))
+        except Exception:
+            return
+        if not isinstance(msg, dict):
+            return
+        if msg.get("t") == "xiaoyu_active":
+            on = bool(msg.get("on"))
+            prev = self._speak_active
+            self._speak_active = on
+            who = ""
+            if data.participant:
+                who = data.participant.identity or ""
+            log.info("speak mode %s → %s (from %s)", prev, on, who or "?")
+            # Echo so all classroom tabs stay in sync
+            await self._publish({"t": "xiaoyu_active", "on": on})
 
     def _ensure_stt(self, participant: rtc.RemoteParticipant, track: rtc.Track) -> None:
         ident = participant.identity
@@ -206,24 +226,26 @@ class XiaoyuListener:
                 pass
 
     async def _on_final_transcript(self, who: str, identity: str, text: str) -> None:
-        # Always notify classroom that 小雨 heard (for bubble/log), but do not speak back
-        # unless wake word present.
+        wake = bool(WAKE_RE.search(text))
+        # Always notify classroom that 小雨 heard (for log/detection); never auto-speak
+        # unless speak mode is on AND wake word present.
         await self._publish(
             {
                 "t": "heard",
                 "who": who,
                 "id": identity,
                 "text": text,
-                "wake": bool(WAKE_RE.search(text)),
+                "wake": wake,
+                "speak": self._speak_active,
             }
         )
-        if not WAKE_RE.search(text):
-            # 静默旁听 — family talking among themselves
+        if not self._speak_active:
+            return
+        if not wake:
             return
 
-        # Called 小雨 — short acknowledgment
         reply = self._reply_for_wake(who, text)
-        log.info("wake word → reply: %s", reply)
+        log.info("speak-on + wake → reply: %s", reply)
         await self._say(reply, mood="happy")
 
     def _reply_for_wake(self, who: str, text: str) -> str:
@@ -232,32 +254,13 @@ class XiaoyuListener:
             return "嗯，我在～"
         return f"{who}，我在听，你说～"
 
-    async def _maybe_welcome(self, participant: rtc.RemoteParticipant) -> None:
-        ident = participant.identity
-        if ident == IDENTITY or ident in ("xiaoyu", "rain"):
-            return
-        if ident in self._welcomed:
-            return
-        # only welcome family roles we know
-        who = label_for(participant)
-        if who not in ("爸爸", "芃芃", "妈妈"):
-            log.info("skip welcome for unknown %s", ident)
-            return
-        self._welcomed.add(ident)
-        # LISTEN FIRST: wait until audio path ready a bit, then pause before speaking
-        try:
-            await asyncio.wait_for(self._audio_ready.wait(), timeout=8)
-        except asyncio.TimeoutError:
-            pass
-        # ensure we have been in room at least WELCOME_DELAY
-        elapsed = time.time() - self._listen_started_at
-        await asyncio.sleep(max(WELCOME_DELAY_S, 0.8 - elapsed if elapsed < 0.8 else WELCOME_DELAY_S))
-        line = f"欢迎{who}进来"
-        log.info("welcome: %s", line)
-        await self._say(line, mood="happy")
-
     async def _say(self, text: str, mood: str = "happy") -> None:
+        if not self._speak_active:
+            log.info("skip _say (speak off): %s", text)
+            return
         async with self._speak_lock:
+            if not self._speak_active:
+                return
             await self._publish(
                 {
                     "t": "chat",
@@ -288,7 +291,6 @@ class XiaoyuListener:
         source = await self._ensure_mic()
         stream = self._tts.synthesize(text)
         async for ev in stream:
-            # AudioFrame events
             frame = getattr(ev, "frame", None) or ev
             if hasattr(frame, "data"):
                 await source.capture_frame(frame)
