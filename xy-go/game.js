@@ -616,10 +616,22 @@
   function cell(c, r) { return { x: (c + 0.5) * T, y: (r + 0.5) * T }; }
   function feet(c, groundRow) { return { x: (c + 0.5) * T, y: groundRow * T }; }
 
+  // Per-level terrain: L1–L7 alternate swamp / mountain; L8 fuses all
+  const LEVEL_TERRAIN = [
+    'swamp',    // 1 林间
+    'mountain', // 2 苔岩
+    'swamp',    // 3 萤火
+    'mountain', // 4 尖刺
+    'swamp',    // 5 火焰
+    'mountain', // 6 雷鸣
+    'swamp',    // 7 炸弹
+    'all',      // 8 终极：岛+水+金字塔+沼泽全融合
+  ];
+  let levelTerrain = 'swamp';
   const LEVELS = [
     {
       name: '林间晨跑', en: 'Forest Jog',
-      hint: '第1关：慢慢走，学跳与踩陷阱  Easy — move yourself',
+      hint: '第1关·沼泽：慢慢走，学跳；水伤怪不伤人',
       cols: 70, rows: 14, spawn: [2, 11], goal: [66, 11],
       checks: [[34, 11]],
       slimes: [[22, 11]], crates: [[16, 11]],
@@ -643,7 +655,7 @@
     },
     {
       name: '苔岩小径', en: 'Moss Path',
-      hint: '第2关：着火后左右快晃灭火  Shake L/R to put out fire',
+      hint: '第2关·山坡：金字塔地形；着火左右快晃灭火',
       cols: 82, rows: 14, spawn: [2, 11], goal: [78, 11],
       checks: [[20, 11], [48, 11]],
       slimes: [[26, 11], [54, 11]], crates: [[18, 11]],
@@ -667,7 +679,7 @@
     },
     {
       name: '萤火树冠', en: 'Firefly Canopy',
-      hint: '第3关：闪电初见；蓝免疫闪电  Lightning intro',
+      hint: '第3关·沼泽：闪电初见；蓝免疫闪电',
       cols: 92, rows: 14, spawn: [2, 11], goal: [88, 11],
       checks: [[30, 11], [60, 11]],
       slimes: [[18, 11], [40, 11], [66, 11]], crates: [[24, 11]],
@@ -692,7 +704,7 @@
     },
     {
       name: '尖刺走廊', en: 'Spike Hall',
-      hint: '第4关：尖刺增多；绿免疫尖刺  More spikes',
+      hint: '第4关·山坡：尖刺增多；绿免疫尖刺',
       cols: 96, rows: 14, spawn: [2, 11], goal: [92, 11],
       checks: [[28, 11], [56, 11]],
       slimes: [[20, 11], [44, 11], [70, 11]], crates: [[16, 11], [60, 11]],
@@ -717,7 +729,7 @@
     },
     {
       name: '火焰栈道', en: 'Flame Bridge',
-      hint: '第5关：喷火密集；着火快左右晃  Fire gauntlet — shake to extinguish',
+      hint: '第5关·沼泽：喷火密集；着火快左右晃',
       cols: 100, rows: 14, spawn: [2, 11], goal: [96, 11],
       checks: [[26, 11], [54, 11], [78, 11]],
       slimes: [[18, 11], [38, 11], [58, 11], [82, 11]], crates: [[22, 11], [62, 11]],
@@ -742,7 +754,7 @@
     },
     {
       name: '雷鸣谷口', en: 'Thunder Gate',
-      hint: '第6关：闪电增多；蓝免疫  Thunder gauntlet',
+      hint: '第6关·山坡：闪电增多；蓝免疫',
       cols: 104, rows: 14, spawn: [2, 11], goal: [100, 11],
       checks: [[28, 11], [56, 11], [80, 11]],
       slimes: [[16, 11], [36, 11], [52, 11], [72, 11], [88, 11]], crates: [[24, 11], [64, 11]],
@@ -767,7 +779,7 @@
     },
     {
       name: '炸弹矿坑', en: 'Bomb Pit',
-      hint: '第7关：炸弹连环；全员会被炸倒  Bomb chain',
+      hint: '第7关·沼泽：炸弹连环；全员会被炸倒',
       cols: 110, rows: 14, spawn: [2, 11], goal: [106, 11],
       checks: [[30, 11], [58, 11], [84, 11]],
       slimes: [[18, 11], [34, 11], [50, 11], [70, 11], [90, 11]], crates: [[14, 11], [46, 11], [78, 11]],
@@ -791,8 +803,8 @@
       },
     },
     {
-      name: '终极试炼', en: 'Final Trial',
-      hint: '第8关：四陷阱+多怪+楼梯  All traps — hard',
+      name: '终极融合', en: 'All Terrains',
+      hint: '第8关·终极融合：岛中水+金字塔+沼泽+全陷阱',
       cols: 120, rows: 14, spawn: [2, 11], goal: [116, 11],
       checks: [[26, 11], [52, 11], [78, 11], [100, 11]],
       slimes: [[14, 11], [30, 11], [46, 11], [62, 11], [82, 11], [98, 11]], crates: [[20, 11], [56, 11], [88, 11]],
@@ -886,29 +898,73 @@
     }
     return { c0, c1, r: baseRowClamped - height + 1, h: height };
   }
-  function seedWaterPools() {
-    // Initial small terrains with water in the middle on each ground island
+  /** Swamp: many ground puddles + muddy water bands (hurts monsters). */
+  function spawnSwampBand(cMid, groundRow, halfW) {
+    halfW = Math.max(2, halfW || 3);
+    const c0 = Math.max(2, cMid - halfW);
+    const c1 = Math.min(cols - 3, cMid + halfW);
+    for (let c = c0; c <= c1; c++) {
+      setWaterCell(c, groundRow, true);
+      if (groundRow + 1 < rows) setSolidCell(c, groundRow + 1, true);
+      if (groundRow + 2 < rows) setSolidCell(c, groundRow + 2, true);
+    }
+    // muddy stepping stones on the shores
+    setSolidCell(c0, groundRow, true);
+    setSolidCell(c1, groundRow, true);
+    water[groundRow * cols + c0] = 0;
+    water[groundRow * cols + c1] = 0;
+    return { c0, c1, r: groundRow };
+  }
+  function seedSwampTerrain() {
     const ground = 11;
     let c = 4;
-    let islands = 0;
-    while (c < cols - 4 && islands < 6) {
+    let n = 0;
+    while (c < cols - 4 && n < 8) {
       if (!solid[ground * cols + c]) { c++; continue; }
       const start = c;
       while (c < cols && solid[ground * cols + c]) c++;
       const end = c - 1;
       const width = end - start + 1;
-      if (width >= 7) {
+      if (width >= 6) {
         const mid = Math.floor((start + end) / 2);
-        carveWaterPool(mid, ground, width >= 14 ? 2 : 1);
-        islands++;
+        spawnSwampBand(mid, ground, width >= 12 ? 3 : 2);
+        n++;
       }
     }
-    // one floating water-island early-mid level
-    const floatC = Math.min(cols - 8, Math.max(10, Math.floor(cols * 0.32)));
+    // swamp floating islet with water mid
+    const floatC = Math.min(cols - 8, Math.max(10, Math.floor(cols * 0.4)));
     spawnWaterIsland(floatC, 8);
-    // one pyramid mountain ahead
-    const pyrC = Math.min(cols - 10, Math.max(16, Math.floor(cols * 0.55)));
-    spawnPyramid(pyrC, 11, 4);
+  }
+  function seedMountainTerrain() {
+    const ground = 11;
+    const p1 = Math.min(cols - 10, Math.max(12, Math.floor(cols * 0.28)));
+    const p2 = Math.min(cols - 10, Math.max(20, Math.floor(cols * 0.52)));
+    const p3 = Math.min(cols - 10, Math.max(28, Math.floor(cols * 0.75)));
+    spawnPyramid(p1, ground, 3);
+    spawnPyramid(p2, ground, 5);
+    spawnPyramid(p3, ground, 4);
+    // small ridge platforms between peaks
+    for (let c = p1 + 4; c < p1 + 7 && c < cols - 2; c++) {
+      setSolidCell(c, 9, true);
+      setSolidCell(c, 10, true);
+    }
+  }
+  function seedAllTerrains() {
+    seedSwampTerrain();
+    seedMountainTerrain();
+    // extra water-islands + one more pyramid for the finale
+    const i1 = Math.min(cols - 8, Math.max(8, Math.floor(cols * 0.22)));
+    const i2 = Math.min(cols - 8, Math.max(14, Math.floor(cols * 0.62)));
+    spawnWaterIsland(i1, 7);
+    spawnWaterIsland(i2, 8);
+    const pExtra = Math.min(cols - 12, Math.max(24, Math.floor(cols * 0.88)));
+    spawnPyramid(pExtra, 11, 6);
+  }
+  function seedLevelTerrain() {
+    levelTerrain = LEVEL_TERRAIN[levelIndex] || 'swamp';
+    if (levelTerrain === 'mountain') seedMountainTerrain();
+    else if (levelTerrain === 'all') seedAllTerrains();
+    else seedSwampTerrain();
   }
   function nearAnyNinja(cx, cy, rad) {
     const rs = rad * rad;
@@ -924,6 +980,7 @@
     if (ev.kind === 'pool') carveWaterPool(ev.c, ev.r | 11, ev.w || 1);
     else if (ev.kind === 'island') spawnWaterIsland(ev.c, ev.r | 8);
     else if (ev.kind === 'pyramid') spawnPyramid(ev.c, ev.r | 11, ev.h || 4);
+    else if (ev.kind === 'swamp') spawnSwampBand(ev.c, ev.r | 11, ev.w || 3);
     else if (ev.kind === 'sink') {
       for (let c = ev.c0; c <= ev.c1; c++) setWaterCell(c, ev.r, true);
       if (ev.r + 1 < rows) {
@@ -933,6 +990,7 @@
     if (announce && terraToastCd <= 0) {
       const tip = ev.kind === 'pyramid' ? '金字塔山坡出现了！'
         : ev.kind === 'island' ? '水中岛出现·中间有水（伤怪不伤人）！'
+        : ev.kind === 'swamp' ? '沼泽水域蔓延了！'
         : '地形变了·中间出现水域！';
       toast(tip);
       terraToastCd = 4;
@@ -942,20 +1000,34 @@
     const ground = 11;
     const focusX = player && !player.down ? player.x : (cols * T * 0.4);
     const aheadC = Math.floor(focusX / T) + 8 + (terraStep % 5) * 3;
-    const kindRoll = terraStep % 4;
-    // 0 island (water mid), 1 pyramid, 2 pool, 3 sink
-    if (kindRoll === 0) {
+    const theme = levelTerrain || LEVEL_TERRAIN[levelIndex] || 'swamp';
+    // Theme kits: swamp → swamp/island/pool/sink; mountain → pyramid (+ rare island);
+    // all → rotate every type
+    const kits = {
+      swamp: ['swamp', 'island', 'pool', 'sink'],
+      mountain: ['pyramid', 'pyramid', 'island', 'pyramid'],
+      all: ['island', 'pyramid', 'swamp', 'pool'],
+    };
+    const kit = kits[theme] || kits.swamp;
+    const want = kit[terraStep % kit.length];
+    if (want === 'island') {
       const c = Math.max(6, Math.min(cols - 7, aheadC));
       const r = 7 + (terraStep % 3);
       if (!nearAnyNinja((c + 0.5) * T, r * T, 110)) return { kind: 'island', c, r };
     }
-    if (kindRoll === 1) {
+    if (want === 'pyramid') {
       const c = Math.max(8, Math.min(cols - 9, aheadC + 2));
       if (!nearAnyNinja((c + 0.5) * T, ground * T, 140)) {
         return { kind: 'pyramid', c, r: ground, h: 3 + (terraStep % 3) };
       }
     }
-    if (kindRoll === 2) {
+    if (want === 'swamp') {
+      const c = Math.max(5, Math.min(cols - 6, aheadC));
+      if (!nearAnyNinja((c + 0.5) * T, ground * T, 100)) {
+        return { kind: 'swamp', c, r: ground, w: 2 + (terraStep % 2) };
+      }
+    }
+    if (want === 'pool') {
       let c = Math.max(4, Math.min(cols - 5, aheadC));
       for (let k = 0; k < 12; k++) {
         const cc = Math.max(3, Math.min(cols - 4, c + ((k % 2) ? k : -k)));
@@ -975,7 +1047,10 @@
         return { kind: 'sink', c0: a, c1: b, r: ground };
       }
     }
-    // fallback island
+    if (theme === 'mountain') {
+      const c = Math.max(8, Math.min(cols - 9, aheadC));
+      if (!nearAnyNinja((c + 0.5) * T, ground * T, 120)) return { kind: 'pyramid', c, r: ground, h: 4 };
+    }
     const fc = Math.max(6, Math.min(cols - 7, aheadC));
     if (!nearAnyNinja((fc + 0.5) * T, 8 * T, 100)) return { kind: 'island', c: fc, r: 8 };
     return null;
@@ -1073,7 +1148,7 @@
     terraAcc = 0;
     terraStep = 0;
     terraToastCd = 0;
-    seedWaterPools();
+    seedLevelTerrain();
     const ground = 11;
     coins = def.coins.map(([c, r]) => Object.assign({ got: false, bob: c }, cell(c, r)));
     stars = def.stars.map(([c, r]) => Object.assign({ got: false, bob: r }, cell(c, r)));
@@ -2989,7 +3064,7 @@
         const x = c * T;
         const y = r * T;
         const wave = Math.sin(sim * 4 + c * 0.7 + r) * 2;
-        ctx.fillStyle = 'rgba(40,140,220,0.78)';
+        ctx.fillStyle = (levelTerrain === 'swamp' || levelTerrain === 'all') ? 'rgba(36,130,110,0.82)' : 'rgba(40,140,220,0.78)';
         ctx.fillRect(x, y + 6, T + 0.6, T - 4);
         ctx.fillStyle = 'rgba(120,210,255,0.55)';
         ctx.beginPath();
