@@ -30,7 +30,12 @@
   #log{font-size:12px;opacity:.85;white-space:pre-wrap;max-height:140px;overflow:auto}
   .hint{font-size:13px;opacity:.9;line-height:1.5}
 
-  .tile.rain img.avatar{width:100%;height:100%;object-fit:cover;object-position:center 18%;display:block}
+  .tile img.avatar{width:100%;height:100%;object-fit:cover;object-position:center 20%;display:block}
+  .tile.rain img.avatar{object-position:center 18%}
+  .tile.live video{display:block;width:100%;height:100%;object-fit:cover}
+  .tile.live img.avatar{display:none}
+  .tile.live .badge{background:#2a6fd4}
+  .tile .badge{position:absolute;right:8px;top:8px;background:#1e7a3a;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700}
   .xy-bob{animation:xyBob 2.4s ease-in-out infinite;transform-origin:center bottom}
   @keyframes xyBob{
     0%,100%{transform:translateY(0) scale(1)}
@@ -49,10 +54,20 @@
 </header>
 <main>
   <section class="panel">
-    <div class="hint">三格：爸爸 / 芃芃 / <strong>小雨在线</strong>。手机微信打开本页 → 点进房 → 允许摄像头。右边是今晚课。</div>
+    <div class="hint">进房前三格默认是卡通形象（爸爸 / 芃芃 / 小雨）。点进房并允许摄像头后，才换成真人画面；小雨一直是角色头像动画。</div>
     <div class="vids" id="vids">
-      <div class="tile" id="tile-dad-slot"><div class="name">爸爸</div></div>
-      <div class="tile" id="tile-kid-slot"><div class="name">芃芃</div></div>
+      <div class="tile online" id="tile-dad">
+        <img class="avatar" src="../avatars/dad-wuxin.jpg" alt="爸爸"/>
+        <video autoplay playsinline muted hidden></video>
+        <div class="badge">卡通</div>
+        <div class="name">爸爸</div>
+      </div>
+      <div class="tile online" id="tile-kid">
+        <img class="avatar" src="../avatars/pengpeng.jpg" alt="芃芃"/>
+        <video autoplay playsinline muted hidden></video>
+        <div class="badge">卡通</div>
+        <div class="name">芃芃</div>
+      </div>
       <div class="tile rain online" id="tile-xiaoyu">
         <img class="avatar xy-bob" src="../avatars/xiaoyu.jpg" alt="小雨"/>
         <div class="badge" id="rainBadge">在线·待命</div>
@@ -75,14 +90,33 @@ const vids = document.getElementById('vids');
 function log(m){ logEl.textContent += m + '\n'; logEl.scrollTop = logEl.scrollHeight; console.log(m); }
 let room = null;
 function ensureVideoTile(id, name){
-  let el = document.getElementById('tile-'+id);
-  if (id === 'dad' || id === 'local-dad') { el = document.getElementById('tile-dad') || document.getElementById('tile-dad-slot'); el.id = 'tile-dad'; }
-  else if (id === 'lucas' || id === 'kid') { el = document.getElementById('tile-kid') || document.getElementById('tile-kid-slot'); el.id = 'tile-kid'; }
-  else if (!el) { el = document.createElement('div'); el.className = 'tile'; el.id = 'tile-'+id; vids.insertBefore(el, document.getElementById('tile-xiaoyu')); }
-  if (!el.querySelector('video')) el.innerHTML = '<video autoplay playsinline muted></video><div class="name"></div>';
+  let el;
+  if (id === 'dad' || id === 'local-dad') el = document.getElementById('tile-dad');
+  else if (id === 'lucas' || id === 'kid') el = document.getElementById('tile-kid');
+  else {
+    el = document.getElementById('tile-'+id);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'tile'; el.id = 'tile-'+id;
+      el.innerHTML = '<img class="avatar" alt=""/><video autoplay playsinline muted hidden></video><div class="badge">卡通</div><div class="name"></div>';
+      vids.insertBefore(el, document.getElementById('tile-xiaoyu'));
+    }
+  }
   el.querySelector('.name').textContent = name;
   el.classList.add('online');
   return el;
+}
+function showLiveCamera(el, track){
+  const v = el.querySelector('video');
+  const img = el.querySelector('img.avatar');
+  const badge = el.querySelector('.badge');
+  if (!v) return;
+  track.attach(v);
+  v.hidden = false;
+  v.muted = (el.id === 'tile-dad' || el.id === 'tile-kid');
+  el.classList.add('live');
+  if (img) img.style.display = 'none';
+  if (badge) badge.textContent = '摄像头';
 }
 function setRainOnline(on, detail){
   document.getElementById('tile-xiaoyu').classList.toggle('online', !!on);
@@ -107,7 +141,7 @@ async function join(role){
     if (participant.identity === 'xiaoyu') return;
     const el = ensureVideoTile(participant.identity, participant.name || participant.identity);
     const v = el.querySelector('video');
-    if (track.kind === Track.Kind.Video) { track.attach(v); v.muted = false; }
+    if (track.kind === Track.Kind.Video) showLiveCamera(el, track);
     if (track.kind === Track.Kind.Audio) { const a = track.attach(); a.autoplay = true; document.body.appendChild(a); }
   });
   room.on(RoomEvent.ParticipantConnected, (p) => {
@@ -125,7 +159,7 @@ async function join(role){
     const tracks = await createLocalTracks({ audio: true, video: true });
     const local = ensureVideoTile(localId, localName);
     for (const track of tracks) {
-      if (track.kind === Track.Kind.Video) track.attach(local.querySelector('video'));
+      if (track.kind === Track.Kind.Video) showLiveCamera(local, track);
       await room.localParticipant.publishTrack(track);
     }
     log('已发布本地音视频');
