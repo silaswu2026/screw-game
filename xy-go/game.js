@@ -1668,23 +1668,26 @@
       }
     }
   }
-  const BURN_WINDOW = 5.0; // 5s window: shake L/R to extinguish early, else -1 HP
-  const BURN_SHAKES_NEED = 5; // quick direction flips to extinguish
+  // Rocket / flamethrower on clothes: exactly 5s burn window.
+  // Shake L/R quickly → extinguish early, NO HP loss.
+  // If still burning at 5s → -1 HP, then fire stops on its own (never lasts past 5s).
+  const BURN_WINDOW = 5.0;
+  const BURN_SHAKES_NEED = 5;
   function tickBurn(n, dt, inp) {
     if (!n || n.down) return;
     if ((n.burnT || 0) <= 0) {
       n.burnT = 0; n.burnTick = 0; n.burnShake = 0; n.burnDir = 0;
       return;
     }
-    // Quick left↔right extinguishes body fire (no HP if in time)
+    // Quick left↔right extinguishes — prevents all health loss from this burn
     let d = 0;
     if (inp) {
       if (inp.left && !inp.right) d = -1;
       else if (inp.right && !inp.left) d = 1;
     }
     if (!d) {
-      if (n.vx < -55) d = -1;
-      else if (n.vx > 55) d = 1;
+      if (n.vx < -40) d = -1;
+      else if (n.vx > 40) d = 1;
     }
     if (d && n.burnDir && d !== n.burnDir) {
       n.burnShake = (n.burnShake || 0) + 1;
@@ -1694,7 +1697,7 @@
     if ((n.burnShake || 0) >= BURN_SHAKES_NEED) {
       n.burnT = 0; n.burnTick = 0; n.burnShake = 0; n.burnDir = 0;
       n.glow = Math.max(n.glow || 0, 0.25);
-      toast('左右快晃，火灭了！没掉血');
+      toast('左右快晃灭火成功！没有掉血');
       puff(n.x, n.y - 20, '#9ad0ff', 12);
       sfx.coin && sfx.coin();
       return;
@@ -1704,42 +1707,42 @@
     n.glow = Math.max(n.glow || 0, 0.2);
     if (Math.random() < dt * 10) puff(n.x + (Math.random() - 0.5) * 16, n.y - 20 - Math.random() * 20, '#ff7a20', 1);
     if (n.burnT > 0) return;
-    // Window over — not shaken out in time → lose 1 HP, fire goes out
+    // 5s over: damage applies once, then fire stops regardless
     n.burnShake = 0; n.burnDir = 0; n.burnTick = 0;
-    if (n.invuln <= 0) {
-      n.hp -= 1;
-      n.flash = 0.18;
-      n.invuln = 0.45;
-      puff(n.x, n.y - 28, '#ff8c32', 8);
-      sfx.bump();
-      toast((n.palette === 'green' ? '绿' : n.palette === 'blue' ? '蓝' : '红') + '忍者没晃灭火，-1血');
-      buzz(14);
-      if (n.hp <= 0) { n.hp = 0; downOrOver(n); }
-    }
+    n.hp -= 1;
+    n.flash = 0.18;
+    n.invuln = Math.max(n.invuln || 0, 0.45);
+    puff(n.x, n.y - 28, '#ff8c32', 8);
+    sfx.bump();
+    toast((n.palette === 'green' ? '绿' : n.palette === 'blue' ? '蓝' : '红') + '忍者衣服烧满5秒，-1血·火已停');
+    buzz(14);
+    if (n.hp <= 0) { n.hp = 0; downOrOver(n); }
   }
   function hurtFire(n) {
-    // Red immune; green/blue: body catches fire — shake L/R fast to extinguish before HP loss
+    // Rocket/flamethrower hit on clothes. Red immune.
+    // Green/blue: start a hard 5s burn (timer does not extend on re-hit).
     if (!n || n.down || mode !== 'play') return;
     if (n.palette === 'red') {
-      if ((n.spikeMsgCd || 0) <= 0) { toast('红忍者免疫喷火'); n.spikeMsgCd = 1.2; }
+      if ((n.spikeMsgCd || 0) <= 0) { toast('红忍者免疫喷火/火箭'); n.spikeMsgCd = 1.2; }
       return;
     }
     const was = n.burnT || 0;
     if (was <= 0) {
-      n.burnT = BURN_WINDOW;
+      n.burnT = BURN_WINDOW; // exactly 5s, then stops
       n.burnShake = 0;
       n.burnDir = 0;
       n.burnTick = 0;
       n.bones = Math.max(n.bones || 0, 0.35);
       n.glow = Math.max(n.glow || 0, 0.35);
-      toast((n.palette === 'green' ? '绿' : '蓝') + '忍者着火！5秒内左右快晃可灭火');
+      toast((n.palette === 'green' ? '绿' : '蓝') + '忍者衣服着火！5秒内左右快晃可免伤');
       puff(n.x, n.y - 16, '#ff8c32', 10);
       sfx.bump();
       buzz(12);
     } else {
-      // still in jet / re-hit: refresh window but keep shake progress (fair)
-      n.burnT = Math.max(n.burnT, BURN_WINDOW * 0.65);
+      // re-hit while burning: visual only — do NOT extend past the original 5s
       n.bones = Math.max(n.bones || 0, 0.3);
+      n.glow = Math.max(n.glow || 0, 0.3);
+      puff(n.x, n.y - 18, '#ff9a40', 3);
     }
   }
   function touchFires(n) {
