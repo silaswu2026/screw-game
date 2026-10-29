@@ -605,6 +605,27 @@ addMcBox('legL', -0.14, -0.10, 0, 0.24, 0.70, 0.24);
 addMcBox('legR',  0.14, -0.10, 0, 0.24, 0.70, 0.24);
 console.info('[skeleton] MC 6-box body', mcBoxes.length);
 
+// Front "skin paper" stuck ON the figure (Plane child of mcSkinRoot — yaws with boxes, not camera Sprite)
+const skinDecals = [];
+function addFrontDecal(name, imgUrl, delay) {
+  // placeholder; real map filled in buildMcSkins
+  const mat = new THREE.MeshBasicMaterial({
+    transparent: true, opacity: 0, depthMapped: false, depthWrite: false, side: THREE.DoubleSide,
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 1.85), mat);
+  mesh.position.set(0, 0.55, 0.20); // flush on front of torso/arms depth
+  mesh.visible = false;
+  mesh.renderOrder = 5;
+  mesh.userData.decal = name;
+  mcSkinRoot.add(mesh);
+  skinDecals.push({ mesh, mat, name, delay, url: imgUrl });
+}
+addFrontDecal('head',  '../../assets/sprites/mc-ninja/sticker-head.png', 0.00);
+addFrontDecal('torso', '../../assets/sprites/mc-ninja/sticker-torso.png', 0.20);
+addFrontDecal('legs',  '../../assets/sprites/mc-ninja/sticker-legs.png', 0.40);
+addFrontDecal('full',  '../../assets/sprites/mc-ninja/sticker-full.png', 0.65);
+
+
 function texFromImage(img) {
   const tex = new THREE.Texture(img);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -617,34 +638,41 @@ function texFromImage(img) {
   return tex;
 }
 
-function buildMcSkins(boxImgs) {
-  // Pre-baked square faces: art centered, no tiling, fills the front once
-  const fronts = {
-    head:  texFromImage(boxImgs.face),
-    torso: texFromImage(boxImgs.chest),
-    armL:  texFromImage(boxImgs.armL),
-    armR:  texFromImage(boxImgs.armR),
-    legL:  texFromImage(boxImgs.legs),
-    legR:  texFromImage(boxImgs.legs),
-  };
+function solidMats(hex) {
+  const m = new THREE.MeshStandardMaterial({ color: hex, roughness: 0.55, metalness: 0.04 });
+  return [m, m, m, m, m, m];
+}
+
+function buildMcSkins(boxImgs, decalImgs) {
+  // Boxes = 3D volume (solid colors). Decals = 逼真 ninja art glued on the FRONT, parented so they rotate with the body.
   const sideHex = {
-    head: 0x2a2a2a,
-    torso: 0x2e5c32,
-    armL: 0x3d8b40,
-    armR: 0x3d8b40,
-    legL: 0x222222,
-    legR: 0x222222,
+    head: 0x1a1a1a, torso: 0x2e5c32, armL: 0x3d8b40, armR: 0x3d8b40, legL: 0x222222, legR: 0x222222,
   };
   for (const box of mcBoxes) {
-    const tex = fronts[box.part] || fronts.torso;
-    box.skinMats = makeMcBoxMats(tex, sideHex[box.part] || 0x2e5c32);
+    box.skinMats = solidMats(sideHex[box.part] || 0x2e5c32);
     box.mesh.material = box.skinMats;
   }
-  console.info('[skeleton] MC skins ready (box-*.png fronts)');
+  const map = {
+    head: decalImgs.head, torso: decalImgs.torso, legs: decalImgs.legs, full: decalImgs.full,
+  };
+  for (const d of skinDecals) {
+    const img = map[d.name];
+    if (!img) continue;
+    const tex = texFromImage(img);
+    d.mat.map = tex;
+    d.mat.transparent = true;
+    d.mat.alphaTest = 0.05;
+    d.mat.needsUpdate = true;
+  }
+  console.info('[skeleton] MC volume + front decals ready');
 }
 
 function hideMcSkin() {
   skinReveal = null;
+  for (const d of skinDecals) {
+    d.mesh.visible = false;
+    d.mat.opacity = 0;
+  }
   mcSkinRoot.visible = false;
   for (const b of mcBoxes) {
     b.mesh.visible = false;
@@ -966,7 +994,19 @@ function frame(now) {
         b.mesh.scale.setScalar(1);
       }
     }
-    if (u >= 1.4 && allDone) skinReveal = null;
+    for (const d of skinDecals) {
+      const local = (u - d.delay) / 0.28;
+      if (local < 0) {
+        d.mat.opacity = 0;
+        allDone = false;
+      } else if (local < 1) {
+        d.mat.opacity = local;
+        allDone = false;
+      } else {
+        d.mat.opacity = 1;
+      }
+    }
+    if (u >= 1.6 && allDone) skinReveal = null;
   }
 
   controls.update();
@@ -988,14 +1028,21 @@ function loadImage(url) {
 
 (async () => {
   try {
-    const [face, chest, legs, armL, armR] = await Promise.all([
+    const [face, chest, legs, armL, armR, dHead, dTorso, dLegs, dFull] = await Promise.all([
       loadImage('../../assets/sprites/mc-ninja/box-face.png'),
       loadImage('../../assets/sprites/mc-ninja/box-chest.png'),
       loadImage('../../assets/sprites/mc-ninja/box-legs.png'),
       loadImage('../../assets/sprites/mc-ninja/box-armL.png'),
       loadImage('../../assets/sprites/mc-ninja/box-armR.png'),
+      loadImage('../../assets/sprites/mc-ninja/sticker-head.png'),
+      loadImage('../../assets/sprites/mc-ninja/sticker-torso.png'),
+      loadImage('../../assets/sprites/mc-ninja/sticker-legs.png'),
+      loadImage('../../assets/sprites/mc-ninja/sticker-full.png'),
     ]);
-    buildMcSkins({ face, chest, legs, armL, armR });
+    buildMcSkins(
+      { face, chest, legs, armL, armR },
+      { head: dHead, torso: dTorso, legs: dLegs, full: dFull }
+    );
     skinReady = true;
     if (step === 4) showSkinStaggered();
   } catch (err) {
