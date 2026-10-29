@@ -1,0 +1,8 @@
+
+# local LiveKit listener (never commit secrets / venv)
+shuyang-ai/classroom/xiaoyu-listener/.venv/
+shuyang-ai/classroom/xiaoyu-listener/.env
+shuyang-ai/classroom/xiaoyu-listener/.env.*
+!**/.env.example
+__pycache__/
+shuyang-ai/classroom/xiaoyu-listener/__pycache__/

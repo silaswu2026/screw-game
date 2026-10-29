@@ -535,7 +535,7 @@
 <main>
   <section class="panel course">
     <h2>课程同屏</h2>
-    <iframe title="course" src="../learn/skeleton.html?v=mc18"></iframe>
+    <iframe title="course" src="../learn/skeleton.html?v=mc19"></iframe>
   </section>
 
   <section class="panel cams">
@@ -885,14 +885,9 @@ async function joinRainPresence(){
     log('系统：小雨已进同房（数字人旁听）');
     rainRoom.on(RoomEvent.DataReceived, (payload, participant) => {
       try {
+        if (room) return;
         const raw = new TextDecoder().decode(payload);
-        const msg = JSON.parse(raw);
-        if (msg && msg.t === 'chat' && typeof msg.text === 'string') {
-          if (room) return;
-          const who = msg.who || (participant && (participant.name || participant.identity)) || '对方';
-          const identity = msg.id || (participant && participant.identity);
-          presentMessage(who, msg.text, identity);
-        }
+        handleRoomDataMessage(JSON.parse(raw), participant);
       } catch (_) {}
     });
     window.__rainRoom = rainRoom;
@@ -901,16 +896,38 @@ async function joinRainPresence(){
     log('系统：小雨旁听: ' + (e.message||e));
   }
 }
+function handleRoomDataMessage(msg, participant){
+  if (!msg || typeof msg !== 'object') return;
+  if (msg.t === 'heard' && typeof msg.text === 'string') {
+    const who = msg.who || '家人';
+    const wake = !!msg.wake;
+    log(wake
+      ? `小雨听到了（喊到她）：[${who}] ${msg.text}`
+      : `小雨听到了：[${who}] ${msg.text}`);
+    const xy = document.getElementById('tile-xiaoyu');
+    if (wake) {
+      showBubble(xy, '我在～');
+      setXiaoyuMood('happy');
+    } else {
+      showBubble(xy, '…');
+      setXiaoyuMood('idle');
+    }
+    return;
+  }
+  if (msg.t === 'chat' && typeof msg.text === 'string') {
+    const who = (msg.who) || (participant && (participant.name || participant.identity)) || '对方';
+    const identity = msg.id || (participant && participant.identity);
+    presentMessage(who, msg.text, identity);
+    if (identity === 'xiaoyu' || who === '小雨') {
+      setXiaoyuMood(msg.mood === 'star' ? 'star' : 'happy');
+    }
+  }
+}
 function setupChatHandlers(r){
   r.on(RoomEvent.DataReceived, (payload, participant) => {
     try {
       const raw = new TextDecoder().decode(payload);
-      const msg = JSON.parse(raw);
-      if (msg && msg.t === 'chat' && typeof msg.text === 'string') {
-        const who = (msg.who) || (participant && (participant.name || participant.identity)) || '对方';
-        const identity = msg.id || (participant && participant.identity);
-        presentMessage(who, msg.text, identity);
-      }
+      handleRoomDataMessage(JSON.parse(raw), participant);
     } catch (_) { /* ignore non-chat */ }
   });
 }
@@ -1079,7 +1096,7 @@ chatInput.addEventListener('keydown', (e) => {
 });
 setRainOnline(true, '在线·静默');
 setXiaoyuMood('idle');
-log('系统：同房教室 — 点头像开摄像头；表情像抖音点赞往上飘；文字气泡在头像上方不挡脸。');
+log('系统：同房教室 — 点头像开摄像头。小雨旁听可听语音；喊「小雨」她才回。');
 </script>
 </body>
 </html>
