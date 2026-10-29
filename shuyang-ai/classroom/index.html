@@ -123,8 +123,11 @@
   }
   .cams h2{padding:6px 10px 4px}
   .vids{
-    display:flex;
-    flex-direction:row;
+    display:grid;
+    grid-template-columns:auto auto auto;
+    grid-template-areas:
+      "xy kid mom"
+      "dad kid mom";
     gap:8px;
     padding:8px 10px 8px;
     overflow-x:auto;
@@ -132,8 +135,14 @@
     -webkit-overflow-scrolling:touch;
     scrollbar-width:none;
     scroll-snap-type:x proximity;
+    align-items:center;
+    justify-content:start;
   }
   .vids::-webkit-scrollbar{display:none}
+  #tile-xiaoyu{grid-area:xy;align-self:end}
+  #tile-dad{grid-area:dad;align-self:start}
+  #tile-kid{grid-area:kid}
+  #tile-mom{grid-area:mom}
   .tile{
     background:#000;
     border-radius:14px;
@@ -315,7 +324,7 @@
   .react-bar{
     display:grid;
     grid-template-columns:repeat(6, minmax(0, 1fr));
-    grid-template-rows:repeat(2, auto);
+    grid-template-rows:auto;
     gap:6px;
     padding:6px 10px max(8px, var(--safe-b));
     background:#0f2218;
@@ -498,9 +507,11 @@
     .cams h2{font-size:9px;padding:0 0 2px}
     .room-note{display:none}
     .vids{
-      flex-direction:column;overflow:auto;overflow-x:hidden;
+      display:flex;flex-direction:column;overflow:auto;overflow-x:hidden;
       padding:6px 2px 2px;gap:10px;flex:1;min-height:0;scroll-snap-type:none;
+      grid-template-areas:none;
     }
+    #tile-xiaoyu,#tile-dad,#tile-kid,#tile-mom{grid-area:auto;align-self:auto}
     .tile{
       width:100%;height:auto;max-height:none;aspect-ratio:3/4;
       border-radius:8px;flex:0 0 auto;
@@ -678,6 +689,16 @@
   <section class="panel cams">
     <h2>我素养的家</h2>
     <div class="vids" id="vids">
+      <div class="tile rain online digital mood-idle" id="tile-xiaoyu" data-role="xiaoyu" role="button" tabindex="0" aria-label="小雨数字人，点一下开口或静音" title="点小雨：开口/静音">
+        <div class="tile-inner">
+          <div class="xy-glow" aria-hidden="true"></div>
+          <img class="avatar xy-bob" src="../avatars/xiaoyu.jpg" alt="小雨"/>
+          <div class="xy-sparkles" aria-hidden="true"><span>✨</span><span>⭐</span><span>💫</span></div>
+          <div class="xy-face" aria-hidden="true"></div>
+          <div class="badge" id="rainBadge">在线·静默</div>
+          <div class="name">小雨</div>
+        </div>
+      </div>
       <div class="tile online joinable" id="tile-dad" data-role="dad" role="button" tabindex="0" aria-label="点爸爸头像进房开摄像头" title="点一下开摄像头">
         <div class="tile-inner">
           <img class="avatar" src="../avatars/dad-wuxin.jpg" alt="爸爸"/>
@@ -708,16 +729,6 @@
           <div class="tile-spin" aria-hidden="true"><span>打开中…</span></div>
         </div>
       </div>
-      <div class="tile rain online digital mood-idle" id="tile-xiaoyu" data-role="xiaoyu" role="button" tabindex="0" aria-label="小雨数字人，点一下开口或静音" title="点小雨：开口/静音">
-        <div class="tile-inner">
-          <div class="xy-glow" aria-hidden="true"></div>
-          <img class="avatar xy-bob" src="../avatars/xiaoyu.jpg" alt="小雨"/>
-          <div class="xy-sparkles" aria-hidden="true"><span>✨</span><span>⭐</span><span>💫</span></div>
-          <div class="xy-face" aria-hidden="true"></div>
-          <div class="badge" id="rainBadge">在线·静默</div>
-          <div class="name">小雨</div>
-        </div>
-      </div>
     </div>
     <div class="vol-bar" id="volBar" title="远程音频 / 小雨音量">
       <label for="volSlider">音量</label>
@@ -731,12 +742,6 @@
       <button type="button" class="react" data-react="❤️">❤️</button>
       <button type="button" class="react" data-react="🎉">🎉</button>
       <button type="button" class="react" data-react="👏">👏</button>
-      <button type="button" class="react" data-react="😮">😮</button>
-      <button type="button" class="react" data-react="🤔">🤔</button>
-      <button type="button" class="react" data-react="😊">😊</button>
-      <button type="button" class="react" data-react="🥳">🥳</button>
-      <button type="button" class="react" data-react="💪">💪</button>
-      <button type="button" class="react" data-react="⭐">⭐</button>
     </div>
   </section>
 </main>
@@ -754,12 +759,6 @@
       <button type="button" class="react" data-react="❤️">❤️</button>
       <button type="button" class="react" data-react="🎉">🎉</button>
       <button type="button" class="react" data-react="👏">👏</button>
-      <button type="button" class="react" data-react="😮">😮</button>
-      <button type="button" class="react" data-react="🤔">🤔</button>
-      <button type="button" class="react" data-react="😊">😊</button>
-      <button type="button" class="react" data-react="🥳">🥳</button>
-      <button type="button" class="react" data-react="💪">💪</button>
-      <button type="button" class="react" data-react="⭐">⭐</button>
     </div>
     <pre id="log"></pre>
     <div class="chat-compose">
@@ -773,7 +772,7 @@
 import { Room, RoomEvent, createLocalTracks, Track } from 'https://cdn.jsdelivr.net/npm/livekit-client@2.9.9/+esm';
 const URL_WS = "wss://lucas-jqrm4vbp.livekit.cloud";
 const TOKENS = {"dad": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi54i454i4IiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoiZGFkIn0.q7ont9o7nqmVxFyxYBH3ALqj09Z6m1flYMAgsNEDaHU","kid": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi6IqD6IqDIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoibHVjYXMifQ.9i_fVBr5Tu8ES-VSO_juYjLb5HGXGJTamXMomdYQY8k","rain": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi5bCP6ZuoIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoieGlhb3l1In0.7jL1nsyCmFYK6XqGLNHp8xLDAtByQ_n6_zv2hH-3eBA","mom": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoi5aaI5aaIIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoibW9tIn0.7KmMmR5g2Ok4YbVvhPjrO-BzM5tyyInsMSfNjpIHUrQ"};
-const REACTIONS = new Set(['！','😄','👍','❤️','🎉','👏','😮','🤔','😊','🥳','💪','⭐']);
+const REACTIONS = new Set(['！','😄','👍','❤️','🎉','👏']);
 const XY_EXPR = {
   '😄': 'smile', '😊': 'smile', '！': 'surprise', '!': 'surprise',
   '😮': 'surprise', '🤔': 'think', '🎉': 'cheer', '🥳': 'cheer', '👍': 'cheer', '❤️': 'smile',
@@ -1651,7 +1650,7 @@ async function hardRefreshPage(){
   try { location.replace(next); }
   catch (_) { location.href = next; }
 }
-document.getElementById('hardRefreshBtn')ocument.getElementById('hardRefreshBtn')?.addEventListener('click', (e) => {
+document.getElementById('hardRefreshBtn')?.addEventListener('click', (e) => {
   e.preventDefault();
   hardRefreshPage().catch(() => {
     location.href = location.pathname + '?_=' + Date.now() + (location.hash || '');
