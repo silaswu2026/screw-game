@@ -2,78 +2,155 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>成长屋共学教室</title>
 <style>
-  :root{--bg:#0b1a12;--card:#12261a;--line:#2a5a3a;--txt:#e8f5ea;--chat-bg:#0e1f14}
+  :root{
+    --bg:#0b1a12;--card:#12261a;--line:#2a5a3a;--txt:#e8f5ea;--chat-bg:#0e1f14;
+    --safe-b:env(safe-area-inset-bottom,0px);
+    --chip-h:88px;
+  }
   *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#1a3a24,var(--bg));color:var(--txt);min-height:100vh;display:flex;flex-direction:column}
-  header{padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid #234;flex-shrink:0}
-  h1{font-size:1rem;margin:0;flex:1}
-  .btn{border:0;border-radius:999px;padding:10px 16px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#78d484,#4ea85c);color:#083018}
-  .btn.ghost{background:#1c3324;color:var(--txt);border:1px solid var(--line)}
-  .btn:disabled{opacity:.5}
-  .btn.send{padding:8px 14px;border-radius:10px;font-size:13px}
-
-  /* Desktop: left cams | center chat | right course (larger) */
-  main{
-    display:grid;
-    grid-template-columns: minmax(120px, 150px) minmax(200px, 1fr) minmax(0, 2.6fr);
-    gap:10px;
-    padding:10px;
-    flex:1;
-    min-height:0;
-    max-width:1400px;
-    width:100%;
-    margin:0 auto;
-  }
-  @media(max-width:900px){
-    main{
-      grid-template-columns:1fr;
-      grid-template-rows:auto auto 1fr;
-      max-width:560px;
-    }
-  }
-
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px;min-height:0;display:flex;flex-direction:column}
-  .panel h2{margin:0 0 8px;font-size:13px;font-weight:700;opacity:.9}
-  .hint{font-size:12px;opacity:.85;line-height:1.45;margin-bottom:8px}
-
-  /* Left: stacked portrait tiles */
-  .cams{gap:8px}
-  .vids{
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:system-ui,-apple-system,"PingFang SC","Noto Sans SC",sans-serif;
+    background:radial-gradient(900px 480px at 50% -8%,#1a3a24,var(--bg));
+    color:var(--txt);
+    min-height:100dvh;
     display:flex;
     flex-direction:column;
-    gap:8px;
+    overflow:hidden;
+  }
+
+  /* ===== MOBILE-FIRST (WeChat ~390px) ===== */
+  header{
+    padding:8px 10px;
+    padding-top:max(8px, env(safe-area-inset-top, 0px));
+    display:flex;
+    gap:6px;
+    flex-wrap:nowrap;
+    align-items:center;
+    border-bottom:1px solid #234;
+    flex-shrink:0;
+    background:#0d1f14ee;
+    backdrop-filter:blur(8px);
+    z-index:20;
+  }
+  h1{
+    font-size:.92rem;
+    margin:0;
+    flex:1;
+    min-width:0;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .btn{
+    border:0;border-radius:999px;
+    padding:8px 11px;
+    font-weight:800;
+    font-size:12px;
+    cursor:pointer;
+    background:linear-gradient(180deg,#78d484,#4ea85c);
+    color:#083018;
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+  .btn.ghost{background:#1c3324;color:var(--txt);border:1px solid var(--line)}
+  .btn:disabled{opacity:.5}
+  .btn.send{padding:10px 14px;border-radius:12px;font-size:14px}
+
+  main{
     flex:1;
     min-height:0;
-    overflow:auto;
+    width:100%;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:0;
+    padding:0;
+    max-width:100%;
   }
-  @media(max-width:900px){
-    .vids{
-      flex-direction:row;
-      justify-content:center;
-      overflow-x:auto;
-    }
+
+  .panel{
+    background:var(--card);
+    border:0;
+    border-radius:0;
+    padding:0;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
   }
+  .panel h2{
+    margin:0;
+    font-size:11px;
+    font-weight:700;
+    opacity:.75;
+    letter-spacing:.04em;
+    padding:6px 10px 0;
+  }
+  .hint{display:none}
+
+  /* Course: largest on phone — almost full width, top */
+  .course{
+    order:1;
+    flex:1.35 1 0;
+    min-height:0;
+    border-bottom:1px solid var(--line);
+  }
+  .course h2{padding-bottom:4px}
+  .course iframe{
+    width:100%;
+    flex:1;
+    min-height:0;
+    border:0;
+    border-radius:0;
+    background:#000;
+  }
+
+  /* Cams: horizontal portrait chips under course */
+  .cams{
+    order:2;
+    flex:0 0 auto;
+    border-bottom:1px solid var(--line);
+    background:#0f2218;
+  }
+  .cams h2{padding:6px 10px 4px}
+  .vids{
+    display:flex;
+    flex-direction:row;
+    gap:8px;
+    padding:0 10px 10px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    scroll-snap-type:x proximity;
+  }
+  .vids::-webkit-scrollbar{display:none}
   .tile{
     background:#000;
-    border-radius:12px;
+    border-radius:14px;
     aspect-ratio:3/4;
+    height:var(--chip-h);
+    width:auto;
     overflow:hidden;
     position:relative;
     border:2px solid transparent;
-    flex-shrink:0;
-    width:100%;
-    max-height:none;
-  }
-  @media(max-width:900px){
-    .tile{width:30%;max-width:140px;aspect-ratio:3/4}
+    flex:0 0 auto;
+    scroll-snap-align:start;
   }
   .tile.online{border-color:#6dcf7a}
   .tile video{width:100%;height:100%;object-fit:cover;display:block}
-  .tile .name{position:absolute;left:6px;bottom:6px;background:#000a;padding:2px 7px;border-radius:8px;font-size:11px}
-  .tile .badge{position:absolute;right:6px;top:6px;background:#1e7a3a;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700}
+  .tile .name{
+    position:absolute;left:4px;bottom:4px;
+    background:#000a;padding:1px 6px;border-radius:7px;font-size:10px;
+  }
+  .tile .badge{
+    position:absolute;right:4px;top:4px;
+    background:#1e7a3a;padding:1px 5px;border-radius:7px;font-size:9px;font-weight:700;
+  }
   .tile.rain{background:linear-gradient(160deg,#1a3d2a,#0d2418)}
   .tile img.avatar{width:100%;height:100%;object-fit:cover;object-position:center 18%;display:block}
   .tile.live video{display:block;width:100%;height:100%;object-fit:cover}
@@ -84,54 +161,145 @@
     0%,100%{transform:translateY(0) scale(1)}
     50%{transform:translateY(-6px) scale(1.02)}
   }
-  .tile.rain.online{box-shadow:0 0 0 2px #6dcf7a, 0 0 18px #6dcf7a66}
+  .tile.rain.online{box-shadow:0 0 0 2px #6dcf7a, 0 0 14px #6dcf7a66}
   .tile.rain.speaking .xy-bob{animation-duration:0.9s}
 
-  /* Center: chat */
-  .chat{min-height:280px}
+  /* Chat: bottom sheet — thumb reach */
+  .chat{
+    order:3;
+    flex:0 0 auto;
+    max-height:38dvh;
+    min-height:148px;
+    background:#0c1c13;
+    border-top:1px solid var(--line);
+    border-radius:16px 16px 0 0;
+    box-shadow:0 -8px 28px #0006;
+    padding-bottom:max(8px, var(--safe-b));
+    z-index:15;
+  }
+  .chat h2{padding:8px 12px 4px}
   #log{
     flex:1;
     font-size:12px;
-    opacity:.9;
+    opacity:.92;
     white-space:pre-wrap;
     overflow:auto;
     background:var(--chat-bg);
     border:1px solid var(--line);
     border-radius:10px;
-    padding:10px;
-    margin:0 0 8px;
-    min-height:160px;
-    line-height:1.5;
+    padding:8px 10px;
+    margin:0 10px 8px;
+    min-height:64px;
+    max-height:22dvh;
+    line-height:1.45;
+    -webkit-overflow-scrolling:touch;
   }
   .chat-compose{
     display:flex;
-    gap:6px;
+    gap:8px;
     flex-shrink:0;
+    padding:0 10px 4px;
   }
   .chat-compose input{
     flex:1;
     border:1px solid var(--line);
-    border-radius:10px;
+    border-radius:12px;
     background:#0a1810;
     color:var(--txt);
-    padding:8px 10px;
-    font-size:13px;
+    padding:11px 12px;
+    font-size:16px; /* avoid iOS zoom */
     outline:none;
   }
   .chat-compose input:focus{border-color:#6dcf7a}
 
-  /* Right: course iframe — larger */
-  .course{min-height:0}
-  .course iframe{
-    width:100%;
-    flex:1;
-    min-height:min(72vh, 640px);
-    border:0;
-    border-radius:12px;
-    background:#000;
+  /* Slightly larger chips on tall phones */
+  @media(min-width:360px){
+    :root{--chip-h:92px}
   }
-  @media(max-width:900px){
-    .course iframe{min-height:55vh}
+  @media(min-width:390px){
+    :root{--chip-h:96px}
+  }
+
+  /* ===== TABLET / DESKTOP: nicer 3-col ===== */
+  @media(min-width:901px){
+    body{overflow:auto}
+    header{padding:10px 14px;gap:8px;flex-wrap:wrap}
+    h1{font-size:1rem}
+    .btn{padding:10px 16px;font-size:14px}
+    .btn.send{padding:8px 14px;border-radius:10px;font-size:13px}
+
+    main{
+      display:grid;
+      grid-template-columns:minmax(120px,150px) minmax(200px,1fr) minmax(0,2.6fr);
+      grid-template-areas:"cams chat course";
+      gap:10px;
+      padding:10px;
+      max-width:1400px;
+      flex:1;
+    }
+    .panel{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px;
+    }
+    .panel h2{font-size:13px;opacity:.9;padding:0 0 8px}
+    .hint{display:block;font-size:12px;opacity:.85;line-height:1.45;margin-bottom:8px}
+
+    .cams{order:unset;grid-area:cams;flex:unset;border:1px solid var(--line);background:var(--card)}
+    .vids{
+      flex-direction:column;
+      overflow:auto;
+      padding:0;
+      gap:8px;
+      flex:1;
+      min-height:0;
+      scroll-snap-type:none;
+    }
+    .tile{
+      width:100%;
+      height:auto;
+      max-height:none;
+      aspect-ratio:3/4;
+    }
+    .tile .name{left:6px;bottom:6px;padding:2px 7px;border-radius:8px;font-size:11px}
+    .tile .badge{right:6px;top:6px;padding:2px 7px;border-radius:8px;font-size:10px}
+
+    .chat{
+      order:unset;
+      grid-area:chat;
+      flex:unset;
+      max-height:none;
+      min-height:280px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      box-shadow:none;
+      background:var(--card);
+      padding-bottom:10px;
+    }
+    .chat h2{padding:0 0 8px}
+    #log{
+      margin:0 0 8px;
+      min-height:160px;
+      max-height:none;
+      padding:10px;
+      line-height:1.5;
+    }
+    .chat-compose{padding:0}
+    .chat-compose input{font-size:13px;padding:8px 10px;border-radius:10px}
+
+    .course{
+      order:unset;
+      grid-area:course;
+      flex:unset;
+      border:1px solid var(--line);
+      background:var(--card);
+    }
+    .course h2{padding:0 0 8px}
+    .course iframe{
+      border-radius:12px;
+      min-height:min(72vh,640px);
+    }
   }
 </style>
 </head>
@@ -143,6 +311,11 @@
   <button class="btn ghost" id="leave" disabled>离开</button>
 </header>
 <main>
+  <section class="panel course">
+    <h2>课程同屏</h2>
+    <iframe title="course" src="../learn/skeleton.html?v=mc13"></iframe>
+  </section>
+
   <section class="panel cams">
     <h2>画面</h2>
     <div class="hint">竖屏卡通形象；进房开摄像头后换成真人。小雨保持角色动画。</div>
@@ -180,11 +353,6 @@
       <input type="text" id="chatInput" placeholder="说点什么…" maxlength="500" autocomplete="off"/>
       <button class="btn send" id="chatSend" type="button">发送</button>
     </div>
-  </section>
-
-  <section class="panel course">
-    <h2>课程同屏</h2>
-    <iframe title="course" src="../learn/skeleton.html?v=mc13"></iframe>
   </section>
 </main>
 <script type="module">
@@ -322,7 +490,7 @@ chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
 });
 setRainOnline(true, '在线·待命');
-log('系统：已接 LiveKit Cloud。点爸爸/芃芃进房。竖屏画面 · 中间聊天 · 右边课程。');
+log('系统：已接 LiveKit Cloud。点爸爸/芃芃进房。手机：课程在上 · 头像横滑 · 聊天在下。');
 </script>
 </body>
 </html>
