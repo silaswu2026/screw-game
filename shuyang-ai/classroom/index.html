@@ -96,7 +96,7 @@
     letter-spacing:.04em;
     padding:6px 10px 0;
   }
-  .hint{display:none}
+  .hint,.room-note,.cams>h2{display:none!important}
 
   .course{
     order:1;
@@ -311,15 +311,17 @@
     100%{opacity:0;transform:translate(calc(-50% + var(--dx, 0px)), -88px) scale(1.05) rotate(var(--rot, 12deg))}
   }
 
-  /* 快捷表情条 */
+  /* 快捷表情条：两行六列共 12 */
   .react-bar{
-    display:flex;
+    display:grid;
+    grid-template-columns:repeat(6, minmax(0, 1fr));
+    grid-template-rows:repeat(2, auto);
     gap:6px;
-    padding:0 10px max(8px, var(--safe-b));
+    padding:6px 10px max(8px, var(--safe-b));
     background:#0f2218;
     flex-shrink:0;
-    overflow-x:auto;
-    scrollbar-width:none;
+    overflow:visible;
+    max-width:100%;
   }
   .react-bar::-webkit-scrollbar{display:none}
   .react{
@@ -327,16 +329,81 @@
     background:#1a3022;
     color:var(--txt);
     border-radius:999px;
-    min-width:40px;
+    min-width:0;
+    width:100%;
     height:36px;
-    padding:0 10px;
-    font-size:18px;
+    padding:0 4px;
+    font-size:17px;
     cursor:pointer;
-    flex:0 0 auto;
     line-height:1;
   }
   .react:active{transform:scale(.94)}
-  .react.bang{font-size:16px;font-weight:900}
+  .react.bang{font-size:15px;font-weight:900}
+
+  /* 音量 0–10（默认 3 → 0.3） */
+  .vol-bar{
+    display:flex;align-items:center;gap:8px;
+    padding:4px 10px 2px;background:#0f2218;flex-shrink:0;
+    font-size:11px;font-weight:700;opacity:.9;
+  }
+  .vol-bar label{white-space:nowrap;opacity:.8}
+  .vol-bar input[type=range]{flex:1;min-width:0;accent-color:#6dcf7a}
+  .vol-bar .vol-val{min-width:1.4em;text-align:right;font-variant-numeric:tabular-nums}
+
+  /* 课程流程遮罩：小雨头像在上，文字在下（上方不放文案） */
+  .course{position:relative}
+  .course-shell{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+  .course-shell iframe{flex:1;min-height:0;width:100%;border:0;border-radius:0;background:#000}
+  .course-flow{
+    position:absolute;inset:0;z-index:5;
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    padding:10px 14px max(12px, var(--safe-b));
+    background:linear-gradient(180deg,#0e1a14f2,#122018f5 55%,#0f2218f8);
+    overflow:auto;-webkit-overflow-scrolling:touch;
+  }
+  .course-flow[hidden]{display:none !important}
+  .course-flow .xy-hero{
+    width:min(42%, 160px);aspect-ratio:1;border-radius:50%;
+    object-fit:cover;display:block;margin:4px auto 10px;
+    box-shadow:0 0 0 3px #6dcf7a88, 0 8px 28px #000a;
+    background:#1a3022;
+  }
+  .course-flow .cf-body{width:100%;max-width:28em;margin:0 auto;text-align:center}
+  .course-flow .cf-theme{
+    margin:0 0 8px;font-size:clamp(16px,4.6vw,20px);font-weight:800;line-height:1.35;color:#eafff0;
+  }
+  .course-flow .cf-overview{
+    margin:0 0 14px;font-size:clamp(13px,3.6vw,15px);font-weight:700;line-height:1.5;opacity:.92;
+  }
+  .course-flow .cf-start{
+    appearance:none;border:0;border-radius:999px;cursor:pointer;
+    padding:12px 28px;min-height:46px;font-size:17px;font-weight:800;
+    background:linear-gradient(180deg,#78d484,#4ea85c);color:#083018;
+    box-shadow:0 3px 0 #2f6d3a;
+  }
+  .course-flow .cf-start:active{transform:translateY(1px)}
+  .course-flow .cf-steps{display:none;width:100%;max-width:28em;margin:8px auto 0;text-align:left}
+  .course-flow.steps-on .cf-intro{display:none}
+  .course-flow.steps-on .cf-steps{display:block}
+  .course-flow .cf-step{
+    display:block;width:100%;text-align:left;margin:0 0 8px;
+    padding:10px 12px;border-radius:14px;border:2px solid #3f8f4a66;
+    background:#1e3a2c;color:#dff5e6;font-size:14px;font-weight:800;cursor:pointer;
+  }
+  .course-flow .cf-step .num{color:#ffe7a0;margin-right:6px}
+  .course-flow .cf-step.active{
+    background:linear-gradient(180deg,#78d484,#4ea85c);color:#083018;border-color:transparent;
+  }
+  .course-flow .cf-step.active .num{color:#083018}
+  .course-flow .cf-next{
+    appearance:none;border:0;border-radius:999px;cursor:pointer;display:none;
+    margin:10px auto 0;padding:10px 22px;min-height:42px;font-size:15px;font-weight:800;
+    background:#2a5540;color:#fff;
+  }
+  .course-flow.steps-on .cf-next{display:inline-flex;align-items:center;justify-content:center}
+  .course-flow .cf-skip{
+    margin-top:10px;background:transparent;border:0;color:#9bbfa8;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;
+  }
 
   /* Chat modal */
   .chat-backdrop{
@@ -378,7 +445,7 @@
     width:36px;height:36px;border-radius:10px;font-size:18px;line-height:1;cursor:pointer;flex-shrink:0;
   }
   .chat-reacts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-  .chat-reacts .react{height:34px;min-width:38px;font-size:17px}
+  .chat-reacts{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}.chat-reacts .react{height:34px;min-width:0;width:100%;font-size:16px;padding:0 2px}
   #log{
     flex:1;font-size:13px;opacity:.92;white-space:pre-wrap;overflow:auto;
     background:var(--chat-bg);border:1px solid var(--line);border-radius:12px;
@@ -441,7 +508,7 @@
     .tile .name{left:3px;bottom:3px;padding:1px 5px;border-radius:6px;font-size:9px}
     .tile .badge{right:3px;top:3px;padding:1px 4px;border-radius:6px;font-size:8px}
     .like-float{font-size:18px}
-    .react-bar{padding:4px 4px 6px;gap:4px;background:transparent}
+    .react-bar{padding:4px 6px 6px;gap:4px;background:transparent}.react{height:30px;font-size:14px}
     .react{min-width:32px;height:30px;font-size:15px;padding:0 6px}
 
     .course{
@@ -479,7 +546,7 @@
     .tile .name{left:6px;bottom:6px;padding:2px 7px;border-radius:8px;font-size:11px}
     .tile .badge{right:6px;top:6px;padding:2px 7px;border-radius:8px;font-size:10px}
     .like-float{font-size:24px}
-    .react-bar{padding:6px 2px 8px;gap:6px}
+    .react-bar{padding:6px 8px 8px;gap:6px}.vol-bar{padding:4px 8px 2px}
     .react{min-width:40px;height:36px;font-size:18px}
     .course{border-radius:16px}
     .course h2{padding:0 0 8px}
@@ -566,15 +633,27 @@
   <button class="btn ghost" id="leave" disabled>离开</button>
 </header>
 <main>
-  <section class="panel course">
+  <section class="panel course" id="coursePanel">
     <h2>课程同屏</h2>
-    <iframe title="course" src="../learn/skeleton.html?v=mc19"></iframe>
+    <div class="course-shell">
+      <iframe id="courseFrame" title="course" src="../learn/skeleton.html?v=mc20"></iframe>
+      <div class="course-flow" id="courseFlow" role="dialog" aria-labelledby="cfTheme">
+        <img class="xy-hero" src="../avatars/xiaoyu.jpg" alt="小雨" width="160" height="160"/>
+        <div class="cf-body">
+          <div class="cf-intro">
+            <h3 class="cf-theme" id="cfTheme">今日课程</h3>
+            <p class="cf-overview" id="cfOverview">加载中…</p>
+            <button type="button" class="cf-start" id="cfStart">开始</button>
+            <button type="button" class="cf-skip" id="cfSkipIntro">先看画面</button>
+          </div>
+          <div class="cf-steps" id="cfSteps" aria-label="课程步骤"></div>
+          <button type="button" class="cf-next" id="cfNext">下一步</button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="panel cams">
-    <h2>画面</h2>
-    <div class="hint">竖屏卡通；进房开摄像头后换真人。说话会在头顶冒泡。小雨有表情。</div>
-    <p class="room-note">同房共学 · 点头像进房开摄像头（爸爸/妈妈/芃芃）· 点小雨开口/静音</p>
     <div class="vids" id="vids">
       <div class="tile online joinable" id="tile-dad" data-role="dad" role="button" tabindex="0" aria-label="点爸爸头像进房开摄像头" title="点一下开摄像头">
         <div class="tile-inner">
@@ -617,12 +696,24 @@
         </div>
       </div>
     </div>
+    <div class="vol-bar" id="volBar" title="远程音频 / 小雨音量">
+      <label for="volSlider">音量</label>
+      <input type="range" id="volSlider" min="0" max="10" step="1" value="3" aria-valuemin="0" aria-valuemax="10" aria-valuenow="3"/>
+      <span class="vol-val" id="volVal">3</span>
+    </div>
     <div class="react-bar" id="reactBar" aria-label="快捷表情">
       <button type="button" class="react bang" data-react="！">！</button>
       <button type="button" class="react" data-react="😄">😄</button>
       <button type="button" class="react" data-react="👍">👍</button>
       <button type="button" class="react" data-react="❤️">❤️</button>
       <button type="button" class="react" data-react="🎉">🎉</button>
+      <button type="button" class="react" data-react="👏">👏</button>
+      <button type="button" class="react" data-react="😮">😮</button>
+      <button type="button" class="react" data-react="🤔">🤔</button>
+      <button type="button" class="react" data-react="😊">😊</button>
+      <button type="button" class="react" data-react="🥳">🥳</button>
+      <button type="button" class="react" data-react="💪">💪</button>
+      <button type="button" class="react" data-react="⭐">⭐</button>
     </div>
   </section>
 </main>
@@ -639,6 +730,13 @@
       <button type="button" class="react" data-react="👍">👍</button>
       <button type="button" class="react" data-react="❤️">❤️</button>
       <button type="button" class="react" data-react="🎉">🎉</button>
+      <button type="button" class="react" data-react="👏">👏</button>
+      <button type="button" class="react" data-react="😮">😮</button>
+      <button type="button" class="react" data-react="🤔">🤔</button>
+      <button type="button" class="react" data-react="😊">😊</button>
+      <button type="button" class="react" data-react="🥳">🥳</button>
+      <button type="button" class="react" data-react="💪">💪</button>
+      <button type="button" class="react" data-react="⭐">⭐</button>
     </div>
     <pre id="log"></pre>
     <div class="chat-compose">
@@ -652,7 +750,7 @@
 import { Room, RoomEvent, createLocalTracks, Track } from 'https://cdn.jsdelivr.net/npm/livekit-client@2.9.9/+esm';
 const URL_WS = "wss://lucas-jqrm4vbp.livekit.cloud";
 const TOKENS = {"dad": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi54i454i4IiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoiZGFkIn0.q7ont9o7nqmVxFyxYBH3ALqj09Z6m1flYMAgsNEDaHU","kid": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi6IqD6IqDIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoibHVjYXMifQ.9i_fVBr5Tu8ES-VSO_juYjLb5HGXGJTamXMomdYQY8k","rain": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi5bCP6ZuoIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoieGlhb3l1In0.7jL1nsyCmFYK6XqGLNHp8xLDAtByQ_n6_zv2hH-3eBA","mom": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoi5aaI5aaIIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoibW9tIn0.7KmMmR5g2Ok4YbVvhPjrO-BzM5tyyInsMSfNjpIHUrQ"};
-const REACTIONS = new Set(['！','😄','👍','❤️','🎉']);
+const REACTIONS = new Set(['！','😄','👍','❤️','🎉','👏','😮','🤔','😊','🥳','💪','⭐']);
 const XY_EXPR = {
   '😄': 'smile', '😊': 'smile', '！': 'surprise', '!': 'surprise',
   '😮': 'surprise', '🤔': 'think', '🎉': 'cheer', '🥳': 'cheer', '👍': 'cheer', '❤️': 'smile',
@@ -671,6 +769,217 @@ let myRole = null; // dad | kid | mom
 const bubbleTimers = new WeakMap();
 let xyExprTimer = null;
 let xiaoyuSpeakActive = false;
+let classroomVolume = 0.3; // scale 0–10 → 0.0–1.0; default 3
+let applyingRemoteSkel = false;
+let courseData = null;
+let coursePhase = 'intro'; // intro | steps | done
+let courseStepIdx = 0;
+const courseFrame = document.getElementById('courseFrame');
+const courseFlow = document.getElementById('courseFlow');
+
+const remoteAudioEls = new Set();
+function setClassroomVolume(level){
+  const n = Math.max(0, Math.min(10, Number(level)));
+  classroomVolume = n / 10;
+  const slider = document.getElementById('volSlider');
+  const valEl = document.getElementById('volVal');
+  if (slider && String(slider.value) !== String(n)) slider.value = String(n);
+  if (valEl) valEl.textContent = String(n);
+  if (slider) slider.setAttribute('aria-valuenow', String(n));
+  document.querySelectorAll('#vids video').forEach(v => {
+    try { v.volume = classroomVolume; } catch (_) {}
+  });
+  remoteAudioEls.forEach(a => {
+    try { a.volume = classroomVolume; } catch (_) {}
+  });
+  try { localStorage.setItem('classroomVol', String(n)); } catch (_) {}
+}
+function applyVolumeToMedia(el){
+  if (!el) return;
+  try { el.volume = classroomVolume; } catch (_) {}
+}
+function attachRemoteAudio(track){
+  const a = track.attach();
+  a.autoplay = true;
+  applyVolumeToMedia(a);
+  remoteAudioEls.add(a);
+  document.body.appendChild(a);
+  return a;
+}
+function applyVolumeToVideo(v){ applyVolumeToMedia(v); }
+(function initVol(){
+  let saved = 3;
+  try {
+    const s = localStorage.getItem('classroomVol');
+    if (s != null && s !== '') saved = Number(s);
+  } catch (_) {}
+  if (!Number.isFinite(saved)) saved = 3;
+  setClassroomVolume(saved);
+  const slider = document.getElementById('volSlider');
+  if (slider) {
+    slider.addEventListener('input', () => setClassroomVolume(slider.value));
+    slider.addEventListener('change', () => setClassroomVolume(slider.value));
+  }
+})();
+
+function getPublishLp(){
+  return (room && room.localParticipant)
+    || (window.__rainRoom && window.__rainRoom.localParticipant)
+    || null;
+}
+async function publishRoomData(obj, { reliable = true } = {}){
+  const lp = getPublishLp();
+  if (!lp) return false;
+  try {
+    const data = new TextEncoder().encode(JSON.stringify(obj));
+    await lp.publishData(data, { reliable });
+    return true;
+  } catch (e) {
+    log('系统：同步发送失败: ' + (e.message || e));
+    return false;
+  }
+}
+function postToCourse(msg){
+  try {
+    if (courseFrame && courseFrame.contentWindow) {
+      courseFrame.contentWindow.postMessage(msg, '*');
+    }
+  } catch (_) {}
+}
+function applySkelFromNet(msg){
+  applyingRemoteSkel = true;
+  postToCourse({
+    type: 'skel-apply',
+    camera: msg.camera,
+    target: msg.target,
+    sun: msg.sun,
+  });
+  setTimeout(() => { applyingRemoteSkel = false; }, 120);
+}
+window.addEventListener('message', (ev) => {
+  const d = ev && ev.data;
+  if (!d || typeof d !== 'object') return;
+  if (d.type === 'skel-sync') {
+    if (applyingRemoteSkel) return;
+    publishRoomData({
+      t: 'skel',
+      camera: d.camera,
+      target: d.target,
+      sun: d.sun,
+    }, { reliable: false });
+    return;
+  }
+  if (d.type === 'skel-step' && typeof d.n === 'number') {
+    if (applyingRemoteSkel) return;
+    publishRoomData({ t: 'skel_step', n: d.n }, { reliable: true });
+  }
+});
+
+async function askXiaoyuSay(text, mood){
+  const t = String(text || '').trim();
+  if (!t) return;
+  await publishXiaoyuActive(true);
+  const ok = await publishRoomData({ t: 'xiaoyu_say', text: t, mood: mood || 'happy' });
+  if (!ok && 'speechSynthesis' in window) {
+    try {
+      const u = new SpeechSynthesisUtterance(t);
+      u.lang = 'zh-CN';
+      u.volume = classroomVolume;
+      speechSynthesis.speak(u);
+    } catch (_) {}
+  }
+}
+function renderCourseIntro(){
+  if (!courseData || !courseFlow) return;
+  courseFlow.hidden = false;
+  courseFlow.classList.remove('steps-on');
+  coursePhase = 'intro';
+  courseStepIdx = 0;
+  const th = document.getElementById('cfTheme');
+  const ov = document.getElementById('cfOverview');
+  if (th) th.textContent = courseData.theme || '今日课程';
+  if (ov) ov.textContent = courseData.overview || '';
+  const box = document.getElementById('cfSteps');
+  if (box) {
+    box.innerHTML = (courseData.steps || []).map((s, i) =>
+      `<button type="button" class="cf-step" data-idx="${i}"><span class="num">第${['一','二','三','四','五'][i] || (i+1)}步</span>${s.title || ''}</button>`
+    ).join('');
+    box.querySelectorAll('.cf-step').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = Number(btn.getAttribute('data-idx'));
+        if (Number.isFinite(i)) goCourseStep(i, { speak: true, publish: true });
+      });
+    });
+  }
+  const next = document.getElementById('cfNext');
+  if (next) next.textContent = '下一步';
+}
+function hideCourseFlow(){
+  coursePhase = 'done';
+  if (courseFlow) courseFlow.hidden = true;
+}
+function showCourseStepsUi(){
+  if (!courseFlow) return;
+  courseFlow.hidden = false;
+  courseFlow.classList.add('steps-on');
+  coursePhase = 'steps';
+}
+function markCourseStepActive(idx){
+  const box = document.getElementById('cfSteps');
+  if (!box) return;
+  box.querySelectorAll('.cf-step').forEach((el, i) => el.classList.toggle('active', i === idx));
+  const next = document.getElementById('cfNext');
+  if (next && courseData && courseData.steps) {
+    next.textContent = idx >= courseData.steps.length - 1 ? '完成' : '下一步';
+  }
+}
+function goCourseStep(idx, { speak = true, publish = true } = {}){
+  if (!courseData || !courseData.steps || !courseData.steps.length) return;
+  const i = Math.max(0, Math.min(courseData.steps.length - 1, idx));
+  courseStepIdx = i;
+  showCourseStepsUi();
+  markCourseStepActive(i);
+  const step = courseData.steps[i];
+  if (step && typeof step.skelStep === 'number') {
+    applyingRemoteSkel = true;
+    postToCourse({ type: 'skel-set-step', n: step.skelStep });
+    setTimeout(() => { applyingRemoteSkel = false; }, 120);
+  }
+  if (speak && step && step.speak) askXiaoyuSay(step.speak);
+  if (publish) publishRoomData({ t: 'course', phase: 'steps', step: i });
+}
+async function startCourseFlow({ publish = true } = {}){
+  if (!courseData) return;
+  showCourseStepsUi();
+  if (publish) await publishRoomData({ t: 'course', phase: 'start' });
+  await askXiaoyuSay(courseData.speakOverview || courseData.overview || courseData.theme);
+  // After overview, land on 第一步
+  goCourseStep(0, { speak: true, publish: true });
+}
+function applyCourseFromNet(msg){
+  if (!msg || !courseData) return;
+  if (msg.phase === 'intro') { renderCourseIntro(); return; }
+  if (msg.phase === 'start') {
+    showCourseStepsUi();
+    return;
+  }
+  if (msg.phase === 'steps' && typeof msg.step === 'number') {
+    goCourseStep(msg.step, { speak: false, publish: false });
+    return;
+  }
+  if (msg.phase === 'done') hideCourseFlow();
+}
+async function loadCourseToday(){
+  try {
+    const res = await fetch('./course-today.json?v=mc20', { cache: 'no-cache' });
+    courseData = await res.json();
+    if (courseData.iframe && courseFrame) courseFrame.src = courseData.iframe;
+    renderCourseIntro();
+  } catch (e) {
+    log('系统：课程加载失败: ' + (e.message || e));
+    if (courseFlow) courseFlow.hidden = true;
+  }
+}
 
 function openChat(){
   chatOpen = true;
@@ -900,6 +1209,7 @@ function showLiveCamera(el, track){
   track.attach(v);
   v.hidden = false;
   v.muted = (el.id === 'tile-dad' || el.id === 'tile-kid' || el.id === 'tile-mom');
+  applyVolumeToVideo(v);
   el.classList.add('live');
   setTileLoading(el, false);
   if (img) img.style.display = 'none';
@@ -973,6 +1283,20 @@ function handleRoomDataMessage(msg, participant){
   if (!msg || typeof msg !== 'object') return;
   if (msg.t === 'xiaoyu_active') {
     applyXiaoyuSpeakUi(!!msg.on);
+    return;
+  }
+  if (msg.t === 'skel') {
+    applySkelFromNet(msg);
+    return;
+  }
+  if (msg.t === 'skel_step' && typeof msg.n === 'number') {
+    applyingRemoteSkel = true;
+    postToCourse({ type: 'skel-set-step', n: msg.n });
+    setTimeout(() => { applyingRemoteSkel = false; }, 120);
+    return;
+  }
+  if (msg.t === 'course') {
+    applyCourseFromNet(msg);
     return;
   }
   if (msg.t === 'heard' && typeof msg.text === 'string') {
@@ -1082,14 +1406,12 @@ async function join(role){
       // One 小雨 only: cartoon tile. Never spawn tile for xiaoyu / xiaoyu-listener.
       if (isXiaoyuIdentity(participant.identity)) {
         setRainOnline(true, xiaoyuSpeakActive ? '在线·可开口' : '在线·静默');
-        if (track.kind === Track.Kind.Audio) {
-          const a = track.attach(); a.autoplay = true; document.body.appendChild(a);
-        }
+        if (track.kind === Track.Kind.Audio) attachRemoteAudio(track);
         return;
       }
       const el = ensureVideoTile(participant.identity, participant.name || participant.identity);
       if (track.kind === Track.Kind.Video) showLiveCamera(el, track);
-      if (track.kind === Track.Kind.Audio) { const a = track.attach(); a.autoplay = true; document.body.appendChild(a); }
+      if (track.kind === Track.Kind.Audio) attachRemoteAudio(track);
     });
     room.on(RoomEvent.ParticipantConnected, (p) => {
       if (isXiaoyuIdentity(p.identity)) {
@@ -1255,7 +1577,26 @@ syncFsButton();
 document.querySelectorAll('.vids .tile[id^="tile-xiaoyu"]').forEach(el => {
   if (el.id !== 'tile-xiaoyu') el.remove();
 });
-log('系统：同房教室 — 点头像开摄像头。点小雨才开口；右下角全屏（浏览器原生）。');
+document.getElementById('cfStart')?.addEventListener('click', () => {
+  startCourseFlow({ publish: true }).catch(err => log('系统：开始课程失败: ' + (err.message || err)));
+});
+document.getElementById('cfSkipIntro')?.addEventListener('click', () => {
+  hideCourseFlow();
+  publishRoomData({ t: 'course', phase: 'done' });
+});
+document.getElementById('cfNext')?.addEventListener('click', () => {
+  if (!courseData || !courseData.steps) return;
+  if (courseStepIdx >= courseData.steps.length - 1) {
+    hideCourseFlow();
+    publishRoomData({ t: 'course', phase: 'done' });
+    askXiaoyuSay('今天这三步就到这里啦，你可以继续拖一拖画面。');
+    return;
+  }
+  goCourseStep(courseStepIdx + 1, { speak: true, publish: true });
+});
+loadCourseToday();
+log('系统：同房教室 — 点头像开摄像头。点小雨才开口；右下角全屏（浏览器原生）。音量默认 3。');
+
 </script>
 <button type="button" class="fs-btn" id="courseFsBtn" aria-label="全屏" title="全屏">⛶</button>
 </body>

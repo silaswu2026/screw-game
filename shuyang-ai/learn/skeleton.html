@@ -878,6 +878,35 @@ controls.maxPolarAngle = Math.PI * 0.92;
 controls.enablePan = false;
 controls.update();
 
+// ─── multi-user view sync (classroom iframe ↔ parent LiveKit) ───
+let applyingRemote = false;
+let lastSkelSyncAt = 0;
+const SKEL_SYNC_MS = 80; // ~12.5 fps
+let skelSyncReady = false;
+
+function postSkelSync(opts = {}) {
+  if (applyingRemote || !skelSyncReady) return;
+  if (window.parent === window) return;
+  const force = !!opts.force;
+  const now = performance.now();
+  if (!force && now - lastSkelSyncAt < SKEL_SYNC_MS) return;
+  lastSkelSyncAt = now;
+  const msg = {
+    type: 'skel-sync',
+    camera: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+    target: { x: controls.target.x, y: controls.target.y, z: controls.target.z },
+  };
+  if (opts.sun || sunGroup.visible) {
+    msg.sun = {
+      x: sunGroup.position.x,
+      y: sunGroup.position.y,
+      z: sunGroup.position.z,
+      visible: !!sunGroup.visible,
+    };
+  }
+  try { window.parent.postMessage(msg, '*'); } catch (_) {}
+}
+
 // ─── mc10/mc12: draggable 「小太阳」; mc11 body 材质：普通图↔皮肤感 ───
 const SUN_HOME = new THREE.Vector3(1.25, 1.85, 1.5); // in-frame upper-front of ninja
 const sunGroup = new THREE.Group();
@@ -989,6 +1018,7 @@ function onSunPointerMove(e) {
     clampSunPos(sunHitPt);
     sunGroup.position.copy(sunHitPt);
     syncKeyFromSun();
+    postSkelSync({ sun: true });
   }
   e.preventDefault();
   e.stopPropagation();
@@ -999,6 +1029,7 @@ function onSunPointerUp(e) {
   draggingSun = false;
   controls.enabled = true;
   try { canvas.releasePointerCapture?.(e.pointerId); } catch (_) {}
+  postSkelSync({ sun: true, force: true });
 }
 
 // capture:true so we beat OrbitControls when grabbing the sun
@@ -1009,6 +1040,35 @@ canvas.addEventListener('pointercancel', onSunPointerUp, { capture: true });
 const _sunPulse = { t0: performance.now() };
 document.getElementById('skinMatBtn')?.addEventListener('click', () => {
   applyBodyMaterialMode(!skinFeelOn);
+});
+
+skelSyncReady = true;
+controls.addEventListener('change', () => postSkelSync());
+window.addEventListener('message', (ev) => {
+  const d = ev && ev.data;
+  if (!d || typeof d !== 'object') return;
+  if (d.type === 'skel-apply') {
+    applyingRemote = true;
+    try {
+      if (d.camera) camera.position.set(d.camera.x, d.camera.y, d.camera.z);
+      if (d.target) controls.target.set(d.target.x, d.target.y, d.target.z);
+      controls.update();
+      if (d.sun && typeof d.sun.x === 'number') {
+        sunGroup.position.set(d.sun.x, d.sun.y, d.sun.z);
+        sunGroup.userData.dragged = true;
+        if (typeof d.sun.visible === 'boolean') setSunVisible(d.sun.visible);
+        else syncKeyFromSun();
+      }
+    } finally {
+      requestAnimationFrame(() => { applyingRemote = false; });
+    }
+    return;
+  }
+  if (d.type === 'skel-set-step' && typeof d.n === 'number') {
+    applyingRemote = true;
+    try { setStep(d.n); }
+    finally { requestAnimationFrame(() => { applyingRemote = false; }); }
+  }
 });
 
 
@@ -1176,10 +1236,16 @@ function setStep(n) {
   }
 }
 
-document.getElementById('stepBones').addEventListener('click', () => setStep(1));
-document.getElementById('stepBig').addEventListener('click', () => setStep(2));
-document.getElementById('stepFine').addEventListener('click', () => setStep(3));
-document.getElementById('stepSkin').addEventListener('click', () => setStep(4));
+function localSetStep(n) {
+  setStep(n);
+  if (!applyingRemote && window.parent !== window) {
+    try { window.parent.postMessage({ type: 'skel-step', n }, '*'); } catch (_) {}
+  }
+}
+document.getElementById('stepBones').addEventListener('click', () => localSetStep(1));
+document.getElementById('stepBig').addEventListener('click', () => localSetStep(2));
+document.getElementById('stepFine').addEventListener('click', () => localSetStep(3));
+document.getElementById('stepSkin').addEventListener('click', () => localSetStep(4));
 
 function resetPose() {
   poseAnim = null;

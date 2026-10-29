@@ -5,6 +5,7 @@
 - 订阅家人音频 → LiveKit Inference STT（无需单独 Deepgram key）
 - 始终旁听并 publish {t:'heard'}；开口（TTS + 小雨 chat 气泡）须教室页点小雨激活
 - 教室页 publishData {t:'xiaoyu_active', on:true|false} 开关 speak mode
+- 教室页 publishData {t:'xiaoyu_say', text} 课程/脚本让小雨开口（可自动开 speak）
 - 通过 publishData 推给教室页：{t:'heard'} / {t:'chat', who:'小雨', ...} / {t:'xiaoyu_active'}
 
 Secrets: .env or LIVEKIT_* env — never commit.
@@ -173,6 +174,21 @@ class XiaoyuListener:
             log.info("speak mode %s → %s (from %s)", prev, on, who or "?")
             # Echo so all classroom tabs stay in sync
             await self._publish({"t": "xiaoyu_active", "on": on})
+            return
+
+        # Course / scripted line: classroom asks 小雨 to speak a fixed line
+        if msg.get("t") == "xiaoyu_say":
+            text = (msg.get("text") or "").strip()
+            if not text:
+                return
+            # Course flow may send say before speak toggle; activate for this line
+            if not self._speak_active:
+                self._speak_active = True
+                await self._publish({"t": "xiaoyu_active", "on": True})
+            mood = msg.get("mood") or "happy"
+            log.info("xiaoyu_say (%s): %s", mood, text[:80])
+            await self._say(text, mood=mood)
+            return
 
     def _ensure_stt(self, participant: rtc.RemoteParticipant, track: rtc.Track) -> None:
         ident = participant.identity
