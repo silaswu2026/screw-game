@@ -212,15 +212,133 @@
   }
   .chat-compose input:focus{border-color:#6dcf7a}
 
-  /* Slightly larger chips on tall phones */
-  @media(min-width:360px){
+  /* Slightly larger chips on tall portrait phones */
+  @media(min-width:360px) and (orientation:portrait){
     :root{--chip-h:92px}
   }
-  @media(min-width:390px){
+  @media(min-width:390px) and (orientation:portrait){
     :root{--chip-h:96px}
   }
 
-  /* ===== TABLET / DESKTOP: nicer 3-col ===== */
+  /* ===== LANDSCAPE / WIDE: cams | chat | course (横版) =====
+     Phone held sideways, or any viewport ≥600px — horizontal 3-zone
+     before waiting for the 901px desktop polish. */
+  @media (orientation: landscape), (min-width: 600px){
+    body{overflow:hidden}
+    header{
+      padding:4px 8px;
+      padding-top:max(4px, env(safe-area-inset-top, 0px));
+      gap:6px;
+      flex-wrap:nowrap;
+    }
+    h1{font-size:.85rem}
+    .btn{padding:6px 10px;font-size:11px}
+    .btn.send{padding:8px 12px;border-radius:10px;font-size:13px}
+
+    main{
+      display:grid;
+      grid-template-columns:minmax(72px,110px) minmax(140px,1fr) minmax(0,2.4fr);
+      grid-template-areas:"cams chat course";
+      gap:6px;
+      padding:6px;
+      padding-bottom:max(6px, env(safe-area-inset-bottom, 0px));
+      max-width:100%;
+      flex:1;
+      min-height:0;
+    }
+    .panel{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:6px;
+    }
+    .panel h2{
+      font-size:10px;
+      opacity:.85;
+      padding:0 0 4px;
+      letter-spacing:.03em;
+    }
+    .hint{display:none}
+
+    .cams{
+      order:unset;
+      grid-area:cams;
+      flex:unset;
+      max-height:none;
+      min-height:0;
+      border:1px solid var(--line);
+      background:var(--card);
+    }
+    .vids{
+      flex-direction:column;
+      overflow:auto;
+      overflow-x:hidden;
+      padding:0;
+      gap:5px;
+      flex:1;
+      min-height:0;
+      scroll-snap-type:none;
+      -webkit-overflow-scrolling:touch;
+    }
+    .tile{
+      width:100%;
+      height:auto;
+      max-height:none;
+      aspect-ratio:3/4;
+      border-radius:10px;
+      flex:0 0 auto;
+    }
+    .tile .name{left:3px;bottom:3px;padding:1px 5px;border-radius:6px;font-size:9px}
+    .tile .badge{right:3px;top:3px;padding:1px 4px;border-radius:6px;font-size:8px}
+
+    .chat{
+      order:unset;
+      grid-area:chat;
+      flex:unset;
+      max-height:none;
+      min-height:0;
+      border-radius:12px;
+      border:1px solid var(--line);
+      box-shadow:none;
+      background:var(--card);
+      padding-bottom:6px;
+    }
+    .chat h2{padding:0 0 4px}
+    #log{
+      margin:0 0 6px;
+      min-height:0;
+      max-height:none;
+      flex:1;
+      padding:6px 8px;
+      font-size:11px;
+      line-height:1.4;
+      border-radius:8px;
+    }
+    .chat-compose{padding:0;gap:6px}
+    .chat-compose input{
+      font-size:14px;
+      padding:8px 10px;
+      border-radius:10px;
+    }
+
+    .course{
+      order:unset;
+      grid-area:course;
+      flex:unset;
+      min-height:0;
+      border:1px solid var(--line);
+      background:var(--card);
+    }
+    .course h2{padding:0 0 4px}
+    .course iframe{
+      border-radius:8px;
+      flex:1;
+      min-height:0;
+      height:auto;
+    }
+  }
+
+  /* ===== DESKTOP polish (≥901px) ===== */
   @media(min-width:901px){
     body{overflow:auto}
     header{padding:10px 14px;gap:8px;flex-wrap:wrap}
@@ -229,72 +347,44 @@
     .btn.send{padding:8px 14px;border-radius:10px;font-size:13px}
 
     main{
-      display:grid;
       grid-template-columns:minmax(120px,150px) minmax(200px,1fr) minmax(0,2.6fr);
-      grid-template-areas:"cams chat course";
       gap:10px;
       padding:10px;
       max-width:1400px;
-      flex:1;
     }
     .panel{
-      background:var(--card);
-      border:1px solid var(--line);
       border-radius:16px;
       padding:10px;
     }
     .panel h2{font-size:13px;opacity:.9;padding:0 0 8px}
     .hint{display:block;font-size:12px;opacity:.85;line-height:1.45;margin-bottom:8px}
 
-    .cams{order:unset;grid-area:cams;flex:unset;border:1px solid var(--line);background:var(--card)}
-    .vids{
-      flex-direction:column;
-      overflow:auto;
-      padding:0;
-      gap:8px;
-      flex:1;
-      min-height:0;
-      scroll-snap-type:none;
-    }
+    .cams{background:var(--card)}
+    .vids{gap:8px}
     .tile{
-      width:100%;
-      height:auto;
-      max-height:none;
-      aspect-ratio:3/4;
+      border-radius:14px;
     }
     .tile .name{left:6px;bottom:6px;padding:2px 7px;border-radius:8px;font-size:11px}
     .tile .badge{right:6px;top:6px;padding:2px 7px;border-radius:8px;font-size:10px}
 
     .chat{
-      order:unset;
-      grid-area:chat;
-      flex:unset;
-      max-height:none;
       min-height:280px;
       border-radius:16px;
-      border:1px solid var(--line);
-      box-shadow:none;
-      background:var(--card);
       padding-bottom:10px;
     }
     .chat h2{padding:0 0 8px}
     #log{
       margin:0 0 8px;
       min-height:160px;
-      max-height:none;
       padding:10px;
+      font-size:12px;
       line-height:1.5;
+      border-radius:10px;
     }
-    .chat-compose{padding:0}
+    .chat-compose{gap:8px}
     .chat-compose input{font-size:13px;padding:8px 10px;border-radius:10px}
 
-    .course{
-      order:unset;
-      grid-area:course;
-      flex:unset;
-      border:1px solid var(--line);
-      background:var(--card);
-    }
+    .course{border-radius:16px}
     .course h2{padding:0 0 8px}
     .course iframe{
       border-radius:12px;
@@ -313,7 +403,7 @@
 <main>
   <section class="panel course">
     <h2>课程同屏</h2>
-    <iframe title="course" src="../learn/skeleton.html?v=mc13"></iframe>
+    <iframe title="course" src="../learn/skeleton.html?v=mc14"></iframe>
   </section>
 
   <section class="panel cams">
@@ -490,7 +580,7 @@ chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
 });
 setRainOnline(true, '在线·待命');
-log('系统：已接 LiveKit Cloud。点爸爸/芃芃进房。手机：课程在上 · 头像横滑 · 聊天在下。');
+log('系统：已接 LiveKit Cloud。点爸爸/芃芃进房。横屏：画面|聊天|课程；竖屏：课程上·头像横滑·聊天下。');
 </script>
 </body>
 </html>
