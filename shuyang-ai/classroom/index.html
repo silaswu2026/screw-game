@@ -477,13 +477,34 @@
   .course-flow .cf-start:active{transform:translateY(1px)}
   .course-flow .cf-steps{display:none;width:100%;max-width:28em;margin:8px auto 0;text-align:left}
   .course-flow.steps-on .cf-intro{display:none}
-  .course-flow.steps-on .cf-steps{display:block}
+  .course-flow.steps-on .cf-steps{display:flex;flex-wrap:wrap;gap:6px;max-width:100%;margin:0;text-align:left}
+  /* After 开始: dock to bottom so 3D bones (head/shoulders) stay visible above */
+  .course-flow.steps-on{
+    inset:auto 0 0 0;top:auto;bottom:0;left:0;right:0;
+    max-height:min(38%, 200px);
+    justify-content:flex-end;
+    padding:18px 10px max(10px, var(--safe-b));
+    background:linear-gradient(180deg,transparent 0%,#0f2218cc 22%,#0f2218f2 55%,#0e1a14f8);
+    overflow:visible;pointer-events:none;
+  }
+  .course-flow.steps-on .xy-hero{display:none}
+  .course-flow.steps-on .cf-body{
+    max-width:100%;pointer-events:auto;
+    background:#0f2218ee;border:1px solid #3f8f4a88;border-radius:16px;
+    padding:8px 8px 10px;box-shadow:0 -4px 24px #0008;
+  }
   .course-flow .cf-step{
     display:block;width:100%;text-align:left;margin:0 0 8px;
     padding:10px 12px;border-radius:14px;border:2px solid #3f8f4a66;
     background:#1e3a2c;color:#dff5e6;font-size:14px;font-weight:800;cursor:pointer;
   }
+  .course-flow.steps-on .cf-step{
+    display:inline-flex;align-items:center;flex:1 1 calc(33.33% - 6px);
+    min-width:5.5em;width:auto;margin:0;padding:7px 8px;
+    font-size:12px;border-radius:12px;line-height:1.25;
+  }
   .course-flow .cf-step .num{color:#ffe7a0;margin-right:6px}
+  .course-flow.steps-on .cf-step .num{margin-right:4px}
   .course-flow .cf-step.active{
     background:linear-gradient(180deg,#78d484,#4ea85c);color:#083018;border-color:transparent;
   }
@@ -493,7 +514,12 @@
     margin:10px auto 0;padding:10px 22px;min-height:42px;font-size:15px;font-weight:800;
     background:#2a5540;color:#fff;
   }
-  .course-flow.steps-on .cf-next{display:inline-flex;align-items:center;justify-content:center}
+  .course-flow.steps-on .cf-next{
+    display:inline-flex;align-items:center;justify-content:center;
+    margin:8px auto 0;min-height:34px;padding:7px 18px;font-size:13px;
+    background:linear-gradient(180deg,#78d484,#4ea85c);color:#083018;
+    box-shadow:0 2px 0 #2f6d3a;pointer-events:auto;
+  }
   .course-flow .cf-skip{
     margin-top:10px;background:transparent;border:0;color:#9bbfa8;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;
   }
@@ -779,7 +805,7 @@
       <ul class="ts-steps" id="todaySteps"></ul>
     </div>
     <div class="course-shell">
-      <iframe id="courseFrame" title="course" src="../learn/skeleton.html?v=mc22"></iframe>
+      <iframe id="courseFrame" title="course" src="../learn/skeleton.html?v=mc23"></iframe>
       <div class="course-flow" id="courseFlow" role="dialog" aria-labelledby="cfTheme">
         <img class="xy-hero" src="../avatars/xiaoyu.jpg" alt="小雨" width="96" height="96"/>
         <div class="cf-body">
@@ -1278,7 +1304,7 @@ async function loadCourseToday(){
     if (courseData.iframe && courseFrame) {
       const raw = String(courseData.iframe);
       const base = raw.split('?')[0];
-      const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : 'v=mc22';
+      const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : 'v=mc23';
       // Mark not-ready before src change so early 开始 queues skelStep until load/skel-ready
       pendingSkelStep = 1;
       setCourseFrameSrc(base + '?' + q + '&_=' + bust);
@@ -2006,9 +2032,9 @@ async function hardRefreshPage(){
   try {
     const frame = document.getElementById('courseFrame');
     if (frame) {
-      const raw = frame.getAttribute('src') || '../learn/skeleton.html?v=mc22';
+      const raw = frame.getAttribute('src') || '../learn/skeleton.html?v=mc23';
       const base = raw.split('?')[0];
-      frame.setAttribute('src', base + '?v=mc22&_=' + bust);
+      frame.setAttribute('src', base + '?v=mc23&_=' + bust);
     }
   } catch (_) {}
   // Clear Cache Storage

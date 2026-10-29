@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#1d4e38">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>3D骨头人 · 骨头→颗粒→方块贴皮 · 小太阳 (mc12)</title>
+<title>3D骨头人 · 骨头→颗粒→方块贴皮 · 小太阳 (mc23)</title>
 <script type="importmap">{"imports":{
   "three":"../../vendor/three.module.js",
   "three/addons/":"../../vendor/addons/"
@@ -44,9 +44,12 @@
   .stage {
     position: relative; width: 100%; aspect-ratio: 1 / 1.05; max-height: min(58dvh, 400px);
     border-radius: 22px; overflow: hidden;
-    background: radial-gradient(ellipse at 50% 70%, #243828, #0b1410 70%);
+    background: radial-gradient(ellipse at 50% 55%, #3a5a40, #1a3028 55%, #0c1812 85%);
     border: 2px solid #3f8f4a; box-shadow: 0 12px 40px #0008;
     touch-action: none; -webkit-user-select: none; user-select: none;
+  }
+  .stage.bones-lit {
+    background: radial-gradient(ellipse at 50% 50%, #4a6e52, #243828 50%, #121e18 85%);
   }
   .stage canvas { width: 100%; height: 100%; display: block; touch-action: none; }
   .badge {
@@ -196,7 +199,8 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
 camera.position.set(2.6, 1.9, 3.4);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.72));
+const amb = new THREE.AmbientLight(0xffffff, 0.88);
+scene.add(amb);
 const hemi = new THREE.HemisphereLight(0xeafff2, 0x243528, 0.88);
 scene.add(hemi);
 // mc10/mc12: key light aims at figure; position driven by draggable 「小太阳」
@@ -219,14 +223,18 @@ const fill = new THREE.DirectionalLight(0xa8d8ff, 0.58);
 fill.position.set(-3, 2.2, -2);
 scene.add(fill);
 
+// Bright ivory bones so step① reads clearly on dark green stage
 const BONE = new THREE.MeshStandardMaterial({
-  color: 0xf2e6c9, roughness: 0.55, metalness: 0.05,
+  color: 0xfff8e4, roughness: 0.32, metalness: 0.02,
+  emissive: 0xffe2a0, emissiveIntensity: 0.55,
 });
 const JOINT = new THREE.MeshStandardMaterial({
-  color: 0xffe7a0, roughness: 0.4, metalness: 0.08,
+  color: 0xfff0b8, roughness: 0.25, metalness: 0.04,
+  emissive: 0xffc857, emissiveIntensity: 0.7,
 });
 const ACCENT = new THREE.MeshStandardMaterial({
-  color: 0xe8c878, roughness: 0.45, metalness: 0.05,
+  color: 0xffe08a, roughness: 0.35, metalness: 0.04,
+  emissive: 0xffcc66, emissiveIntensity: 0.35,
 });
 
 const figure = new THREE.Group();
@@ -234,7 +242,7 @@ scene.add(figure);
 
 const rigMeshes = [];
 
-function addBone(parent, ax, ay, az, bx, by, bz, radius = 0.055) {
+function addBone(parent, ax, ay, az, bx, by, bz, radius = 0.068) {
   const a = new THREE.Vector3(ax, ay, az);
   const b = new THREE.Vector3(bx, by, bz);
   const mid = a.clone().add(b).multiplyScalar(0.5);
@@ -251,7 +259,7 @@ function addBone(parent, ax, ay, az, bx, by, bz, radius = 0.055) {
   return mesh;
 }
 
-function addJoint(parent, x, y, z, r = 0.09) {
+function addJoint(parent, x, y, z, r = 0.105) {
   const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), JOINT);
   m.position.set(x, y, z);
   m.castShadow = true;
@@ -1071,6 +1079,11 @@ window.addEventListener('message', (ev) => {
   }
 });
 
+function notifySkelReady() {
+  if (window.parent === window) return;
+  try { window.parent.postMessage({ type: 'skel-ready', step }, '*'); } catch (_) {}
+}
+
 
 function resize() {
   const w = stage.clientWidth || 320;
@@ -1220,17 +1233,33 @@ function setStep(n) {
     hideFineParticles();
     setSunVisible(false);
     swayOn = true;
+    stage.classList.add('bones-lit');
+    // Frame full stick figure in upper view (classroom bottom dock covers lower strip)
+    camera.position.set(2.35, 1.55, 3.55);
+    controls.target.set(0, 1.05, 0);
+    controls.update();
+    amb.intensity = 1.05;
+    hemi.intensity = 1.05;
   } else if (n === 2) {
+    stage.classList.remove('bones-lit');
+    amb.intensity = 0.88;
+    hemi.intensity = 0.88;
     showRig();
     showBigChunks();
     setSunVisible(false);
     swayOn = true;
   } else if (n === 3) {
+    stage.classList.remove('bones-lit');
+    amb.intensity = 0.88;
+    hemi.intensity = 0.88;
     showRig();
     showFineAssembling();
     setSunVisible(false);
     swayOn = true;
   } else {
+    stage.classList.remove('bones-lit');
+    amb.intensity = 0.88;
+    hemi.intensity = 0.88;
     showSkinStaggered();
     setSunVisible(true);
   }
@@ -1246,6 +1275,27 @@ document.getElementById('stepBones').addEventListener('click', () => localSetSte
 document.getElementById('stepBig').addEventListener('click', () => localSetStep(2));
 document.getElementById('stepFine').addEventListener('click', () => localSetStep(3));
 document.getElementById('stepSkin').addEventListener('click', () => localSetStep(4));
+
+/** Optional ?step= / #step= for classroom deep-link; default bones-only (1). */
+function readInitialSkelStep() {
+  try {
+    const q = new URLSearchParams(location.search || '');
+    const fromQ = Number(q.get('step') || q.get('skelStep') || '');
+    if (fromQ >= 1 && fromQ <= 4) return fromQ;
+  } catch (_) {}
+  try {
+    const h = String(location.hash || '').replace(/^#/, '');
+    const m = /(?:^|[?&])(?:step|skelStep)=([1-4])/.exec(h) || /^([1-4])$/.exec(h);
+    if (m) return Number(m[1]);
+  } catch (_) {}
+  return 1;
+}
+// Apply initial view + tell parent we can accept skel-set-step (fixes race after 开始)
+setStep(readInitialSkelStep());
+notifySkelReady();
+// Re-announce after a tick in case parent listener attached late
+setTimeout(notifySkelReady, 0);
+setTimeout(notifySkelReady, 50);
 
 function resetPose() {
   poseAnim = null;
