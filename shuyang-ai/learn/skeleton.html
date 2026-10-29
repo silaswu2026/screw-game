@@ -145,9 +145,9 @@
     </details>
   </div>
 
-  <a class="back" href="../kid.html?v=bone3d5">回今晚课</a>
+  <a class="back" href="../kid.html?v=bone3d6">回今晚课</a>
   <div class="row" style="margin-top:10px">
-    <a class="btn" href="frame-anim.html?v=bone3d5">回动手页 · 逐帧</a>
+    <a class="btn" href="frame-anim.html?v=bone3d6">回动手页 · 逐帧</a>
   </div>
 </div>
 
@@ -400,7 +400,7 @@ addChunk(shinR, 0, -0.48, 0.08, 0.2, 0.12, 0.26, 14, 0.66);
 
 console.info('[skeleton] LEGO chunks', particles.length);
 
-// ─── Step 3: clear green-ninja body-part DECALS (transparent planes) ───
+// ─── Step 3: green-ninja STICKERS (Sprites = real PNG alpha, no white cardboard) ───
 const skinPatches = [];
 let skinReveal = null;
 
@@ -408,64 +408,68 @@ const CALM_CHUNK = new THREE.MeshStandardMaterial({
   color: 0x4a6b55, roughness: 0.85, metalness: 0.02,
 });
 
-function cropTex(img, sx, sy, sw, sh) {
+function cropCanvas(img, sx, sy, sw, sh) {
   const c = document.createElement('canvas');
   c.width = Math.max(8, Math.round(sw));
   c.height = Math.max(8, Math.round(sh));
-  const ctx = c.getContext('2d');
-  // Keep PNG transparency — NEVER fill white (that made cardboard slabs)
+  const ctx = c.getContext('2d', { alpha: true, willReadFrequently: false });
   ctx.clearRect(0, 0, c.width, c.height);
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
-  const tex = new THREE.CanvasTexture(c);
+  return c;
+}
+
+function makeSpriteTex(canvas) {
+  const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.premultiplyAlpha = false;
+  tex.format = THREE.RGBAFormat;
+  tex.generateMipmaps = false;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.premultiplyAlpha = true;
   tex.needsUpdate = true;
   return tex;
 }
 
-/** Front-facing decal plane (character faces +Z). Transparent PNG edges. */
-function addSkinPlane(parent, tex, x, y, z, w, h, delay) {
-  const mat = new THREE.MeshBasicMaterial({
+/** Camera-facing sticker — SpriteMaterial keeps PNG holes see-through. */
+function addSkinSprite(parent, tex, x, y, z, worldH, delay) {
+  const mat = new THREE.SpriteMaterial({
     map: tex,
     transparent: true,
     opacity: 0,
-    side: THREE.DoubleSide,
-    alphaTest: 0.12,
     depthWrite: false,
+    alphaTest: 0.08,
+    toneMapped: false,
   });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
-  mesh.position.set(x, y, z);
-  mesh.visible = false;
-  mesh.renderOrder = 10;
-  parent.add(mesh);
-  skinPatches.push({ mesh, delay, mat });
-  return mesh;
+  const spr = new THREE.Sprite(mat);
+  const aspect = (tex.image && tex.image.width && tex.image.height)
+    ? tex.image.width / tex.image.height
+    : 1;
+  spr.scale.set(worldH * aspect, worldH, 1);
+  spr.position.set(x, y, z);
+  spr.visible = false;
+  spr.renderOrder = 20;
+  parent.add(spr);
+  skinPatches.push({ mesh: spr, delay, mat });
+  return spr;
 }
 
-function buildNinjaSkin(idleImg /*, walkImg, portraitImg */) {
-  // Sensible large crops from idle.png (256², real alpha)
-  // bbox of character ≈ (65,20)–(190,248)
-  const headTex = cropTex(idleImg, 72, 16, 118, 108);     // head + headband
-  const torsoTex = cropTex(idleImg, 82, 100, 95, 78);     // scarf + chest + belt
-  const armLTex = cropTex(idleImg, 48, 108, 58, 88);      // left arm
-  const armRTex = cropTex(idleImg, 152, 108, 58, 88);     // right arm
-  const legLTex = cropTex(idleImg, 88, 168, 48, 82);      // left leg + boot
-  const legRTex = cropTex(idleImg, 128, 168, 52, 82);     // right leg + boot
-  const fullTex = cropTex(idleImg, 65, 18, 125, 232);     // whole ninja
-
-  // Aspect from crops → plane size so art isn't stretched oddly
-  // Head
-  addSkinPlane(hips, headTex, 0, 1.1, 0.32, 0.55, 0.5, 0.00);
-  // Torso
-  addSkinPlane(hips, torsoTex, 0, 0.45, 0.28, 0.55, 0.45, 0.14);
-  // Arms (whole arm segment — one clear sticker each)
-  addSkinPlane(upperArmL, armLTex, 0, -0.2, 0.16, 0.28, 0.42, 0.28);
-  addSkinPlane(upperArmR, armRTex, 0, -0.2, 0.16, 0.28, 0.42, 0.40);
-  // Legs
-  addSkinPlane(thighL, legLTex, 0, -0.35, 0.16, 0.26, 0.55, 0.52);
-  addSkinPlane(thighR, legRTex, 0, -0.35, 0.16, 0.28, 0.55, 0.64);
-  // Final full-body green ninja in front — completes the lesson
-  addSkinPlane(hips, fullTex, 0, 0.58, 0.48, 0.7, 1.3, 0.82);
+function buildNinjaSkin(idleImg) {
+  // Large readable crops from idle.png (256², real alpha — verified)
+  const parts = [
+    { name: 'head',  sx: 70, sy: 14, sw: 120, sh: 100, parent: hips, x: 0, y: 1.15, z: 0.55, h: 0.55, delay: 0.00 },
+    { name: 'torso', sx: 78, sy: 95, sw: 100, sh: 85,  parent: hips, x: 0, y: 0.48, z: 0.50, h: 0.55, delay: 0.12 },
+    { name: 'armL',  sx: 40, sy: 100, sw: 70, sh: 95, parent: upperArmL, x: 0, y: -0.22, z: 0.35, h: 0.48, delay: 0.24 },
+    { name: 'armR',  sx: 148, sy: 100, sw: 70, sh: 95, parent: upperArmR, x: 0, y: -0.22, z: 0.35, h: 0.48, delay: 0.36 },
+    { name: 'legL',  sx: 82, sy: 165, sw: 55, sh: 85, parent: thighL, x: 0, y: -0.32, z: 0.35, h: 0.55, delay: 0.48 },
+    { name: 'legR',  sx: 125, sy: 165, sw: 55, sh: 85, parent: thighR, x: 0, y: -0.32, z: 0.35, h: 0.55, delay: 0.60 },
+  ];
+  for (const p of parts) {
+    const tex = makeSpriteTex(cropCanvas(idleImg, p.sx, p.sy, p.sw, p.sh));
+    addSkinSprite(p.parent, tex, p.x, p.y, p.z, p.h, p.delay);
+  }
+  // Final whole green ninja — one clear sticker
+  const fullTex = makeSpriteTex(cropCanvas(idleImg, 60, 12, 136, 240));
+  addSkinSprite(hips, fullTex, 0, 0.72, 0.72, 1.45, 0.78);
 }
 
 const ground = new THREE.Mesh(
@@ -725,12 +729,8 @@ function loadImage(url) {
 
 (async () => {
   try {
-    const [idle, walk, portrait] = await Promise.all([
-      loadImage('../../assets/sprites/green/idle.png'),
-      loadImage('../../assets/sprites/green/walk_0.png'),
-      loadImage('../../assets/ninjas/ninja-green.jpg'),
-    ]);
-    buildNinjaSkin(idle, walk, portrait);
+    const idle = await loadImage('../../assets/sprites/green/idle.png');
+    buildNinjaSkin(idle);
     skinReady = true;
     if (step === 3) showSkinStaggered();
   } catch (err) {
