@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#1d4e38">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>3D骨头人 · 骨头→颗粒→四面接皮 (mc9)</title>
+<title>3D骨头人 · 骨头→颗粒→四面接皮 · 小太阳 (mc10)</title>
 <script type="importmap">{"imports":{
   "three":"../../vendor/three.module.js",
   "three/addons/":"../../vendor/addons/"
@@ -87,6 +87,12 @@
   }
   .row button:active, a.btn:active { transform: translateY(1px); }
   .hint { margin: 10px 0 0; text-align: center; font-size: 13px; opacity: .75; font-weight: 700; }
+  .sun-hint {
+    display: none; margin: 8px 0 0; text-align: center;
+    font-size: clamp(14px, 4vw, 16px); font-weight: 800; color: #ffe7a0;
+    text-shadow: 0 0 12px #ff980066;
+  }
+  .sun-hint.show { display: block; }
   a.back {
     display: block; margin: 18px auto 0; text-align: center;
     padding: 14px 22px; border-radius: 999px; background: #2f7a45; color: #fff;
@@ -140,6 +146,7 @@
     <button type="button" id="resetPose">站直</button>
   </div>
   <p class="hint">双指捏可以放大缩小 · 单指拖着转</p>
+  <p class="sun-hint" id="sunHint">☀️ 拖一拖小太阳，看看光和影子怎么变</p>
 
   <div class="still">
     <details>
@@ -148,9 +155,9 @@
     </details>
   </div>
 
-  <a class="back" href="../kid.html?v=mc9">回今晚课</a>
+  <a class="back" href="../kid.html?v=mc10">回今晚课</a>
   <div class="row" style="margin-top:10px">
-    <a class="btn" href="frame-anim.html?v=mc9">回动手页 · 逐帧</a>
+    <a class="btn" href="frame-anim.html?v=mc10">回动手页 · 逐帧</a>
   </div>
 </div>
 
@@ -166,7 +173,7 @@ const badgeEl = document.getElementById('badge');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-// mc9: soft shadows so orbiting reads volume (boxes/ground lit; stickers stay Basic for clarity)
+// mc9/mc10: soft shadows; mc10 adds draggable sun driving this key light
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -177,19 +184,22 @@ camera.position.set(2.6, 1.9, 3.4);
 scene.add(new THREE.AmbientLight(0xffffff, 0.48));
 const hemi = new THREE.HemisphereLight(0xeafff2, 0x243528, 0.55);
 scene.add(hemi);
+// mc10: key light aims at figure; position driven by draggable 「小太阳」
 const key = new THREE.DirectionalLight(0xfff5e0, 1.15);
-key.position.set(2.8, 5.5, 3.2); // upper-front key
+key.position.set(2.0, 3.1, 2.2); // start upper-front, in-frame for kids
 key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024);
 key.shadow.camera.near = 0.5;
-key.shadow.camera.far = 18;
-key.shadow.camera.left = -3.2;
-key.shadow.camera.right = 3.2;
-key.shadow.camera.top = 4.2;
-key.shadow.camera.bottom = -1.8;
+key.shadow.camera.far = 22;
+key.shadow.camera.left = -4;
+key.shadow.camera.right = 4;
+key.shadow.camera.top = 5;
+key.shadow.camera.bottom = -2.5;
 key.shadow.bias = -0.0008;
 key.shadow.normalBias = 0.025;
+key.target.position.set(0, 1.0, 0);
 scene.add(key);
+scene.add(key.target);
 const fill = new THREE.DirectionalLight(0xa8d8ff, 0.35);
 fill.position.set(-3, 2.2, -2);
 scene.add(fill);
@@ -733,7 +743,7 @@ function buildMcSkins(_boxImgs, decalImgs) {
     w.mat.alphaTest = 0.02;
     w.mat.needsUpdate = true;
   }
-  console.info('[skeleton] mc9 volume + 4-side wrap ready', wrapFaces.length);
+  console.info('[skeleton] mc10 volume + 4-side wrap + draggable sun', wrapFaces.length);
 }
 
 
@@ -787,6 +797,127 @@ controls.maxPolarAngle = Math.PI * 0.92;
 controls.enablePan = false;
 controls.update();
 
+// ─── mc10: kid-friendly draggable 「小太阳」 = key DirectionalLight handle ───
+const SUN_HOME = new THREE.Vector3(2.0, 3.1, 2.2);
+const sunGroup = new THREE.Group();
+sunGroup.name = 'littleSun';
+sunGroup.visible = false;
+scene.add(sunGroup);
+
+const sunMat = new THREE.MeshBasicMaterial({
+  color: 0xffcc33, toneMapped: false, transparent: true, opacity: 0.98,
+});
+const sunCore = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 18), sunMat);
+sunCore.renderOrder = 40;
+sunGroup.add(sunCore);
+
+const sunGlowMat = new THREE.MeshBasicMaterial({
+  color: 0xff9800, toneMapped: false, transparent: true, opacity: 0.28,
+  depthWrite: false, side: THREE.DoubleSide,
+});
+const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(0.38, 20, 16), sunGlowMat);
+sunGlow.renderOrder = 39;
+sunGroup.add(sunGlow);
+
+// Larger invisible hit target for small fingers
+const sunHit = new THREE.Mesh(
+  new THREE.SphereGeometry(0.45, 12, 10),
+  new THREE.MeshBasicMaterial({ visible: false })
+);
+sunHit.name = 'sunHit';
+sunGroup.add(sunHit);
+
+sunGroup.position.copy(SUN_HOME);
+
+function syncKeyFromSun() {
+  key.position.copy(sunGroup.position);
+  key.target.position.set(0, 1.0, 0);
+  key.target.updateMatrixWorld();
+}
+syncKeyFromSun();
+
+function setSunVisible(on) {
+  sunGroup.visible = !!on;
+  const hint = document.getElementById('sunHint');
+  if (hint) hint.classList.toggle('show', !!on);
+  if (on) {
+    // Keep sun in a readable spot when entering skin step (don't reset if already dragged this session? reset for teaching clarity)
+    if (!sunGroup.userData.dragged) {
+      sunGroup.position.copy(SUN_HOME);
+      syncKeyFromSun();
+    }
+  }
+}
+
+const sunRay = new THREE.Raycaster();
+const sunPtr = new THREE.Vector2();
+const sunDragPlane = new THREE.Plane();
+const sunHitPt = new THREE.Vector3();
+const _camDir = new THREE.Vector3();
+let draggingSun = false;
+
+function pointerToNDC(e) {
+  const src = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0]
+    : (e.touches && e.touches[0] ? e.touches[0] : e);
+  const rect = canvas.getBoundingClientRect();
+  sunPtr.x = ((src.clientX - rect.left) / rect.width) * 2 - 1;
+  sunPtr.y = -((src.clientY - rect.top) / rect.height) * 2 + 1;
+}
+
+function clampSunPos(v) {
+  v.y = Math.max(0.75, Math.min(4.6, v.y));
+  const xz = Math.hypot(v.x, v.z);
+  const maxR = 4.2;
+  if (xz > maxR) {
+    v.x = (v.x / xz) * maxR;
+    v.z = (v.z / xz) * maxR;
+  }
+  return v;
+}
+
+function onSunPointerDown(e) {
+  if (!sunGroup.visible) return;
+  pointerToNDC(e);
+  sunRay.setFromCamera(sunPtr, camera);
+  const hits = sunRay.intersectObject(sunHit, false);
+  if (!hits.length) return;
+  draggingSun = true;
+  sunGroup.userData.dragged = true;
+  controls.enabled = false;
+  camera.getWorldDirection(_camDir);
+  sunDragPlane.setFromNormalAndCoplanarPoint(_camDir.clone().negate(), sunGroup.position.clone());
+  canvas.setPointerCapture?.(e.pointerId);
+  e.preventDefault();
+  e.stopImmediatePropagation();
+}
+
+function onSunPointerMove(e) {
+  if (!draggingSun) return;
+  pointerToNDC(e);
+  sunRay.setFromCamera(sunPtr, camera);
+  if (sunRay.ray.intersectPlane(sunDragPlane, sunHitPt)) {
+    clampSunPos(sunHitPt);
+    sunGroup.position.copy(sunHitPt);
+    syncKeyFromSun();
+  }
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+function onSunPointerUp(e) {
+  if (!draggingSun) return;
+  draggingSun = false;
+  controls.enabled = true;
+  try { canvas.releasePointerCapture?.(e.pointerId); } catch (_) {}
+}
+
+// capture:true so we beat OrbitControls when grabbing the sun
+canvas.addEventListener('pointerdown', onSunPointerDown, { capture: true });
+canvas.addEventListener('pointermove', onSunPointerMove, { capture: true });
+canvas.addEventListener('pointerup', onSunPointerUp, { capture: true });
+canvas.addEventListener('pointercancel', onSunPointerUp, { capture: true });
+const _sunPulse = { t0: performance.now() };
+
 function resize() {
   const w = stage.clientWidth || 320;
   const h = stage.clientHeight || 340;
@@ -815,8 +946,8 @@ const LESSONS = {
     badge: '🟨 细颗粒',
   },
   4: {
-    html: '④ <strong>前后左右都贴皮</strong>——6 个大方块 + 前/后/左/右四张忍者贴图跟着转；有灯光和脚下阴影，转一转更立体！',
-    badge: '🎨 四面接皮',
+    html: '④ <strong>前后左右都贴皮</strong>——四张忍者贴图跟着转；再<strong>拖一拖小太阳</strong>，看看光和影子怎么变！',
+    badge: '🎨 贴皮+小太阳',
   },
 };
 
@@ -932,17 +1063,21 @@ function setStep(n) {
     clearCubeSkin();
     hideBigChunks();
     hideFineParticles();
+    setSunVisible(false);
     swayOn = true;
   } else if (n === 2) {
     showRig();
     showBigChunks();
+    setSunVisible(false);
     swayOn = true;
   } else if (n === 3) {
     showRig();
     showFineAssembling();
+    setSunVisible(false);
     swayOn = true;
   } else {
     showSkinStaggered();
+    setSunVisible(true);
   }
 }
 
@@ -1108,6 +1243,12 @@ function frame(now) {
       }
     }
     if (u >= 1.75 && allDone) skinReveal = null;
+  }
+
+  if (sunGroup.visible) {
+    const pulse = 1 + Math.sin((now - _sunPulse.t0) / 1000 * 2.2) * 0.06;
+    sunCore.scale.setScalar(pulse);
+    sunGlow.scale.setScalar(pulse);
   }
 
   controls.update();
