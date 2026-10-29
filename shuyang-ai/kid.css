@@ -88,10 +88,10 @@ h1 {
   gap: 18px;
   margin: 0;
 }
-.faces figure { margin: 0; width: 96px; }
+.faces figure { margin: 0; width: 72px; }
 .faces img {
-  width: 96px;
-  height: 96px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   object-fit: cover;
   display: block;
@@ -105,7 +105,7 @@ h1 {
   font-weight: 800;
 }
 .face.xiaoyu { object-position: 32% 34%; }
-.face.dad, .face.son { object-position: center 16%; }
+.face.dad, .face.mom, .face.son { object-position: center 16%; }
 .star {
   font-size: 72px;
   line-height: 1;

@@ -6,11 +6,10 @@
   <meta name="theme-color" content="#12162f"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <title>今晚 · 逐帧动画</title>
-  <link rel="stylesheet" href="kid.css?v=frame1"/>
+  <link rel="stylesheet" href="kid.css?v=frame2"/>
 </head>
 <body>
   <div id="app"></div>
-  <script src="gate.js?v=7"></script>
   <script>
     (async function () {
       const app = document.getElementById('app');
@@ -27,9 +26,8 @@
         });
       }
       try {
-        if (!(await window.__shuyangGate())) return;
-        await load('sync.js?v=9');
-        await load('kid.js?v=frame1');
+        await load('sync.js?v=11');
+        await load('kid.js?v=frame2');
       } catch (e) {
         fail(e && e.message ? e.message : '脚本');
       }

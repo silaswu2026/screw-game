@@ -24,3 +24,9 @@ Live: https://silaswu2026.github.io/shuyang-chengzhangwu/xy-go/
 ## 稍后（未做）
 
 - 教学 UI / 清晰视频：讲解角色、怪物、陷阱的 **精灵帧动画**（sprite/frame）
+
+## 2026-10-29 verify
+- Walk: hold ←/→ — green ninja flips walk_0..walk_3 (~10fps), not a sliding JPG.
+- Jump: mid-air shows jump_0 frame.
+- Knock: bomb pad still knock→crawl→getup frames.
+- Scenes: L1 forest-day / L2 moss-dusk / L3 canopy-night parallax plates (not flat green gradient).

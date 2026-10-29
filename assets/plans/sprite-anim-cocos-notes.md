@@ -59,3 +59,31 @@ HP still −1; bomb pad demo unchanged.
 ## Test
 
 Open https://silaswu2026.github.io/shuyang-chengzhangwu/xy-go/ → 玩家A → walk onto bomb pad (~column 7). Expect image-frame knockdown → crawl → getup, not a vector lean of the portrait.
+
+
+## Locomotion (idle / walk / jump) — 2026-10-29
+
+Same Cocos SpriteFrameCache path as knockdown. Extra frames on the sheet:
+
+| Frames | Names |
+|--------|-------|
+| Walk cycle (~10 fps loop) | `walk_0` … `walk_3` |
+| Jump / air | `jump_0` |
+| Idle | `idle` (already on sheet) |
+
+`drawNinja` picks `locoFrameName(n)` from `n.anim` (`run` → walk flipbook, `jump`/`slide`/`walljump` → `jump_0`, else `idle`) instead of the static portrait JPG. Blue/red reuse green loco frames (same as knockdown).
+
+**Test:** Open xy-go → 玩家A → hold left/right. Feet/scarf must change pose every ~0.1s (not a sliding portrait). Jump shows tucked `jump_0`.
+
+
+## Scenes / backgrounds (原画) — 2026-10-29
+
+Flat gradient + triangle trees replaced by parallax **scene plates** under `xy-go/scenes/`:
+
+| Key | File | Levels |
+|-----|------|--------|
+| forest-day | `forest-day.jpg` | L1 / default |
+| moss-dusk | `moss-dusk.jpg` | L2 |
+| canopy-night | `canopy-night.jpg` | L3 (+ cycle) |
+
+Also: `yuanhua-forest-panel.jpg` cropped from `assets/plans/xiaoyu-trio-plan-sketch.jpg`; dirt/grass tiles from 原画-style ground for platform tops. `drawSky()` covers the view with the plate and scrolls at 0.12× cam.

@@ -131,7 +131,7 @@
       hp: MAX_HP, down: false, downT: 0, springCd: 0, springLock: 0,
       shake: 0, flash: 0, glow: 0, bones: 0, spikeMsgCd: 0,
       burnT: 0, burnTick: 0, boltCd: 0,
-      knockT: 0, knockPhase: null, knockAnimT: 0,
+      knockT: 0, knockPhase: null, knockAnimT: 0, locoT: 0,
     };
   }
   const player = makeNinja('green');
@@ -173,10 +173,50 @@
     });
   })();
 
-  // Cocos2d-html5 style: SpriteFrameCache + Animation (sheet + JSON atlas)
+  // Level scenes from 原画-style plates (parallax BG), not flat gradient placeholders
+  const SCENE_KEYS = ['forest-day', 'moss-dusk', 'canopy-night'];
+  const SCENE_CACHE = { imgs: Object.create(null), dirt: null, grass: null, ready: false };
+  (function loadScenes() {
+    SCENE_KEYS.forEach((key) => {
+      const im = new Image();
+      im.decoding = 'async';
+      im.src = 'scenes/' + key + '.jpg';
+      SCENE_CACHE.imgs[key] = im;
+    });
+    const dirt = new Image();
+    dirt.decoding = 'async';
+    dirt.src = 'scenes/dirt-tile.png';
+    SCENE_CACHE.dirt = dirt;
+    const grass = new Image();
+    grass.decoding = 'async';
+    grass.src = 'scenes/grass-cap.png';
+    SCENE_CACHE.grass = grass;
+    dirt.onload = () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = c.height = 40;
+        const g = c.getContext('2d');
+        g.drawImage(dirt, 0, 0, 40, 40);
+        brickPat = ctx.createPattern(c, 'repeat') || brickPat;
+      } catch (e) {}
+    };
+  })();
+  function sceneKeyForLevel(i) {
+    if (i <= 0) return 'forest-day';
+    if (i === 1) return 'moss-dusk';
+    if (i === 2) return 'canopy-night';
+    return SCENE_KEYS[i % SCENE_KEYS.length];
+  }
+
+    // Cocos2d-html5 style: SpriteFrameCache + Animation (sheet + JSON atlas)
   const SPRITE_FPS = 10;
   const SPRITE_DELAY = 1 / SPRITE_FPS;
   const KNOCK_SEQ = ['knock_0', 'knock_1', 'crawl_0', 'crawl_1', 'crawl_0', 'getup'];
+  const WALK_SEQ = ['walk_0', 'walk_1', 'walk_2', 'walk_3'];
+  const ALL_FRAME_NAMES = [
+    'idle', 'knock_0', 'knock_1', 'crawl_0', 'crawl_1', 'getup', 'hurt_skeleton',
+    'walk_0', 'walk_1', 'walk_2', 'walk_3', 'jump_0',
+  ];
   const FRAME_CACHE = {
     sheet: null,
     atlas: null,
@@ -208,7 +248,7 @@
         FRAME_CACHE.ready = true;
       })
       .catch(() => {
-        ['idle', 'knock_0', 'knock_1', 'crawl_0', 'crawl_1', 'getup', 'hurt_skeleton'].forEach((name) => {
+        ALL_FRAME_NAMES.forEach((name) => {
           const im = new Image();
           im.decoding = 'async';
           im.src = base + name + '.png';
@@ -263,6 +303,19 @@
       const i = Math.min(KNOCK_SEQ.length - 1, Math.floor(n.knockAnimT / SPRITE_DELAY));
       return KNOCK_SEQ[i];
     }
+    return 'idle';
+  }
+
+  function locoFrameName(n) {
+    // Cocos Animation-style: idle / walk flipbook / jump pose from sprite frames
+    const anim = n.anim || 'idle';
+    if (anim === 'jump' || anim === 'walljump' || anim === 'slide') return 'jump_0';
+    if (anim === 'run') {
+      const t = (n.locoT != null) ? n.locoT : (n.phase || 0);
+      const i = Math.floor(t / SPRITE_DELAY) % WALK_SEQ.length;
+      return WALK_SEQ[i < 0 ? 0 : i];
+    }
+    // throw / idle / prone leftovers → idle frame (not portrait JPG)
     return 'idle';
   }
 
@@ -680,7 +733,7 @@
     n.springCd = 0; n.springLock = 0;
     n.shake = 0; n.flash = 0; n.glow = 0; n.bones = 0; n.spikeMsgCd = 0;
     n.burnT = 0; n.burnTick = 0; n.boltCd = 0;
-    n.knockT = 0; n.knockPhase = null; n.knockAnimT = 0;
+    n.knockT = 0; n.knockPhase = null; n.knockAnimT = 0; n.locoT = 0;
   }
 
   function loadLevel(i) {
@@ -1539,6 +1592,8 @@
     else n.anim = 'idle';
 
     n.phase += Math.abs(n.vx) * dt * 0.05;
+    if (n.anim === 'run') n.locoT = (n.locoT || 0) + dt;
+    else if (n.anim === 'idle') n.locoT = 0;
     dropTrail(n);
 
     if (n.y > rows * T + 80) {
@@ -2440,8 +2495,14 @@
     }
     let alpha = blink ? 0.45 : 1;
     if (n.flash > 0 && Math.sin(sim * 55) > 0) alpha = 0.5;
-    const ok = drawHeroSprite(n.face, alpha, n.palette || 'green', bob);
-    if (!ok) drawHero(n.phase, n.anim, n.face, alpha, n.palette, Math.abs(n.vx));
+    // Prefer Cocos-style sprite frames for idle/walk/jump (same cache as knockdown)
+    ctx.translate(0, -bob);
+    const fname = locoFrameName(n);
+    let ok = drawSpriteFrame(fname, n.face, alpha, 82);
+    if (!ok) {
+      ok = drawHeroSprite(n.face, alpha, n.palette || 'green', 0);
+      if (!ok) drawHero(n.phase, n.anim, n.face, alpha, n.palette, Math.abs(n.vx));
+    }
     if (n.bones > 0) {
       ctx.globalAlpha = Math.min(1, n.bones / 0.2);
       drawBoneOverlay(n.face);
@@ -2479,10 +2540,15 @@
       for (let c = c0; c <= c1; c++) {
         if (!solid[r * cols + c]) continue;
         if (r > 0 && solid[(r - 1) * cols + c]) continue;
-        ctx.fillStyle = '#3f8f4a';
-        ctx.fillRect(c * T, r * T, T + 0.6, 8);
-        ctx.fillStyle = '#2f6a38';
-        ctx.fillRect(c * T, r * T + 8, T + 0.6, 4);
+        const gcap = SCENE_CACHE.grass;
+        if (gcap && gcap.complete && gcap.naturalWidth) {
+          ctx.drawImage(gcap, c * T, r * T - 2, T + 0.6, 16);
+        } else {
+          ctx.fillStyle = '#3f8f4a';
+          ctx.fillRect(c * T, r * T, T + 0.6, 8);
+          ctx.fillStyle = '#2f6a38';
+          ctx.fillRect(c * T, r * T + 8, T + 0.6, 4);
+        }
         if ((c + r) % 6 === 0) {
           ctx.strokeStyle = '#237a3c';
           ctx.lineWidth = 3;
@@ -2612,42 +2678,29 @@
   }
   function drawSky() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, viewW, viewH);
-    ctx.fillStyle = '#ffe7a0';
-    ctx.beginPath();
-    ctx.arc(viewW * 0.8, viewH * 0.16, Math.min(viewW, viewH) * 0.055, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#e7f6e4';
-    const drift = cam.x * 0.2;
-    for (let i = 0; i < 5; i++) {
-      const x = ((i * 240 - drift) % (viewW + 200) + viewW + 200) % (viewW + 200) - 80;
-      const y = 40 + (i % 3) * 24;
-      ctx.globalAlpha = 0.55;
+    const key = sceneKeyForLevel(levelIndex | 0);
+    const im = SCENE_CACHE.imgs[key];
+    if (im && im.complete && im.naturalWidth) {
+      // Parallax cover: 原画-style scene plate fills view; scroll slowly with cam
+      const iw = im.naturalWidth, ih = im.naturalHeight;
+      const scale = Math.max(viewW / iw, viewH / ih) * 1.08;
+      const dw = iw * scale, dh = ih * scale;
+      const parallax = (cam.x || 0) * 0.12;
+      const ox = -((parallax % dw) + dw) % dw;
+      const oy = viewH - dh + 8;
+      ctx.drawImage(im, ox, oy, dw, dh);
+      if (ox + dw < viewW) ctx.drawImage(im, ox + dw - 1, oy, dw, dh);
+      // soft vignette so UI stays readable
+      ctx.fillStyle = 'rgba(8,16,28,0.12)';
+      ctx.fillRect(0, 0, viewW, viewH);
+    } else {
+      ctx.fillStyle = sky || '#1d4e38';
+      ctx.fillRect(0, 0, viewW, viewH);
+      ctx.fillStyle = '#ffe7a0';
       ctx.beginPath();
-      ctx.ellipse(x, y, 40, 14, 0, 0, Math.PI * 2);
-      ctx.ellipse(x + 26, y + 4, 24, 12, 0, 0, Math.PI * 2);
+      ctx.arc(viewW * 0.8, viewH * 0.16, Math.min(viewW, viewH) * 0.055, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.globalAlpha = 1;
-    const base = viewH * 0.7;
-    for (let i = 0; i < 8; i++) {
-      const span = viewW + 220;
-      const x = ((i * 170 - cam.x * 0.35) % span + span) % span - 90;
-      const bh = 78 + (i % 4) * 28;
-      ctx.fillStyle = i % 2 ? '#1a4630' : '#24573a';
-      ctx.beginPath();
-      ctx.moveTo(x, base);
-      ctx.lineTo(x + 36, base - bh);
-      ctx.lineTo(x + 72, base);
-      ctx.fill();
-      ctx.fillStyle = '#143826';
-      ctx.fillRect(x + 32, base - 16, 8, 16);
-    }
-    ctx.fillStyle = '#d9ffe8';
-    ctx.globalAlpha = 0.25;
-    ctx.fillRect(0, viewH * 0.62, viewW, viewH * 0.16);
-    ctx.globalAlpha = 1;
     for (let i = 0; i < 12; i++) {
       const x = ((i * 97 + sim * 14) % (viewW + 30)) - 10;
       const y = viewH * 0.38 + Math.sin(sim * 2 + i) * 24 + (i % 5) * 16;
@@ -2689,8 +2742,14 @@
     ctx.save();
     ctx.translate(land ? viewW * 0.72 : viewW * 0.5, hy - 18);
     ctx.scale(sc, sc);
-    if (!drawHeroSprite(1, 1, pickColor || 'green', Math.abs(Math.sin(sim * 8)) * 3)) {
-      drawHero(sim * 10, 'run', 1, 1, pickColor || 'green', 180);
+    // Title preview: cycle walk sprite frames (~10 fps) so 逐帧 is obvious before play
+    const ti = Math.floor(sim / SPRITE_DELAY) % WALK_SEQ.length;
+    const bob = Math.abs(Math.sin(sim * 8)) * 3;
+    ctx.translate(0, -bob);
+    if (!drawSpriteFrame(WALK_SEQ[ti], 1, 1, 82)) {
+      if (!drawHeroSprite(1, 1, pickColor || 'green', 0)) {
+        drawHero(sim * 10, 'run', 1, 1, pickColor || 'green', 180);
+      }
     }
     ctx.restore();
   }

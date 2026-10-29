@@ -1,5 +1,5 @@
 /* 伍澍暘 · 第 1 月 · 异地微信语音课 */
-const V = '9';
+const V = '11';
 const STORE = 'shuyang_ai_month_v1';
 const REWARD_STORE = 'shuyang_ai_rewards_v1';
 const PEOPLE = {
@@ -678,7 +678,7 @@ function homeHtml() {
     <p class="progress">已完成 <b>${done}</b> / 30 天 · 可用星星 <b>${st.bal}</b></p>
     <div class="bar"><i style="width:${(done / 30) * 100}%"></i></div>
     <button type="button" class="primary go" data-act="day" data-day="${cont}">今天从 Day ${cont} 开始</button>
-    <a class="kid-entry" href="kid.html">澍暘的简单版</a>
+    <a class="kid-entry" href="kid.html?v=cast1">澍暘上课首页</a>
     <button type="button" class="shop-btn" data-act="shop">⭐ 成就兑换（${st.bal} 星可用）</button>
     <button type="button" data-act="guide">这门课怎么上</button>
   </header>

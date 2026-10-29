@@ -8,15 +8,18 @@
   const PEOPLE = {
     '小雨': { src: 'avatars/xiaoyu.jpg', cls: 'xiaoyu', name: '小雨' },
     '爸爸': { src: 'avatars/dad-wuxin.jpg', cls: 'dad', name: '爸爸' },
-    '澍暘': { src: 'avatars/pengpeng.jpg', cls: 'son', name: '澍暘' },
+    '妈妈': { src: 'avatars/mom-chunyan.jpg', cls: 'mom', name: '妈妈' },
+    '澍暘': { src: 'avatars/pengpeng.jpg', cls: 'son', name: '伍澍暘' },
+    '伍澍暘': { src: 'avatars/pengpeng.jpg', cls: 'son', name: '伍澍暘' },
   };
+  const HOME_CAST = ['小雨', '爸爸', '妈妈', '伍澍暘'];
 
   const LESSONS = [
     {
       id: '2026-10-28',
       kicker: '昨晚',
       title: '人怎么动',
-      with: ['小雨', '爸爸', '澍暘'],
+      with: ['小雨', '爸爸', '妈妈', '澍暘'],
       principle: '2D 是很多张画一张一张换；3D 是骨头架子在摆，皮跟着动。',
       skeleton: { url: 'learn/skeleton.html', label: '看3D骨头图' },
       // 2D/3D explainer (relative to kid.html).
@@ -40,7 +43,7 @@
       id: '2026-10-29',
       kicker: '今晚',
       title: '逐帧动画',
-      with: ['小雨', '爸爸', '澍暘'],
+      with: ['小雨', '爸爸', '妈妈', '澍暘'],
       principle: '一张张画好的图按顺序换，就「动」起来了——像翻书一样。人物、怪物、陷阱都一样。',
       lab: { url: 'learn/frame-anim.html?v=1', label: '打开动手页 · 换帧试试' },
       skeleton: { url: 'learn/skeleton.html', label: '对照：3D骨头图' },
@@ -174,20 +177,30 @@
     return `<div class="slot" id="slot"><iframe id="clip" title="小视频" src="${esc(src.href)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>`;
   }
 
+  function todayLabel() {
+    try {
+      return new Intl.DateTimeFormat('zh-CN', {
+        timeZone: 'Asia/Shanghai', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
+      }).format(new Date());
+    } catch (e) {
+      return lesson().id;
+    }
+  }
   function homeHtml() {
     const day = lesson();
     const star = saved().done ? `<p class="line">⭐ ${esc(day.star)}</p>` : '';
     const note = hello ? `<p class="hello">${esc(hello)}</p>` : '';
     return `<section class="screen" data-screen="home">
       <div class="stage">
-        ${faces(day.with)}
-        <p class="kicker">${esc(day.kicker)}</p>
+        ${faces(HOME_CAST)}
+        <p class="kicker">${esc(todayLabel())}</p>
         <h1>${esc(day.title)}</h1>
+        <p class="line">${esc(day.kicker)}课程</p>
         ${star}
         ${note}
       </div>
       <div class="dock">
-        <button type="button" class="primary" data-act="start">${saved().done ? '再看一遍' : '开始'}</button>
+        <button type="button" class="primary" data-act="start">${saved().done ? '再看一遍' : '进入今晚'}</button>
       </div>
     </section>`;
   }
