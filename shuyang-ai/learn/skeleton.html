@@ -145,9 +145,9 @@
     </details>
   </div>
 
-  <a class="back" href="../kid.html?v=bone3d6">回今晚课</a>
+  <a class="back" href="../kid.html?v=bone3d7">回今晚课</a>
   <div class="row" style="margin-top:10px">
-    <a class="btn" href="frame-anim.html?v=bone3d6">回动手页 · 逐帧</a>
+    <a class="btn" href="frame-anim.html?v=bone3d7">回动手页 · 逐帧</a>
   </div>
 </div>
 
@@ -400,7 +400,7 @@ addChunk(shinR, 0, -0.48, 0.08, 0.2, 0.12, 0.26, 14, 0.66);
 
 console.info('[skeleton] LEGO chunks', particles.length);
 
-// ─── Step 3: green-ninja STICKERS (Sprites = real PNG alpha, no white cardboard) ───
+// ─── Step 3: mc-ninja parts.png / full.png stickers (Sprites, real alpha) ───
 const skinPatches = [];
 let skinReveal = null;
 
@@ -453,23 +453,28 @@ function addSkinSprite(parent, tex, x, y, z, worldH, delay) {
   return spr;
 }
 
-function buildNinjaSkin(idleImg) {
-  // Large readable crops from idle.png (256², real alpha — verified)
+function buildNinjaSkin(partsImg, fullImg) {
+  // parts.png 1280×720 — opaque bboxes measured for clean voxel ninja pieces
+  // head(101,23)-(425,329); torso(426,39)-(850,332);
+  // armA(977,54)-(1115,326); armB(233,369)-(387,661);
+  // legL(591,366)-(757,675); legR(952,370)-(1108,676)
   const parts = [
-    { name: 'head',  sx: 70, sy: 14, sw: 120, sh: 100, parent: hips, x: 0, y: 1.15, z: 0.55, h: 0.55, delay: 0.00 },
-    { name: 'torso', sx: 78, sy: 95, sw: 100, sh: 85,  parent: hips, x: 0, y: 0.48, z: 0.50, h: 0.55, delay: 0.12 },
-    { name: 'armL',  sx: 40, sy: 100, sw: 70, sh: 95, parent: upperArmL, x: 0, y: -0.22, z: 0.35, h: 0.48, delay: 0.24 },
-    { name: 'armR',  sx: 148, sy: 100, sw: 70, sh: 95, parent: upperArmR, x: 0, y: -0.22, z: 0.35, h: 0.48, delay: 0.36 },
-    { name: 'legL',  sx: 82, sy: 165, sw: 55, sh: 85, parent: thighL, x: 0, y: -0.32, z: 0.35, h: 0.55, delay: 0.48 },
-    { name: 'legR',  sx: 125, sy: 165, sw: 55, sh: 85, parent: thighR, x: 0, y: -0.32, z: 0.35, h: 0.55, delay: 0.60 },
+    { name: 'head',  sx: 101, sy: 23,  sw: 324, sh: 306, parent: hips,      x: 0, y: 1.12, z: 0.55, h: 0.58, delay: 0.00 },
+    { name: 'torso', sx: 426, sy: 39,  sw: 424, sh: 293, parent: hips,      x: 0, y: 0.48, z: 0.50, h: 0.62, delay: 0.12 },
+    { name: 'armL',  sx: 233, sy: 369, sw: 154, sh: 292, parent: upperArmL, x: 0, y: -0.22, z: 0.38, h: 0.52, delay: 0.24 },
+    { name: 'armR',  sx: 977, sy: 54,  sw: 138, sh: 272, parent: upperArmR, x: 0, y: -0.22, z: 0.38, h: 0.52, delay: 0.36 },
+    { name: 'legL',  sx: 591, sy: 366, sw: 166, sh: 309, parent: thighL,    x: 0, y: -0.35, z: 0.38, h: 0.62, delay: 0.48 },
+    { name: 'legR',  sx: 952, sy: 370, sw: 156, sh: 306, parent: thighR,    x: 0, y: -0.35, z: 0.38, h: 0.62, delay: 0.60 },
   ];
   for (const p of parts) {
-    const tex = makeSpriteTex(cropCanvas(idleImg, p.sx, p.sy, p.sw, p.sh));
+    const tex = makeSpriteTex(cropCanvas(partsImg, p.sx, p.sy, p.sw, p.sh));
     addSkinSprite(p.parent, tex, p.x, p.y, p.z, p.h, p.delay);
   }
-  // Final whole green ninja — one clear sticker
-  const fullTex = makeSpriteTex(cropCanvas(idleImg, 60, 12, 136, 240));
-  addSkinSprite(hips, fullTex, 0, 0.72, 0.72, 1.45, 0.78);
+  // Final full-body green ninja (mc-ninja/full.png) — completes the look
+  const fw = fullImg.naturalWidth || fullImg.width;
+  const fh = fullImg.naturalHeight || fullImg.height;
+  const fullTex = makeSpriteTex(cropCanvas(fullImg, 0, 0, fw, fh));
+  addSkinSprite(hips, fullTex, 0, 0.7, 0.78, 1.5, 0.78);
 }
 
 const ground = new THREE.Mesh(
@@ -729,8 +734,11 @@ function loadImage(url) {
 
 (async () => {
   try {
-    const idle = await loadImage('../../assets/sprites/green/idle.png');
-    buildNinjaSkin(idle);
+    const [partsImg, fullImg] = await Promise.all([
+      loadImage('../../assets/sprites/mc-ninja/parts.png'),
+      loadImage('../../assets/sprites/mc-ninja/full.png'),
+    ]);
+    buildNinjaSkin(partsImg, fullImg);
     skinReady = true;
     if (step === 3) showSkinStaggered();
   } catch (err) {
