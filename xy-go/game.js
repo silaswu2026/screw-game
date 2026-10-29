@@ -1,6 +1,6 @@
 // 闯关平台 (8 levels, two-player A/B). Button-only L/R move — no auto-dash.
 // Knockdown uses Cocos-style sprite frames (sprites/green sheet).
-// Traps: spike / bomb / fire jet / lightning with color immunities.
+// Traps: spike / bomb / fire jet / lightning / grassland / sand / falling rock / poison mist.
 (function () {
   const T = 40;
   const GRAV = 1650;
@@ -189,6 +189,9 @@
   let fires = [];
   let rockets = Array.from({ length: 24 }, () => ({ on: 0, x: 0, y: 0, vx: 0, life: 0, spin: 0 }));
   let bolts = [];
+  let sands = [];   // 流沙 quicksand patches
+  let rocks = [];   // 落石 falling-rock zones
+  let mists = [];   // 毒雾 poison mist zones
   let boss = null;
   let goal = { x: 0, y: 0 };
   let spawn = { x: 80, y: 200 };
@@ -220,6 +223,7 @@
       hp: MAX_HP, down: false, downT: 0, springCd: 0, springLock: 0,
       shake: 0, flash: 0, glow: 0, bones: 0, spikeMsgCd: 0,
       burnT: 0, burnTick: 0, burnShake: 0, burnDir: 0, boltCd: 0,
+      sandSink: 0, mistT: 0, mistCd: 0,
       knockT: 0, knockPhase: null, knockAnimT: 0, locoT: 0,
     };
   }
@@ -652,7 +656,7 @@
   const LEVELS = [
     {
       name: '林间晨跑', en: 'Forest Jog',
-      hint: '第1关·沼泽：小心黑草草原陷阱（踩了掉尖刺·清空血）',
+      hint: '第1关·沼泽：黑草陷阱+流沙（跳一跳逃出）',
       cols: 70, rows: 14, spawn: [2, 11], goal: [66, 11],
       checks: [[34, 11]],
       slimes: [[22, 11]], crates: [[16, 11]],
@@ -662,6 +666,9 @@
       bombs: [[8, 11]],
       fires: [[24, 11]],
       bolts: [],
+      sands: [[18, 20]],
+      rocks: [],
+      mists: [],
       boss: { c: 58, name: '史莱姆王', kind: 'slime', hp: 4 },
       coins: [[4, 9], [6, 9], [12, 9], [18, 9], [24, 9], [30, 7], [38, 9], [44, 9], [52, 9], [62, 9]],
       stars: [[30, 6]],
@@ -676,7 +683,7 @@
     },
     {
       name: '苔岩小径', en: 'Moss Path',
-      hint: '第2关·山坡：金字塔地形；着火左右快晃灭火',
+      hint: '第2关·山坡：落石从天降，看黄光躲开',
       cols: 82, rows: 14, spawn: [2, 11], goal: [78, 11],
       checks: [[20, 11], [48, 11]],
       slimes: [[26, 11], [54, 11]], crates: [[18, 11]],
@@ -686,6 +693,9 @@
       bombs: [[44, 11]],
       fires: [[30, 11]],
       bolts: [],
+      sands: [],
+      rocks: [[52, 11]],
+      mists: [],
       boss: { c: 70, name: '野猪', kind: 'boar', hp: 5 },
       coins: [[5, 9], [10, 9], [16, 9], [24, 9], [32, 9], [39, 7], [46, 9], [56, 9], [64, 9], [74, 9]],
       stars: [[39, 5]],
@@ -700,7 +710,7 @@
     },
     {
       name: '萤火树冠', en: 'Firefly Canopy',
-      hint: '第3关·沼泽：闪电初见；蓝免疫闪电',
+      hint: '第3关·沼泽：毒雾别久站；蓝免疫闪电',
       cols: 92, rows: 14, spawn: [2, 11], goal: [88, 11],
       checks: [[30, 11], [60, 11]],
       slimes: [[18, 11], [40, 11], [66, 11]], crates: [[24, 11]],
@@ -710,6 +720,9 @@
       bombs: [[56, 11]],
       fires: [[34, 11]],
       bolts: [[22, 23], [72, 73]],
+      sands: [[42, 43]],
+      rocks: [],
+      mists: [[50, 11]],
       boss: { c: 80, name: '影忍者', kind: 'shadow', hp: 6 },
       coins: [[5, 9], [12, 9], [20, 9], [28, 9], [36, 9], [44, 9], [51, 7], [58, 9], [68, 9], [76, 9], [84, 9]],
       stars: [[51, 5], [64, 8]],
@@ -725,7 +738,7 @@
     },
     {
       name: '尖刺走廊', en: 'Spike Hall',
-      hint: '第4关·山坡：尖刺增多；绿免疫尖刺',
+      hint: '第4关·山坡：尖刺+落石；绿免疫尖刺',
       cols: 96, rows: 14, spawn: [2, 11], goal: [92, 11],
       checks: [[28, 11], [56, 11]],
       slimes: [[20, 11], [44, 11], [70, 11]], crates: [[16, 11], [60, 11]],
@@ -735,6 +748,9 @@
       bombs: [[40, 11]],
       fires: [[52, 11]],
       bolts: [[66, 67]],
+      sands: [],
+      rocks: [[18, 11], [58, 11]],
+      mists: [],
       boss: { c: 84, name: '刺甲虫', kind: 'slime', hp: 6 },
       coins: [[5, 9], [14, 9], [22, 9], [30, 9], [35, 7], [42, 9], [54, 9], [62, 9], [72, 9], [80, 9], [88, 9]],
       stars: [[35, 5]],
@@ -750,7 +766,7 @@
     },
     {
       name: '火焰栈道', en: 'Flame Bridge',
-      hint: '第5关·沼泽：发射器火箭；衣服着火5秒内快晃灭火',
+      hint: '第5关·沼泽：火箭+流沙+毒雾',
       cols: 100, rows: 14, spawn: [2, 11], goal: [96, 11],
       checks: [[26, 11], [54, 11], [78, 11]],
       slimes: [[18, 11], [38, 11], [58, 11], [82, 11]], crates: [[22, 11], [62, 11]],
@@ -760,6 +776,9 @@
       bombs: [[32, 11], [86, 11]],
       fires: [[10, 11], [28, 11], [40, 11], [56, 11], [74, 11]],
       bolts: [[64, 65]],
+      sands: [[48, 49]],
+      rocks: [],
+      mists: [[68, 11]],
       boss: { c: 90, name: '炎猪', kind: 'boar', hp: 7 },
       coins: [[5, 9], [16, 9], [24, 9], [36, 9], [47, 7], [52, 9], [60, 9], [68, 9], [80, 9], [88, 9], [94, 9]],
       stars: [[47, 5], [76, 8]],
@@ -775,7 +794,7 @@
     },
     {
       name: '雷鸣谷口', en: 'Thunder Gate',
-      hint: '第6关·山坡：闪电增多；蓝免疫',
+      hint: '第6关·山坡：闪电+落石；蓝免疫闪电',
       cols: 104, rows: 14, spawn: [2, 11], goal: [100, 11],
       checks: [[28, 11], [56, 11], [80, 11]],
       slimes: [[16, 11], [36, 11], [52, 11], [72, 11], [88, 11]], crates: [[24, 11], [64, 11]],
@@ -785,6 +804,9 @@
       bombs: [[48, 11]],
       fires: [[32, 11], [84, 11]],
       bolts: [[8, 9], [20, 22], [34, 35], [54, 56], [68, 69], [90, 91]],
+      sands: [],
+      rocks: [[28, 11], [74, 11]],
+      mists: [[60, 11]],
       boss: { c: 94, name: '雷影', kind: 'shadow', hp: 8 },
       coins: [[5, 9], [14, 9], [26, 9], [38, 9], [43, 7], [50, 9], [58, 9], [66, 9], [78, 9], [86, 9], [96, 9]],
       stars: [[43, 5], [70, 8]],
@@ -800,7 +822,7 @@
     },
     {
       name: '炸弹矿坑', en: 'Bomb Pit',
-      hint: '第7关·沼泽：炸弹连环；全员会被炸倒',
+      hint: '第7关·沼泽：炸弹+流沙+毒雾',
       cols: 110, rows: 14, spawn: [2, 11], goal: [106, 11],
       checks: [[30, 11], [58, 11], [84, 11]],
       slimes: [[18, 11], [34, 11], [50, 11], [70, 11], [90, 11]], crates: [[14, 11], [46, 11], [78, 11]],
@@ -810,6 +832,9 @@
       bombs: [[10, 11], [26, 11], [42, 11], [54, 11], [80, 11], [96, 11]],
       fires: [[38, 11], [86, 11]],
       bolts: [[16, 17], [48, 49]],
+      sands: [[34, 35], [72, 73]],
+      rocks: [],
+      mists: [[62, 11]],
       boss: { c: 100, name: '矿霸', kind: 'boar', hp: 9 },
       coins: [[5, 9], [12, 9], [20, 9], [28, 9], [36, 9], [44, 9], [52, 9], [65, 7], [72, 9], [82, 9], [92, 9], [102, 9]],
       stars: [[65, 5], [88, 8]],
@@ -825,7 +850,7 @@
     },
     {
       name: '终极融合', en: 'All Terrains',
-      hint: '第8关·终极融合：岛中水+金字塔+沼泽+全陷阱',
+      hint: '第8关·终极：全地形+流沙落石毒雾',
       cols: 120, rows: 14, spawn: [2, 11], goal: [116, 11],
       checks: [[26, 11], [52, 11], [78, 11], [100, 11]],
       slimes: [[14, 11], [30, 11], [46, 11], [62, 11], [82, 11], [98, 11]], crates: [[20, 11], [56, 11], [88, 11]],
@@ -838,6 +863,9 @@
       bombs: [[24, 11], [50, 11], [76, 11], [108, 11]],
       fires: [[18, 11], [44, 11], [66, 11], [86, 11], [112, 11]],
       bolts: [[12, 13], [32, 34], [58, 59], [80, 81], [102, 103]],
+      sands: [[28, 29], [70, 71]],
+      rocks: [[38, 11], [92, 11]],
+      mists: [[54, 11], [100, 11]],
       boss: { c: 110, name: '终焉影', kind: 'shadow', hp: 10 },
       coins: [[5, 9], [16, 9], [22, 9], [28, 9], [38, 7], [48, 9], [54, 9], [64, 9], [74, 9], [84, 9], [93, 7], [106, 9], [114, 9]],
       stars: [[38, 5], [68, 8], [93, 5]],
@@ -1291,6 +1319,25 @@
       return {
         c0, c1, x0: c0 * T, x1: (c1 + 1) * T,
         y: 11 * T, phase: (c0 % 5) * 0.8, strike: 0, warn: 0,
+      };
+    });
+    sands = (def.sands || []).map((s) => {
+      const c0 = s[0], c1 = s.length > 1 ? s[1] : s[0];
+      const row = s.length > 2 ? s[2] : ground;
+      return { c0, c1, x0: c0 * T, x1: (c1 + 1) * T, y: row * T };
+    });
+    rocks = (def.rocks || []).map(([c, r]) => {
+      const row = r == null ? ground : r;
+      return {
+        c, x: c * T + T * 0.5, yTop: 2 * T, yGround: row * T,
+        phase: (c % 7) * 0.41, warn: 0, rockOn: 0, rockY: 2 * T, rockVy: 0, cool: 0,
+      };
+    });
+    mists = (def.mists || []).map(([c, r]) => {
+      const row = r == null ? ground : r;
+      return {
+        c0: c, c1: c + 1, x0: c * T, x1: (c + 2) * T,
+        y0: row * T - 70, y1: row * T + 4, pulse: (c % 5) * 0.3,
       };
     });
     goal = feet(def.goal[0], def.goal[1]);
@@ -1972,6 +2019,178 @@
       b.fuse = (b.fuse || 0) + dt;
     }
   }
+
+  // —— 流沙 / 落石 / 毒雾 ——
+  function touchSands(n, dt) {
+    if (!n || n.down || n.knockPhase || mode !== 'play') return;
+    let inSand = false;
+    for (let i = 0; i < sands.length; i++) {
+      const s = sands[i];
+      if (n.x >= s.x0 - 2 && n.x <= s.x1 + 2 && n.y > s.y - 10 && n.y < s.y + 20) {
+        inSand = true; break;
+      }
+    }
+    if (!inSand) {
+      n.sandSink = Math.max(0, (n.sandSink || 0) - dt * 0.9);
+      return;
+    }
+    // slow + sink while grounded
+    n.vx *= 0.42;
+    if (n.grounded) {
+      n.sandSink = Math.min(1.15, (n.sandSink || 0) + dt * 0.38);
+      n.y += dt * 10 * Math.min(1, n.sandSink);
+    }
+    // jump helps escape
+    if (!n.grounded && n.vy < -80) {
+      n.sandSink = Math.max(0, (n.sandSink || 0) - dt * 1.6);
+    }
+    if ((n.sandSink || 0) >= 1 && n.invuln <= 0) {
+      n.sandSink = 0;
+      n.vy = -360;
+      n.grounded = false;
+      toast('流沙！跳出来了·-1');
+      hurt(n, n.x);
+      puff(n.x, n.y - 8, '#c2a066', 10);
+    }
+  }
+  function updateRocks(dt) {
+    for (let i = 0; i < rocks.length; i++) {
+      const r = rocks[i];
+      if (r.cool > 0) {
+        r.cool = Math.max(0, r.cool - dt);
+        r.warn = 0;
+        continue;
+      }
+      if (r.rockOn) {
+        r.rockVy += 1400 * dt;
+        r.rockY += r.rockVy * dt;
+        if (r.rockY >= r.yGround - 6) {
+          r.rockY = r.yGround - 6;
+          r.rockOn = 0;
+          r.cool = 1.8 + (r.c % 3) * 0.25;
+          r.phase = 0;
+          puff(r.x, r.yGround - 8, '#8a7a6a', 8);
+        }
+        continue;
+      }
+      r.phase = (r.phase || 0) + dt;
+      // warn then drop
+      if (r.phase < 2.2) {
+        r.warn = 0;
+      } else if (r.phase < 2.85) {
+        r.warn = (r.phase - 2.2) / 0.65;
+      } else {
+        r.rockOn = 1;
+        r.rockY = r.yTop;
+        r.rockVy = 40;
+        r.warn = 0;
+        r.phase = 0;
+      }
+    }
+  }
+  function touchRocks(n) {
+    if (!n || n.down || n.knockPhase || mode !== 'play') return;
+    if (n.invuln > 0) return;
+    for (let i = 0; i < rocks.length; i++) {
+      const r = rocks[i];
+      if (!r.rockOn) continue;
+      if (Math.abs(n.x - r.x) < 18 && n.y > r.rockY - 8 && n.y < r.rockY + 28) {
+        toast('落石砸中！-1');
+        hurt(n, r.x);
+        n.shake = 0.3;
+        n.flash = 0.15;
+        puff(n.x, n.y - 20, '#aaa', 8);
+        r.rockOn = 0;
+        r.cool = 1.6;
+        r.warn = 0;
+        return;
+      }
+    }
+  }
+  function touchMists(n, dt) {
+    if (!n || n.down || mode !== 'play') return;
+    n.mistCd = Math.max(0, (n.mistCd || 0) - dt);
+    let inMist = false;
+    for (let i = 0; i < mists.length; i++) {
+      const m = mists[i];
+      if (n.x >= m.x0 - 4 && n.x <= m.x1 + 4 && n.y > m.y0 && n.y < m.y1 + 10) {
+        inMist = true; break;
+      }
+    }
+    if (!inMist) {
+      n.mistT = Math.max(0, (n.mistT || 0) - dt * 1.2);
+      return;
+    }
+    n.mistT = (n.mistT || 0) + dt;
+    if (n.mistT >= 1.45 && n.mistCd <= 0 && n.invuln <= 0) {
+      n.mistT = 0;
+      n.mistCd = 1.1;
+      toast('毒雾！别久站·-1');
+      hurt(n, n.x);
+      puff(n.x, n.y - 24, '#9b59b6', 10);
+    }
+  }
+  function drawSand(s) {
+    const w = s.x1 - s.x0;
+    ctx.fillStyle = '#c9a66b';
+    ctx.fillRect(s.x0, s.y - 4, w, 10);
+    ctx.fillStyle = 'rgba(160,120,60,0.55)';
+    for (let x = s.x0 + 4; x < s.x1; x += 10) {
+      const bob = Math.sin(sim * 3 + x * 0.08) * 2;
+      ctx.beginPath();
+      ctx.ellipse(x, s.y + bob, 5, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(90,60,30,0.35)';
+    ctx.fillRect(s.x0 + 2, s.y + 2, w - 4, 3);
+  }
+  function drawRockZone(r) {
+    if (r.warn > 0) {
+      ctx.fillStyle = 'rgba(255,210,80,' + (0.12 + 0.28 * r.warn) + ')';
+      ctx.fillRect(r.x - 16, r.yTop, 32, r.yGround - r.yTop);
+      ctx.strokeStyle = 'rgba(255,180,40,' + (0.4 + 0.5 * r.warn) + ')';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(r.x - 15, r.yTop + 2, 30, r.yGround - r.yTop - 4);
+      ctx.setLineDash([]);
+    }
+    if (r.rockOn) {
+      ctx.fillStyle = '#6d6358';
+      ctx.beginPath();
+      ctx.moveTo(r.x - 12, r.rockY);
+      ctx.lineTo(r.x - 4, r.rockY - 16);
+      ctx.lineTo(r.x + 8, r.rockY - 14);
+      ctx.lineTo(r.x + 12, r.rockY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#3e3830';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else {
+      // ceiling marker
+      ctx.fillStyle = '#5a5248';
+      ctx.fillRect(r.x - 10, r.yTop - 4, 20, 8);
+    }
+  }
+  function drawMist(m) {
+    m.pulse = (m.pulse || 0) + 0.02;
+    const a = 0.22 + 0.1 * Math.sin(sim * 2 + m.pulse);
+    const g = ctx.createLinearGradient(m.x0, m.y0, m.x0, m.y1);
+    g.addColorStop(0, 'rgba(140,60,180,' + (a * 0.3) + ')');
+    g.addColorStop(0.5, 'rgba(120,40,160,' + a + ')');
+    g.addColorStop(1, 'rgba(80,30,120,' + (a * 0.5) + ')');
+    ctx.fillStyle = g;
+    ctx.fillRect(m.x0, m.y0, m.x1 - m.x0, m.y1 - m.y0);
+    ctx.fillStyle = 'rgba(200,140,255,' + (0.15 + 0.1 * Math.sin(sim * 4 + m.x0)) + ')';
+    for (let i = 0; i < 4; i++) {
+      const x = m.x0 + 8 + i * ((m.x1 - m.x0 - 16) / 3);
+      const y = m.y0 + 12 + (Math.sin(sim * 3 + i) * 8);
+      ctx.beginPath();
+      ctx.ellipse(x, y, 7, 10, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   function tickKnock(n, dt) {
     if (!n || !n.knockPhase) return false;
     n.knockAnimT = (n.knockAnimT || 0) + dt;
@@ -2442,12 +2661,16 @@
     updateFires(dt);
     updateRockets(dt);
     updateBolts(dt);
+    updateRocks(dt);
     touchBombs(player);
     touchGrasslandTraps(player);
     touchSpikes(player);
     touchFires(player);
     touchRockets(player);
     touchBolts(player);
+    touchSands(player, dt);
+    touchRocks(player);
+    touchMists(player, dt);
     if (coop) {
       touchBombs(p2);
       touchGrasslandTraps(p2);
@@ -2455,6 +2678,9 @@
       touchFires(p2);
       touchRockets(p2);
       touchBolts(p2);
+      touchSands(p2, dt);
+      touchRocks(p2);
+      touchMists(p2, dt);
     }
     if (companion) {
       touchBombs(p3);
@@ -2463,6 +2689,9 @@
       touchFires(p3);
       touchRockets(p3);
       touchBolts(p3);
+      touchSands(p3, dt);
+      touchRocks(p3);
+      touchMists(p3, dt);
     }
 
     for (let i = 0; i < trails.length; i++) if (trails[i].on) {
@@ -3344,10 +3573,13 @@
         }
       }
     }
+    for (let i = 0; i < sands.length; i++) drawSand(sands[i]);
+    for (let i = 0; i < mists.length; i++) drawMist(mists[i]);
     for (let i = 0; i < fires.length; i++) drawFireJet(fires[i]);
     for (let i = 0; i < rockets.length; i++) drawRocket(rockets[i]);
     for (let i = 0; i < bolts.length; i++) drawBolt(bolts[i]);
     for (let i = 0; i < bombs.length; i++) drawBombPad(bombs[i]);
+    for (let i = 0; i < rocks.length; i++) drawRockZone(rocks[i]);
     for (let i = 0; i < crates.length; i++) {
       const c = crates[i];
       if (c.dead) continue;
@@ -3796,13 +4028,19 @@
       Math.round((bb.strike || 0) * 100) / 100,
       Math.round((bb.warn || 0) * 100) / 100,
     ]);
+    const rockBits = rocks.map((rr) => [
+      rr.rockOn ? 1 : 0,
+      Math.round(rr.rockY || 0),
+      Math.round((rr.warn || 0) * 100) / 100,
+      Math.round((rr.cool || 0) * 100) / 100,
+    ]);
     return {
       t: 'snap', m: mode, lv: levelIndex, sim: Math.round(sim * 60) / 60,
       c: gotCoins, s: gotStars,
       p1: netPackNinja(player), p2: netPackNinja(p2), p3: companion ? netPackNinja(p3) : null,
       cp: companion ? 1 : 0,
       sl: slimeBits, co: coinBits, st: starBits, cr: crateBits, ck: checkBits,
-      sh, b, bm: bombBits, fr: fireBits, bt: boltBits,
+      sh, b, bm: bombBits, fr: fireBits, bt: boltBits, rk: rockBits,
       cx: Math.round(checkpoint.x), cy: Math.round(checkpoint.y),
     };
   }
@@ -3870,6 +4108,15 @@
         bolts[i].warn = msg.bt[i][1] || 0;
       }
     }
+    if (msg.rk) {
+      for (let i = 0; i < rocks.length && i < msg.rk.length; i++) {
+        const a = msg.rk[i];
+        rocks[i].rockOn = !!a[0];
+        rocks[i].rockY = a[1] || rocks[i].yTop;
+        rocks[i].warn = a[2] || 0;
+        rocks[i].cool = a[3] || 0;
+      }
+    }
     for (let i = 0; i < shurikens.length; i++) shurikens[i].on = 0;
     if (msg.sh) {
       for (let i = 0; i < msg.sh.length && i < shurikens.length; i++) {
@@ -3897,6 +4144,7 @@
     updateFires(dt);
     updateRockets(dt);
     updateBolts(dt);
+    updateRocks(dt);
     player.phase += dt * 8;
     p2.phase += dt * 8;
     // local decay of cosmetic knock FX between snaps
