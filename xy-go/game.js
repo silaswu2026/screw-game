@@ -2421,6 +2421,7 @@
     hurtMonstersInWater(dt);
     updateBombs(dt);
     updateFires(dt);
+    updateRockets(dt);
     updateBolts(dt);
     touchBombs(player);
     touchGrasslandTraps(player);
