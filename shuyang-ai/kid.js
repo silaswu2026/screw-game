@@ -21,7 +21,7 @@
       title: '人怎么动',
       with: ['小雨', '爸爸', '妈妈', '澍暘'],
       principle: '2D 是很多张画一张一张换；3D 是骨头架子在摆，皮跟着动。',
-      skeleton: { url: 'learn/skeleton.html?v=mc3', label: '拖一拖：3D骨头人' },
+      skeleton: { url: 'learn/skeleton.html?v=mc4', label: '拖一拖：3D骨头人' },
       // 2D/3D explainer (relative to kid.html).
       video: { url: 'videos/how-characters-move-2d-3d.mp4' },
       guess: {
@@ -45,8 +45,8 @@
       title: '逐帧动画',
       with: ['小雨', '爸爸', '妈妈', '澍暘'],
       principle: '一张张画好的图按顺序换，就「动」起来了——像翻书一样。人物、怪物、陷阱都一样。',
-      lab: { url: 'learn/frame-anim.html?v=mc3', label: '打开动手页 · 换帧试试' },
-      skeleton: { url: 'learn/skeleton.html?v=mc3', label: '拖一拖：3D骨头人' },
+      lab: { url: 'learn/frame-anim.html?v=mc4', label: '打开动手页 · 换帧试试' },
+      skeleton: { url: 'learn/skeleton.html?v=mc4', label: '拖一拖：3D骨头人' },
       video: { url: 'videos/frame-anim-teach.mp4?v=1' },
       guess: {
         prompt: '小宇绿忍者倒地爬起，是怎么「动」的？',

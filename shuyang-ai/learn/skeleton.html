@@ -521,59 +521,82 @@ let skinReveal = null;
 let skinReady = false;
 const PART_SKIN_DELAY = { head: 0.00, torso: 0.18, armL: 0.36, armR: 0.42, legL: 0.58, legR: 0.64 };
 
-/** Crop AI art onto opaque suit-colored canvas so cube faces stay solid + 逼真. */
-function cropOnto(img, sx, sy, sw, sh, bgCss) {
+/** Paint high-quality AI art onto an opaque suit-colored canvas (sharp cube faces). */
+function paintOnto(img, sx, sy, sw, sh, bgCss, outW, outH) {
   const c = document.createElement('canvas');
-  c.width = Math.max(32, Math.round(sw));
-  c.height = Math.max(32, Math.round(sh));
+  c.width = outW || Math.max(128, Math.round(sw));
+  c.height = outH || Math.max(128, Math.round(sh));
   const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.fillStyle = bgCss;
   ctx.fillRect(0, 0, c.width, c.height);
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  // letterbox the crop into the canvas preserving aspect so art stays 逼真
+  const scale = Math.min(c.width / sw, c.height / sh);
+  const dw = sw * scale;
+  const dh = sh * scale;
+  const dx = (c.width - dw) / 2;
+  const dy = (c.height - dh) / 2;
+  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.generateMipmaps = true;
   tex.minFilter = THREE.LinearMipmapLinearFilter;
   tex.magFilter = THREE.LinearFilter;
-  tex.anisotropy = 4;
+  tex.anisotropy = 8;
   tex.needsUpdate = true;
   return tex;
 }
 
-/** 6 materials for a Box: +X -X +Y -Y +Z -Z — front (+Z) gets AI art. */
-function makeCubeSkinMats(frontTex, sideHex) {
-  const side = () => new THREE.MeshStandardMaterial({
+/** Crop using known content bbox of a sticker sheet. */
+function stickerTex(img, bbox, bgCss, outW, outH) {
+  const [sx, sy, ex, ey] = bbox;
+  return paintOnto(img, sx, sy, ex - sx, ey - sy, bgCss, outW, outH);
+}
+
+/** 6 materials for a Box: +X -X +Y -Y +Z -Z — front/back + sides get AI art. */
+function makeCubeSkinMats(frontTex, sideTex, sideHex) {
+  const topBot = () => new THREE.MeshStandardMaterial({
     color: sideHex, roughness: 0.55, metalness: 0.06,
   });
   const front = new THREE.MeshStandardMaterial({
-    map: frontTex, roughness: 0.42, metalness: 0.04,
+    map: frontTex, roughness: 0.38, metalness: 0.03,
   });
-  // slight variation on back so orbit still reads 3D
   const back = new THREE.MeshStandardMaterial({
-    map: frontTex, roughness: 0.55, metalness: 0.04,
-    color: 0xcccccc,
+    map: frontTex, roughness: 0.5, metalness: 0.03,
+    color: 0xbbbbbb,
   });
-  return [side(), side(), side(), side(), front, back];
+  const left = new THREE.MeshStandardMaterial({
+    map: sideTex || frontTex, roughness: 0.48, metalness: 0.04,
+    color: 0xdddddd,
+  });
+  const right = new THREE.MeshStandardMaterial({
+    map: sideTex || frontTex, roughness: 0.48, metalness: 0.04,
+    color: 0xdddddd,
+  });
+  // Box face order: +X -X +Y -Y +Z -Z
+  return [right, left, topBot(), topBot(), front, back];
 }
 
-function buildCubeSkins(partsImg, fullImg) {
-  // High-quality AI crops from parts.png (isolated) + sticker-full accents
+function buildCubeSkins(partsImg, stickers) {
+  // Dedicated high-quality AI stickers (逼真) + parts.png for arms
+  const S = 512; // crisp face resolution on the big cubes
   const tex = {
-    head: cropOnto(partsImg, 101, 23, 324, 306, '#1a1a1a'),
-    torso: cropOnto(partsImg, 426, 39, 424, 293, '#1e3d22'),
-    armL: cropOnto(partsImg, 233, 369, 154, 292, '#2e5c32'),
-    armR: cropOnto(partsImg, 977, 54, 138, 272, '#2e5c32'),
-    legL: cropOnto(partsImg, 591, 366, 166, 309, '#1a1a1a'),
-    legR: cropOnto(partsImg, 952, 370, 156, 306, '#1a1a1a'),
+    head: stickerTex(stickers.head, [59, 0, 612, 335], '#1a1a1a', S, S),
+    torso: stickerTex(stickers.torso, [4, 293, 608, 649], '#1e3d22', S, S),
+    armL: paintOnto(partsImg, 233, 369, 154, 292, '#2e5c32', S, S),
+    armR: paintOnto(partsImg, 977, 54, 138, 272, '#2e5c32', S, S),
+    legL: stickerTex(stickers.legs, [0, 575, 300, 1047], '#1a1a1a', S, S),
+    legR: stickerTex(stickers.legs, [300, 575, 609, 1047], '#1a1a1a', S, S),
   };
-  // Upgrade head/torso fronts with sticker-full bands when available (more 逼真)
-  if (fullImg) {
-    const fw = fullImg.naturalWidth || fullImg.width;
-    const fh = fullImg.naturalHeight || fullImg.height;
-    tex.head = cropOnto(fullImg, Math.floor(fw * 0.08), 0, Math.floor(fw * 0.84), Math.floor(fh * 0.34), '#1a1a1a');
-    tex.torso = cropOnto(fullImg, Math.floor(fw * 0.04), Math.floor(fh * 0.28), Math.floor(fw * 0.92), Math.floor(fh * 0.30), '#1e3d22');
-    tex.legL = cropOnto(fullImg, Math.floor(fw * 0.05), Math.floor(fh * 0.55), Math.floor(fw * 0.42), Math.floor(fh * 0.44), '#1a1a1a');
-    tex.legR = cropOnto(fullImg, Math.floor(fw * 0.48), Math.floor(fh * 0.55), Math.floor(fw * 0.47), Math.floor(fh * 0.44), '#1a1a1a');
+  // Fallback / accent from full body sticker if a part sheet failed
+  if (stickers.full) {
+    if (!stickers.head) tex.head = stickerTex(stickers.full, [59, 0, 612, 335], '#1a1a1a', S, S);
+    if (!stickers.torso) tex.torso = stickerTex(stickers.full, [4, 293, 608, 649], '#1e3d22', S, S);
+    if (!stickers.legs) {
+      tex.legL = stickerTex(stickers.full, [0, 575, 300, 1047], '#1a1a1a', S, S);
+      tex.legR = stickerTex(stickers.full, [300, 575, 609, 1047], '#1a1a1a', S, S);
+    }
   }
   const sideHex = {
     head: 0x2a2a2a,
@@ -585,12 +608,12 @@ function buildCubeSkins(partsImg, fullImg) {
   };
   const cache = {};
   for (const part of Object.keys(tex)) {
-    cache[part] = makeCubeSkinMats(tex[part], sideHex[part]);
+    cache[part] = makeCubeSkinMats(tex[part], tex[part], sideHex[part]);
   }
   for (const p of particles) {
     p.skinMats = cache[p.part] || cache.torso;
   }
-  console.info('[skeleton] cube skins ready');
+  console.info('[skeleton] cube skins ready (HQ AI stickers)');
 }
 
 function clearCubeSkin() {
@@ -657,7 +680,7 @@ const LESSONS = {
     badge: '🟨 细颗粒',
   },
   4: {
-    html: '④ <strong>皮肤直接贴在方块上</strong>——AI渲好的绿忍者图，一块一块贴上，转一转还是同一个人！',
+    html: '④ <strong>皮肤直接贴在方块上</strong>——高清AI绿忍者贴图，一块一块贴在方块脸上，转一转还是同一个人！',
     badge: '🎨 贴在方块上',
   },
 };
@@ -933,11 +956,16 @@ function loadImage(url) {
 
 (async () => {
   try {
-    const [partsImg, fullImg] = await Promise.all([
+    const [partsImg, headImg, torsoImg, legsImg, fullImg] = await Promise.all([
       loadImage('../../assets/sprites/mc-ninja/parts.png'),
+      loadImage('../../assets/sprites/mc-ninja/sticker-head.png'),
+      loadImage('../../assets/sprites/mc-ninja/sticker-torso.png'),
+      loadImage('../../assets/sprites/mc-ninja/sticker-legs.png'),
       loadImage('../../assets/sprites/mc-ninja/sticker-full.png'),
     ]);
-    buildCubeSkins(partsImg, fullImg);
+    buildCubeSkins(partsImg, {
+      head: headImg, torso: torsoImg, legs: legsImg, full: fullImg,
+    });
     skinReady = true;
     if (step === 4) showSkinStaggered();
   } catch (err) {
