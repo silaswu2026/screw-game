@@ -111,7 +111,7 @@
 <body>
 <div class="wrap">
   <h1>拖一拖：3D 骨头人</h1>
-  <p class="tip">先看骨头，再盖颗粒模型，最后一块块贴皮肤</p>
+  <p class="tip">先看骨头，再盖满颗粒模型，最后一张张贴上绿色忍者皮肤</p>
   <p class="callout" id="lesson">① <strong>只看骨头</strong>——里面先有一副会动的骨头架。</p>
 
   <div class="stage" id="stage" aria-label="可拖动的3D骨头人">
@@ -145,9 +145,9 @@
     </details>
   </div>
 
-  <a class="back" href="../kid.html?v=bone3d2">回今晚课</a>
+  <a class="back" href="../kid.html?v=bone3d3">回今晚课</a>
   <div class="row" style="margin-top:10px">
-    <a class="btn" href="frame-anim.html?v=bone3d2">回动手页 · 逐帧</a>
+    <a class="btn" href="frame-anim.html?v=bone3d3">回动手页 · 逐帧</a>
   </div>
 </div>
 
@@ -168,15 +168,14 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
 camera.position.set(2.6, 1.9, 3.4);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-const key = new THREE.DirectionalLight(0xfff5e0, 1.15);
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const key = new THREE.DirectionalLight(0xfff5e0, 1.2);
 key.position.set(3.5, 6, 2.5);
 scene.add(key);
-const fill = new THREE.DirectionalLight(0xa8d8ff, 0.35);
+const fill = new THREE.DirectionalLight(0xa8d8ff, 0.4);
 fill.position.set(-3, 2, -2);
 scene.add(fill);
 
-// Cartoon bone palette (ivory / warm cream — not medical)
 const BONE = new THREE.MeshStandardMaterial({
   color: 0xf2e6c9, roughness: 0.55, metalness: 0.05,
 });
@@ -190,7 +189,6 @@ const ACCENT = new THREE.MeshStandardMaterial({
 const figure = new THREE.Group();
 scene.add(figure);
 
-/** Create a bone cylinder between two world-ish local points, parented to `parent`. */
 function addBone(parent, ax, ay, az, bx, by, bz, radius = 0.055) {
   const a = new THREE.Vector3(ax, ay, az);
   const b = new THREE.Vector3(bx, by, bz);
@@ -212,32 +210,26 @@ function addJoint(parent, x, y, z, r = 0.09) {
   return m;
 }
 
-// Hierarchy for optional bends: hip → thigh → shin, shoulder → upper → forearm
 const hips = new THREE.Group();
 hips.position.set(0, 1.05, 0);
 figure.add(hips);
 
-// Pelvis / torso / head (static relative to hips root)
-addJoint(hips, 0, 0, 0, 0.11); // pelvis center
+addJoint(hips, 0, 0, 0, 0.11);
 addBone(hips, -0.16, 0, 0, 0.16, 0, 0, 0.05);
 addJoint(hips, -0.18, 0, 0, 0.09);
 addJoint(hips, 0.18, 0, 0, 0.09);
 
-// Spine
 addBone(hips, 0, 0.05, 0, 0, 0.45, 0, 0.06);
 addJoint(hips, 0, 0.45, 0, 0.08);
 addBone(hips, 0, 0.45, 0, 0, 0.78, 0, 0.055);
-addJoint(hips, 0, 0.78, 0, 0.085); // chest / neck base
+addJoint(hips, 0, 0.78, 0, 0.085);
 
-// Shoulders
 addBone(hips, -0.32, 0.76, 0, 0.32, 0.76, 0, 0.045);
 addJoint(hips, -0.34, 0.76, 0, 0.095);
 addJoint(hips, 0.34, 0.76, 0, 0.095);
 
-// Neck + head (cartoon sphere head)
 addBone(hips, 0, 0.78, 0, 0, 0.98, 0, 0.04);
-addJoint(hips, 0, 1.08, 0, 0.18); // head
-// tiny "face" dots so front is clear
+addJoint(hips, 0, 1.08, 0, 0.18);
 const faceDot = new THREE.Mesh(
   new THREE.SphereGeometry(0.035, 10, 8),
   new THREE.MeshBasicMaterial({ color: 0x3a2a10 })
@@ -255,21 +247,19 @@ smile.position.set(0, 1.02, 0.155);
 smile.rotation.x = Math.PI;
 hips.add(smile);
 
-// Arms — left
 const shoulderL = new THREE.Group();
 shoulderL.position.set(-0.34, 0.76, 0);
 hips.add(shoulderL);
 const upperArmL = new THREE.Group();
 shoulderL.add(upperArmL);
 addBone(upperArmL, 0, 0, 0, 0, -0.38, 0, 0.048);
-addJoint(upperArmL, 0, -0.38, 0, 0.075); // elbow
+addJoint(upperArmL, 0, -0.38, 0, 0.075);
 const foreArmL = new THREE.Group();
 foreArmL.position.set(0, -0.38, 0);
 upperArmL.add(foreArmL);
 addBone(foreArmL, 0, 0, 0, 0, -0.34, 0, 0.042);
-addJoint(foreArmL, 0, -0.34, 0, 0.065); // wrist/hand blob
+addJoint(foreArmL, 0, -0.34, 0, 0.065);
 
-// Arms — right
 const shoulderR = new THREE.Group();
 shoulderR.position.set(0.34, 0.76, 0);
 hips.add(shoulderR);
@@ -283,24 +273,21 @@ upperArmR.add(foreArmR);
 addBone(foreArmR, 0, 0, 0, 0, -0.34, 0, 0.042);
 addJoint(foreArmR, 0, -0.34, 0, 0.065);
 
-// Legs — left
 const hipL = new THREE.Group();
 hipL.position.set(-0.18, 0, 0);
 hips.add(hipL);
 const thighL = new THREE.Group();
 hipL.add(thighL);
 addBone(thighL, 0, 0, 0, 0, -0.48, 0, 0.055);
-addJoint(thighL, 0, -0.48, 0, 0.085); // knee
+addJoint(thighL, 0, -0.48, 0, 0.085);
 const shinL = new THREE.Group();
 shinL.position.set(0, -0.48, 0);
 thighL.add(shinL);
 addBone(shinL, 0, 0, 0, 0, -0.48, 0, 0.048);
-addJoint(shinL, 0, -0.48, 0, 0.07); // ankle
-// foot
+addJoint(shinL, 0, -0.48, 0, 0.07);
 addBone(shinL, 0, -0.48, 0, 0, -0.48, 0.16, 0.04);
 addJoint(shinL, 0, -0.48, 0.16, 0.055);
 
-// Legs — right
 const hipR = new THREE.Group();
 hipR.position.set(0.18, 0, 0);
 hips.add(hipR);
@@ -316,121 +303,198 @@ addJoint(shinR, 0, -0.48, 0, 0.07);
 addBone(shinR, 0, -0.48, 0, 0, -0.48, 0.16, 0.04);
 addJoint(shinR, 0, -0.48, 0.16, 0.055);
 
-// ─── Step 2: particle / block body (many different granules) ───
+// ─── Step 2: dense particle humanoid (many different granules) ───
 const PARTICLE_COLORS = [
   0xff8a65, 0xffd54f, 0x81c784, 0x64b5f6, 0xba68c8,
   0xffb74d, 0x4dd0e1, 0xf06292, 0xaed581, 0xffe082,
   0x90caf9, 0xce93d8, 0xffab91, 0x80cbc4, 0xfff176,
+  0x2e7d32, 0x1b5e20, 0x37474f, 0x263238, 0xffcc80,
 ];
 
-const particles = []; // { mesh, delay, fromScale }
-let particleReveal = null; // { t0, dur }
+const particles = [];
+let particleReveal = null;
+let seedCounter = 1;
 
 function seeded(i) {
-  // simple deterministic pseudo-random from index
   const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
   return x - Math.floor(x);
 }
 
-function addParticlesAlong(parent, ax, ay, az, bx, by, bz, count, radius, seedBase) {
-  const a = new THREE.Vector3(ax, ay, az);
-  const b = new THREE.Vector3(bx, by, bz);
-  for (let i = 0; i < count; i++) {
-    const t = (i + 0.5) / count;
-    const r1 = seeded(seedBase + i * 3);
-    const r2 = seeded(seedBase + i * 3 + 1);
-    const r3 = seeded(seedBase + i * 3 + 2);
-    const ang = r1 * Math.PI * 2;
-    const rad = radius * (0.35 + r2 * 0.85);
-    const along = a.clone().lerp(b, t);
-    along.x += Math.cos(ang) * rad;
-    along.z += Math.sin(ang) * rad;
-    along.y += (r3 - 0.5) * radius * 0.5;
+const particleMats = PARTICLE_COLORS.map((color) =>
+  new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.08 })
+);
+const boxGeoCache = {};
+const sphereGeoCache = {};
+function boxGeo(size, r1, r3) {
+  const key = ((size * 100) | 0) + '-' + ((r1 * 10) | 0) + '-' + ((r3 * 10) | 0);
+  let g = boxGeoCache[key];
+  if (!g) {
+    g = new THREE.BoxGeometry(size, size * (0.75 + r1 * 0.5), size * (0.75 + r3 * 0.5));
+    boxGeoCache[key] = g;
+  }
+  return g;
+}
+function sphereGeo(size) {
+  const key = (size * 100) | 0;
+  let g = sphereGeoCache[key];
+  if (!g) {
+    g = new THREE.SphereGeometry(size * 0.55, 7, 5);
+    sphereGeoCache[key] = g;
+  }
+  return g;
+}
 
-    const color = PARTICLE_COLORS[(seedBase + i) % PARTICLE_COLORS.length];
-    const size = 0.04 + r2 * 0.055;
-    const isBox = (seedBase + i) % 3 !== 0;
-    const geo = isBox
-      ? new THREE.BoxGeometry(size, size * (0.7 + r1 * 0.6), size * (0.7 + r3 * 0.6))
-      : new THREE.SphereGeometry(size * 0.55, 8, 6);
-    const mat = new THREE.MeshStandardMaterial({
-      color, roughness: 0.55, metalness: 0.08,
-      transparent: true, opacity: 1,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.copy(along);
-    mesh.rotation.set(r1 * 1.2, r2 * 1.5, r3 * 0.8);
-    mesh.visible = false;
-    mesh.scale.setScalar(0.01);
-    parent.add(mesh);
-    particles.push({
-      mesh,
-      delay: (seedBase * 0.01 + i * 0.028) % 0.85,
-      targetScale: 1,
-    });
+function pushParticle(parent, x, y, z, seed) {
+  const r1 = seeded(seed);
+  const r2 = seeded(seed + 1);
+  const r3 = seeded(seed + 2);
+  const size = 0.05 + r2 * 0.045;
+  const isBox = seed % 4 !== 0;
+  const geo = isBox ? boxGeo(size, r1, r3) : sphereGeo(size);
+  const mat = particleMats[seed % particleMats.length];
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, z);
+  mesh.rotation.set(r1 * 1.4, r2 * 1.6, r3 * 0.9);
+  mesh.visible = false;
+  mesh.scale.setScalar(0.01);
+  parent.add(mesh);
+  particles.push({
+    mesh,
+    delay: (seed * 0.007) % 0.75,
+  });
+}
+
+/** Fill an axis-aligned box volume densely (local coords). */
+function fillBox(parent, x0, y0, z0, x1, y1, z1, spacing = 0.075) {
+  const nx = Math.max(2, Math.round(Math.abs(x1 - x0) / spacing));
+  const ny = Math.max(2, Math.round(Math.abs(y1 - y0) / spacing));
+  const nz = Math.max(2, Math.round(Math.abs(z1 - z0) / spacing));
+  for (let ix = 0; ix <= nx; ix++) {
+    for (let iy = 0; iy <= ny; iy++) {
+      for (let iz = 0; iz <= nz; iz++) {
+        const u = ix / nx, v = iy / ny, w = iz / nz;
+        const jx = (seeded(seedCounter++) - 0.5) * spacing * 0.35;
+        const jy = (seeded(seedCounter++) - 0.5) * spacing * 0.35;
+        const jz = (seeded(seedCounter++) - 0.5) * spacing * 0.35;
+        pushParticle(
+          parent,
+          x0 + (x1 - x0) * u + jx,
+          y0 + (y1 - y0) * v + jy,
+          z0 + (z1 - z0) * w + jz,
+          seedCounter
+        );
+      }
+    }
   }
 }
 
-// Torso / head / pelvis hull particles (on hips)
-addParticlesAlong(hips, 0, 0.05, 0, 0, 0.78, 0, 18, 0.16, 10);
-addParticlesAlong(hips, -0.12, 0.2, 0, 0.12, 0.7, 0, 10, 0.14, 40);
-addParticlesAlong(hips, 0, 0.95, 0, 0, 1.18, 0, 12, 0.14, 70); // head cloud
-addParticlesAlong(hips, -0.14, -0.02, 0, 0.14, 0.08, 0, 8, 0.12, 95); // pelvis
-
-// Arms
-addParticlesAlong(upperArmL, 0, 0, 0, 0, -0.38, 0, 8, 0.09, 110);
-addParticlesAlong(foreArmL, 0, 0, 0, 0, -0.34, 0, 7, 0.08, 130);
-addParticlesAlong(upperArmR, 0, 0, 0, 0, -0.38, 0, 8, 0.09, 150);
-addParticlesAlong(foreArmR, 0, 0, 0, 0, -0.34, 0, 7, 0.08, 170);
-
-// Legs
-addParticlesAlong(thighL, 0, 0, 0, 0, -0.48, 0, 9, 0.1, 190);
-addParticlesAlong(shinL, 0, 0, 0, 0, -0.48, 0, 8, 0.09, 210);
-addParticlesAlong(thighR, 0, 0, 0, 0, -0.48, 0, 9, 0.1, 230);
-addParticlesAlong(shinR, 0, 0, 0, 0, -0.48, 0, 8, 0.09, 250);
-
-// ─── Step 3: skin patches stuck on one by one ───
-function makeSkinTexture(baseHex, freckleHex) {
-  const c = document.createElement('canvas');
-  c.width = 64; c.height = 64;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#' + baseHex.toString(16).padStart(6, '0');
-  ctx.fillRect(0, 0, 64, 64);
-  // soft blotches so each patch looks like a different skin scrap
-  ctx.globalAlpha = 0.22;
-  ctx.fillStyle = '#' + freckleHex.toString(16).padStart(6, '0');
-  for (let i = 0; i < 18; i++) {
-    const x = (Math.sin(i * 7.1 + baseHex) * 0.5 + 0.5) * 64;
-    const y = (Math.cos(i * 5.3 + freckleHex) * 0.5 + 0.5) * 64;
-    ctx.beginPath();
-    ctx.arc(x, y, 3 + (i % 5), 0, Math.PI * 2);
-    ctx.fill();
+/** Fill ellipsoid volume (local coords). */
+function fillEllipsoid(parent, cx, cy, cz, rx, ry, rz, spacing = 0.07) {
+  const nx = Math.max(3, Math.round((rx * 2) / spacing));
+  const ny = Math.max(3, Math.round((ry * 2) / spacing));
+  const nz = Math.max(3, Math.round((rz * 2) / spacing));
+  for (let ix = 0; ix <= nx; ix++) {
+    for (let iy = 0; iy <= ny; iy++) {
+      for (let iz = 0; iz <= nz; iz++) {
+        const u = (ix / nx) * 2 - 1;
+        const v = (iy / ny) * 2 - 1;
+        const w = (iz / nz) * 2 - 1;
+        if (u * u + v * v + w * w > 1.05) continue;
+        const j = spacing * 0.2;
+        pushParticle(
+          parent,
+          cx + u * rx + (seeded(seedCounter++) - 0.5) * j,
+          cy + v * ry + (seeded(seedCounter++) - 0.5) * j,
+          cz + w * rz + (seeded(seedCounter++) - 0.5) * j,
+          seedCounter
+        );
+      }
+    }
   }
-  ctx.globalAlpha = 0.15;
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(2, 2, 60, 60);
+}
+
+/** Capsule along local Y from y0 to y1. */
+function fillLimb(parent, y0, y1, radius, spacing = 0.07) {
+  const len = Math.abs(y1 - y0);
+  const nAlong = Math.max(4, Math.round(len / spacing));
+  const nRad = Math.max(2, Math.round((radius * 2) / spacing));
+  for (let i = 0; i <= nAlong; i++) {
+    const t = i / nAlong;
+    const y = y0 + (y1 - y0) * t;
+    for (let ix = -nRad; ix <= nRad; ix++) {
+      for (let iz = -nRad; iz <= nRad; iz++) {
+        const x = (ix / nRad) * radius;
+        const z = (iz / nRad) * radius;
+        if (x * x + z * z > radius * radius * 1.05) continue;
+        pushParticle(
+          parent,
+          x + (seeded(seedCounter++) - 0.5) * spacing * 0.25,
+          y + (seeded(seedCounter++) - 0.5) * spacing * 0.25,
+          z + (seeded(seedCounter++) - 0.5) * spacing * 0.25,
+          seedCounter
+        );
+      }
+    }
+  }
+}
+
+// Dense full humanoid silhouette
+fillEllipsoid(hips, 0, 1.08, 0, 0.23, 0.25, 0.21, 0.085); // head
+fillLimb(hips, 0.88, 1.0, 0.09, 0.085); // neck
+fillBox(hips, -0.24, 0.06, -0.15, 0.24, 0.8, 0.15, 0.09); // torso
+fillBox(hips, -0.22, -0.08, -0.13, 0.22, 0.14, 0.13, 0.09); // pelvis
+fillLimb(hips, 0.7, 0.84, 0.3, 0.095); // shoulder shelf
+
+fillLimb(upperArmL, 0, -0.38, 0.11, 0.085);
+fillLimb(foreArmL, 0, -0.34, 0.095, 0.085);
+fillEllipsoid(foreArmL, 0, -0.38, 0, 0.08, 0.07, 0.08, 0.08); // hand L
+
+fillLimb(upperArmR, 0, -0.38, 0.11, 0.085);
+fillLimb(foreArmR, 0, -0.34, 0.095, 0.085);
+fillEllipsoid(foreArmR, 0, -0.38, 0, 0.08, 0.07, 0.08, 0.08); // hand R
+
+fillLimb(thighL, 0, -0.48, 0.12, 0.085);
+fillLimb(shinL, 0, -0.48, 0.105, 0.085);
+fillBox(shinL, -0.07, -0.54, -0.03, 0.07, -0.42, 0.2, 0.08); // foot L
+
+fillLimb(thighR, 0, -0.48, 0.12, 0.085);
+fillLimb(shinR, 0, -0.48, 0.105, 0.085);
+fillBox(shinR, -0.07, -0.54, -0.03, 0.07, -0.42, 0.2, 0.08); // foot R
+
+console.info('[skeleton] particles', particles.length);
+
+// ─── Step 3: green ninja skin patches (from repo sprites) ───
+const skinPatches = [];
+let skinReveal = null;
+
+function cropTex(img, sx, sy, sw, sh) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(8, sw);
+  c.height = Math.max(8, sh);
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
   return tex;
 }
 
-const skinPatches = []; // { mesh, delay }
-let skinReveal = null;
-
-function addSkinPatch(parent, opts) {
+function addSkinPatch(parent, tex, opts) {
   const {
     w, h, x, y, z, rx = 0, ry = 0, rz = 0,
-    color = 0xf5c9a8, freckle = 0xe8a882, delay = 0, isBox = false, d = 0.04,
+    delay = 0, isBox = false, d = 0.05,
   } = opts;
-  const tex = makeSkinTexture(color, freckle);
   const mat = new THREE.MeshStandardMaterial({
-    map: tex, roughness: 0.75, metalness: 0.02,
-    transparent: true, opacity: 0, side: THREE.DoubleSide,
+    map: tex,
+    roughness: 0.65,
+    metalness: 0.02,
+    transparent: true,
+    opacity: 0,
+    side: THREE.DoubleSide,
+    alphaTest: 0.08,
   });
-  const geo = isBox
-    ? new THREE.BoxGeometry(w, h, d)
-    : new THREE.PlaneGeometry(w, h);
+  const geo = isBox ? new THREE.BoxGeometry(w, h, d) : new THREE.PlaneGeometry(w, h);
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.set(x, y, z);
   mesh.rotation.set(rx, ry, rz);
@@ -440,34 +504,62 @@ function addSkinPatch(parent, opts) {
   return mesh;
 }
 
-// Head “face / scalp” scraps
-addSkinPatch(hips, { w: 0.38, h: 0.38, x: 0, y: 1.08, z: 0.12, color: 0xffd7b5, freckle: 0xf0b090, delay: 0.00 });
-addSkinPatch(hips, { w: 0.36, h: 0.36, x: 0, y: 1.08, z: -0.12, ry: Math.PI, color: 0xf5c9a8, freckle: 0xe0a070, delay: 0.06 });
-addSkinPatch(hips, { w: 0.34, h: 0.34, x: 0.14, y: 1.08, z: 0, ry: Math.PI / 2, color: 0xf8d0b0, freckle: 0xe8b080, delay: 0.12 });
-addSkinPatch(hips, { w: 0.34, h: 0.34, x: -0.14, y: 1.08, z: 0, ry: -Math.PI / 2, color: 0xf2c4a0, freckle: 0xd89870, delay: 0.18 });
+function buildNinjaSkin(idleImg, walkImg, portraitImg) {
+  // Crops from idle.png (256²) — green ninja body parts
+  const headTex = cropTex(idleImg, 78, 18, 100, 100);
+  const faceTex = cropTex(idleImg, 95, 45, 65, 60);
+  const torsoTex = cropTex(idleImg, 95, 110, 70, 65);
+  const scarfTex = cropTex(idleImg, 85, 100, 90, 40);
+  const armLTex = cropTex(idleImg, 55, 115, 45, 70);
+  const armRTex = cropTex(idleImg, 160, 115, 45, 70);
+  const legLTex = cropTex(idleImg, 95, 170, 35, 75);
+  const legRTex = cropTex(idleImg, 130, 170, 40, 75);
+  const beltTex = cropTex(idleImg, 100, 155, 60, 30);
+  const fullTex = cropTex(idleImg, 65, 20, 125, 228);
+  // Extra sticker variety from walk frame + portrait
+  const walkTorso = cropTex(walkImg, 90, 105, 75, 70);
+  const walkHead = cropTex(walkImg, 75, 15, 105, 100);
+  const portraitFace = cropTex(portraitImg, 380, 120, 280, 320);
 
-// Torso front / back / sides (piece by piece)
-addSkinPatch(hips, { w: 0.42, h: 0.55, x: 0, y: 0.42, z: 0.14, color: 0xf5c9a8, freckle: 0xe8a882, delay: 0.24, isBox: true, d: 0.05 });
-addSkinPatch(hips, { w: 0.42, h: 0.55, x: 0, y: 0.42, z: -0.14, color: 0xeeb896, freckle: 0xd89070, delay: 0.32, isBox: true, d: 0.05 });
-addSkinPatch(hips, { w: 0.28, h: 0.5, x: 0.2, y: 0.4, z: 0, ry: Math.PI / 2, color: 0xf0c0a0, freckle: 0xe0a078, delay: 0.40, isBox: true, d: 0.04 });
-addSkinPatch(hips, { w: 0.28, h: 0.5, x: -0.2, y: 0.4, z: 0, ry: -Math.PI / 2, color: 0xf8d0b0, freckle: 0xe8b088, delay: 0.48, isBox: true, d: 0.04 });
+  // Head — front / back / sides (一张张贴)
+  addSkinPatch(hips, headTex, { w: 0.44, h: 0.44, x: 0, y: 1.08, z: 0.16, delay: 0.00 });
+  addSkinPatch(hips, walkHead, { w: 0.42, h: 0.42, x: 0, y: 1.08, z: -0.16, ry: Math.PI, delay: 0.07 });
+  addSkinPatch(hips, faceTex, { w: 0.36, h: 0.34, x: 0.17, y: 1.08, z: 0, ry: Math.PI / 2, delay: 0.13 });
+  addSkinPatch(hips, faceTex, { w: 0.36, h: 0.34, x: -0.17, y: 1.08, z: 0, ry: -Math.PI / 2, delay: 0.18 });
 
-// Pelvis wrap
-addSkinPatch(hips, { w: 0.4, h: 0.22, x: 0, y: 0.02, z: 0.1, color: 0xe8b890, freckle: 0xd09060, delay: 0.55, isBox: true, d: 0.06 });
+  // Scarf / neck
+  addSkinPatch(hips, scarfTex, { w: 0.4, h: 0.18, x: 0, y: 0.88, z: 0.14, delay: 0.24 });
 
-// Upper arms
-addSkinPatch(upperArmL, { w: 0.16, h: 0.36, x: 0, y: -0.19, z: 0.08, color: 0xf5c9a8, freckle: 0xe8a882, delay: 0.60, isBox: true, d: 0.12 });
-addSkinPatch(upperArmR, { w: 0.16, h: 0.36, x: 0, y: -0.19, z: 0.08, color: 0xf2c4a0, freckle: 0xe0a070, delay: 0.66, isBox: true, d: 0.12 });
-addSkinPatch(foreArmL, { w: 0.14, h: 0.3, x: 0, y: -0.17, z: 0.07, color: 0xffd7b5, freckle: 0xf0b090, delay: 0.72, isBox: true, d: 0.1 });
-addSkinPatch(foreArmR, { w: 0.14, h: 0.3, x: 0, y: -0.17, z: 0.07, color: 0xf8d0b0, freckle: 0xe8b080, delay: 0.78, isBox: true, d: 0.1 });
+  // Torso front / back / sides
+  addSkinPatch(hips, torsoTex, { w: 0.46, h: 0.58, x: 0, y: 0.42, z: 0.15, delay: 0.30, isBox: true, d: 0.06 });
+  addSkinPatch(hips, walkTorso, { w: 0.46, h: 0.58, x: 0, y: 0.42, z: -0.15, delay: 0.37, isBox: true, d: 0.06 });
+  addSkinPatch(hips, torsoTex, { w: 0.3, h: 0.52, x: 0.22, y: 0.4, z: 0, ry: Math.PI / 2, delay: 0.44, isBox: true, d: 0.05 });
+  addSkinPatch(hips, torsoTex, { w: 0.3, h: 0.52, x: -0.22, y: 0.4, z: 0, ry: -Math.PI / 2, delay: 0.50, isBox: true, d: 0.05 });
 
-// Legs
-addSkinPatch(thighL, { w: 0.18, h: 0.44, x: 0, y: -0.24, z: 0.09, color: 0xf0c0a0, freckle: 0xd89870, delay: 0.84, isBox: true, d: 0.14 });
-addSkinPatch(thighR, { w: 0.18, h: 0.44, x: 0, y: -0.24, z: 0.09, color: 0xeeb896, freckle: 0xd89070, delay: 0.90, isBox: true, d: 0.14 });
-addSkinPatch(shinL, { w: 0.15, h: 0.42, x: 0, y: -0.24, z: 0.08, color: 0xf5c9a8, freckle: 0xe8a882, delay: 0.96, isBox: true, d: 0.12 });
-addSkinPatch(shinR, { w: 0.15, h: 0.42, x: 0, y: -0.24, z: 0.08, color: 0xf2c4a0, freckle: 0xe0a070, delay: 1.02, isBox: true, d: 0.12 });
+  // Belt
+  addSkinPatch(hips, beltTex, { w: 0.44, h: 0.16, x: 0, y: 0.12, z: 0.14, delay: 0.56 });
 
-// Soft ground ring
+  // Arms
+  addSkinPatch(upperArmL, armLTex, { w: 0.18, h: 0.38, x: 0, y: -0.19, z: 0.09, delay: 0.62, isBox: true, d: 0.14 });
+  addSkinPatch(upperArmR, armRTex, { w: 0.18, h: 0.38, x: 0, y: -0.19, z: 0.09, delay: 0.68, isBox: true, d: 0.14 });
+  addSkinPatch(foreArmL, armLTex, { w: 0.15, h: 0.32, x: 0, y: -0.17, z: 0.08, delay: 0.74, isBox: true, d: 0.12 });
+  addSkinPatch(foreArmR, armRTex, { w: 0.15, h: 0.32, x: 0, y: -0.17, z: 0.08, delay: 0.80, isBox: true, d: 0.12 });
+
+  // Legs
+  addSkinPatch(thighL, legLTex, { w: 0.2, h: 0.46, x: 0, y: -0.24, z: 0.1, delay: 0.86, isBox: true, d: 0.15 });
+  addSkinPatch(thighR, legRTex, { w: 0.2, h: 0.46, x: 0, y: -0.24, z: 0.1, delay: 0.92, isBox: true, d: 0.15 });
+  addSkinPatch(shinL, legLTex, { w: 0.17, h: 0.44, x: 0, y: -0.24, z: 0.09, delay: 0.98, isBox: true, d: 0.13 });
+  addSkinPatch(shinR, legRTex, { w: 0.17, h: 0.44, x: 0, y: -0.24, z: 0.09, delay: 1.04, isBox: true, d: 0.13 });
+
+  // Big “整张忍者贴纸” at the end so the lesson lands: 绿色忍者贴上去
+  addSkinPatch(hips, fullTex, {
+    w: 0.55, h: 1.05, x: 0, y: 0.55, z: 0.28, delay: 1.12,
+  });
+  addSkinPatch(hips, portraitFace, {
+    w: 0.36, h: 0.4, x: 0, y: 1.1, z: 0.32, delay: 1.2,
+  });
+}
+
 const ground = new THREE.Mesh(
   new THREE.CircleGeometry(1.35, 48),
   new THREE.MeshStandardMaterial({ color: 0x1e3a28, roughness: 1 })
@@ -505,10 +597,10 @@ function resize() {
 resize();
 new ResizeObserver(resize).observe(stage);
 
-// Mild idle sway (stops briefly while posing animation runs)
 let swayOn = true;
-let poseAnim = null; // { t0, dur, apply(u) }
+let poseAnim = null;
 let step = 1;
+let skinReady = false;
 
 const LESSONS = {
   1: {
@@ -516,12 +608,12 @@ const LESSONS = {
     badge: '🦴 只看骨头',
   },
   2: {
-    html: '② <strong>模型＝很多不同的小颗粒拼起来的</strong>——不是一整块魔法固体哦！',
+    html: '② <strong>模型＝很多不同的小颗粒拼起来的</strong>——拼满以后才是一个完整的人！',
     badge: '🧱 颗粒模型',
   },
   3: {
-    html: '③ <strong>皮肤＝一块一块（一张一张）贴上去的</strong>——不是一下子画上去的！',
-    badge: '🩹 贴皮肤',
+    html: '③ <strong>皮肤＝把绿色忍者一张张 / 一块块贴上去的</strong>——不是一下子画上去的！',
+    badge: '🥷 贴绿忍者',
   },
 };
 
@@ -547,21 +639,24 @@ function showParticlesAssembling() {
     p.mesh.visible = true;
     p.mesh.scale.setScalar(0.01);
   }
-  particleReveal = { t0: performance.now(), dur: 1100 };
+  particleReveal = { t0: performance.now(), dur: 1400 };
 }
 
 function showSkinStaggered() {
-  // keep particles visible under / with skin
   for (const p of particles) {
     p.mesh.visible = true;
     p.mesh.scale.setScalar(1);
   }
   particleReveal = null;
+  if (!skinReady) {
+    lessonEl.innerHTML = '③ 绿色忍者皮肤加载中…稍等一下';
+    return;
+  }
   for (const s of skinPatches) {
     s.mesh.visible = true;
     s.mat.opacity = 0;
   }
-  skinReveal = { t0: performance.now(), dur: 1600 };
+  skinReveal = { t0: performance.now(), dur: 1800 };
 }
 
 function setStep(n) {
@@ -664,32 +759,29 @@ function frame(now) {
     thighR.rotation.x = Math.sin(t * 0.9 + Math.PI) * 0.04;
   }
 
-  // Particle assemble animation
   if (particleReveal) {
     const u = (now - particleReveal.t0) / particleReveal.dur;
     let allDone = true;
     for (const p of particles) {
-      const local = (u - p.delay) / 0.35;
+      const local = (u - p.delay) / 0.3;
       if (local < 0) {
         p.mesh.scale.setScalar(0.01);
         allDone = false;
       } else if (local < 1) {
-        const s = easeOutBack(local);
-        p.mesh.scale.setScalar(Math.max(0.01, s));
+        p.mesh.scale.setScalar(Math.max(0.01, easeOutBack(local)));
         allDone = false;
       } else {
         p.mesh.scale.setScalar(1);
       }
     }
-    if (u >= 1.4 && allDone) particleReveal = null;
+    if (u >= 1.35 && allDone) particleReveal = null;
   }
 
-  // Skin patch stagger fade-in
   if (skinReveal) {
     const u = (now - skinReveal.t0) / skinReveal.dur;
     let allDone = true;
     for (const s of skinPatches) {
-      const local = (u - s.delay * 0.55) / 0.28;
+      const local = (u - s.delay * 0.5) / 0.25;
       if (local < 0) {
         s.mat.opacity = 0;
         allDone = false;
@@ -708,6 +800,33 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+// Load green ninja assets from repo
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('fail ' + url));
+    img.src = url;
+  });
+}
+
+(async () => {
+  try {
+    const [idle, walk, portrait] = await Promise.all([
+      loadImage('../../assets/sprites/green/idle.png'),
+      loadImage('../../assets/sprites/green/walk_0.png'),
+      loadImage('../../assets/ninjas/ninja-green.jpg'),
+    ]);
+    buildNinjaSkin(idle, walk, portrait);
+    skinReady = true;
+    if (step === 3) showSkinStaggered();
+  } catch (err) {
+    console.error(err);
+    lessonEl.innerHTML = '③ 绿色忍者图加载失败——请检查网络后刷新';
+  }
+})();
 </script>
 </body>
 </html>
