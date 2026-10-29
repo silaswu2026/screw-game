@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
   <meta name="theme-color" content="#12162f"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <title>今晚 · 人怎么动</title>
-  <link rel="stylesheet" href="kid.css?v=skel1"/>
+  <title>今晚 · 逐帧动画</title>
+  <link rel="stylesheet" href="kid.css?v=frame1"/>
 </head>
 <body>
   <div id="app"></div>
@@ -29,7 +29,7 @@
       try {
         if (!(await window.__shuyangGate())) return;
         await load('sync.js?v=9');
-        await load('kid.js?v=skel1');
+        await load('kid.js?v=frame1');
       } catch (e) {
         fail(e && e.message ? e.message : '脚本');
       }

@@ -210,7 +210,7 @@ button.primary:active, a.primary:active { box-shadow: 0 2px 0 #2f6d3a; }
   .star.pop, .slot.ping { animation: none; }
 }
 
-.skel { margin: 18px 0 0; text-align: center; }
+.skel { margin: 12px 0 0; text-align: center; }
 .skel a.big {
   display: inline-block;
   padding: 14px 22px;
@@ -222,3 +222,5 @@ button.primary:active, a.primary:active { box-shadow: 0 2px 0 #2f6d3a; }
   text-decoration: none;
   box-shadow: 0 6px 0 #1d4e38;
 }
+.skel + .skel { margin-top: 10px; }
+.skel + .skel a.big { background: #3f4780; box-shadow: 0 6px 0 #2a3160; }

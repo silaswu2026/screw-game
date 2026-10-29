@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#12162f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>逐帧动画 · 给澍暘看</title>
+<script type="importmap">{"imports":{"three":"../../vendor/three.module.js"}}</script>
+<style>
+:root { color-scheme: dark; --bg:#12162f; --card:#1a2048; --gold:#ffe7a0; --green:#4ea85c; --line:#4a5290; --text:#f7f4ff; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  min-height: 100dvh;
+  font-family: -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(900px 420px at 80% -10%, #5a3d9a55, transparent 60%),
+    radial-gradient(700px 380px at 10% 0%, #2f6f8f44, transparent 55%),
+    linear-gradient(180deg, #0f1230, #1b2152 48%, #24305f);
+  padding: calc(14px + env(safe-area-inset-top)) 14px calc(28px + env(safe-area-inset-bottom));
+}
+.wrap { max-width: 480px; margin: 0 auto; }
+h1 { margin: 6px 0 4px; font-size: clamp(28px, 8vw, 36px); text-align: center; font-weight: 800; line-height: 1.2; }
+.kicker { margin: 0; text-align: center; color: var(--gold); font-weight: 800; letter-spacing: .06em; font-size: 14px; }
+.lead {
+  margin: 10px auto 18px; text-align: center; font-size: clamp(18px, 5vw, 22px);
+  font-weight: 800; line-height: 1.4; max-width: 22em;
+}
+.sec {
+  background: #12183acc; border: 2px solid #ffffff22; border-radius: 22px;
+  padding: 16px 14px 18px; margin: 0 0 16px;
+}
+.sec h2 {
+  margin: 0 0 10px; font-size: 20px; font-weight: 800; color: var(--gold);
+  display: flex; align-items: center; gap: 8px;
+}
+.sec h2 .n {
+  display: inline-flex; width: 28px; height: 28px; border-radius: 50%;
+  align-items: center; justify-content: center; background: var(--green); color: #fff; font-size: 15px;
+}
+.sec p { margin: 0 0 10px; font-size: 17px; line-height: 1.5; font-weight: 700; }
+.sec p.big { font-size: clamp(20px, 5.5vw, 24px); font-weight: 800; }
+.pill {
+  display: inline-block; padding: 6px 12px; border-radius: 999px;
+  background: #2f7a45; color: #fff; font-weight: 800; font-size: 14px; margin-bottom: 8px;
+}
+.demo {
+  background: #0b0f28; border-radius: 18px; border: 2px solid #ffe9a044;
+  padding: 12px; margin: 10px 0 0;
+}
+.demo .title {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px; font-weight: 800; font-size: 16px; color: var(--gold);
+}
+.stage-box {
+  position: relative; width: 100%; aspect-ratio: 1 / 1; max-height: 280px;
+  margin: 0 auto; background: #161c44; border-radius: 16px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.stage-box canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+.strip {
+  display: flex; gap: 8px; justify-content: center; margin: 10px 0 6px; flex-wrap: wrap;
+}
+.strip button {
+  appearance: none; border: 3px solid #4a5290; background: #121633; border-radius: 12px;
+  padding: 0; width: 64px; height: 64px; overflow: hidden; cursor: pointer;
+  position: relative; touch-action: manipulation;
+}
+.strip button.on { border-color: #ffe7a0; box-shadow: 0 0 0 2px #ffe7a066; }
+.strip button canvas, .strip button img { width: 100%; height: 100%; display: block; object-fit: contain; image-rendering: pixelated; }
+.strip button .tag {
+  position: absolute; left: 2px; top: 2px; background: #000a; color: #ffe7a0;
+  font-size: 11px; font-weight: 800; padding: 1px 4px; border-radius: 6px;
+}
+.row { display: flex; gap: 8px; margin-top: 8px; }
+.row button, .btn, a.btn {
+  appearance: none; flex: 1; min-height: 52px; border: 0; border-radius: 16px;
+  background: #3f4780; color: #fff; font-size: 18px; font-weight: 800;
+  cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.row button.primary, a.primary, .btn.primary {
+  background: linear-gradient(180deg, #78d484, #4ea85c); box-shadow: 0 3px 0 #2f6d3a;
+}
+.row button:active, a.btn:active { transform: translateY(1px); }
+.scrub {
+  width: 100%; margin: 8px 0 0; accent-color: #ffe7a0; height: 28px;
+}
+.hint { margin: 6px 0 0; font-size: 14px; opacity: .85; text-align: center; font-weight: 700; }
+video.teach {
+  width: 100%; max-height: 62dvh; border-radius: 16px; background: #000;
+  border: 2px solid #ffffff22; display: block;
+}
+.contrast {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;
+}
+.contrast .box {
+  background: #0b0f28; border-radius: 16px; border: 2px solid #ffffff22; padding: 10px;
+  text-align: center;
+}
+.contrast .box h3 { margin: 0 0 6px; font-size: 16px; color: var(--gold); }
+.contrast .box p { margin: 8px 0 0; font-size: 14px; font-weight: 800; line-height: 1.35; }
+#c3d { width: 100%; height: 160px; border-radius: 12px; display: block; background: #0a1020; }
+.back {
+  display: block; margin: 18px auto 0; max-width: 480px; text-align: center;
+  padding: 16px 22px; border-radius: 999px; background: #2f7a45; color: #fff;
+  font-weight: 800; font-size: 1.1rem; text-decoration: none; box-shadow: 0 6px 0 #1d4e38;
+}
+.foot { text-align: center; margin-top: 14px; opacity: .7; font-size: 13px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="kicker">今晚知识点</p>
+  <h1>逐帧动画</h1>
+  <p class="lead">一张张画好的图，按顺序换，就「动」起来了——像翻书一样。</p>
+
+  <!-- 1 原理 -->
+  <section class="sec" id="yuanli">
+    <h2><span class="n">1</span> 原理</h2>
+    <p class="big">游戏里的人物、怪物、陷阱「动」，不是真的在扭身子，而是<strong>很快换图片</strong>。</p>
+    <p>第 1 张 → 第 2 张 → 第 3 张 → 第 4 张……眼睛连起来看，就像在动。</p>
+    <span class="pill">关键词：逐帧 = 一张一张换</span>
+  </section>
+
+  <!-- 视频 -->
+  <section class="sec" id="shipin">
+    <h2><span class="n">▶</span> 讲解小视频</h2>
+    <p>慢慢看：先一张张停住，再连起来播。</p>
+    <video class="teach" controls playsinline preload="metadata" src="../videos/frame-anim-teach.mp4?v=1"></video>
+    <p class="hint">约 30 秒 · 横着拿手机也行</p>
+  </section>
+
+  <!-- 2 方法 -->
+  <section class="sec" id="fangfa">
+    <h2><span class="n">2</span> 方法 · 动手换帧</h2>
+    <p>点下面小图，或拖滑条，看「换一张图」姿势就变；再按播放，就连起来动了。</p>
+
+    <!-- Character -->
+    <div class="demo" data-kind="hero">
+      <div class="title"><span>🥷 人物（小宇绿忍者）</span><span class="frame-lab">第 1 张</span></div>
+      <div class="stage-box"><canvas width="360" height="360" class="main"></canvas></div>
+      <div class="strip"></div>
+      <input class="scrub" type="range" min="0" max="3" value="0" step="1" aria-label="人物帧">
+      <div class="row">
+        <button type="button" class="play">▶ 播放</button>
+        <button type="button" class="primary step">下一张 ›</button>
+      </div>
+      <p class="hint">小宇倒地爬起：就是这几张图在换</p>
+    </div>
+
+    <!-- Monster -->
+    <div class="demo" data-kind="monster" style="margin-top:14px">
+      <div class="title"><span>👾 怪物</span><span class="frame-lab">第 1 张</span></div>
+      <div class="stage-box"><canvas width="360" height="360" class="main"></canvas></div>
+      <div class="strip"></div>
+      <input class="scrub" type="range" min="0" max="3" value="0" step="1" aria-label="怪物帧">
+      <div class="row">
+        <button type="button" class="play">▶ 播放</button>
+        <button type="button" class="primary step">下一张 ›</button>
+      </div>
+      <p class="hint">怪物蹦蹦跳：也是四张图轮流换</p>
+    </div>
+
+    <!-- Trap -->
+    <div class="demo" data-kind="trap" style="margin-top:14px">
+      <div class="title"><span>⚠️ 陷阱（尖刺）</span><span class="frame-lab">第 1 张</span></div>
+      <div class="stage-box"><canvas width="360" height="360" class="main"></canvas></div>
+      <div class="strip"></div>
+      <input class="scrub" type="range" min="0" max="3" value="0" step="1" aria-label="陷阱帧">
+      <div class="row">
+        <button type="button" class="play">▶ 播放</button>
+        <button type="button" class="primary step">下一张 ›</button>
+      </div>
+      <p class="hint">尖刺升起落下：还是换图片</p>
+    </div>
+  </section>
+
+  <!-- 3 实践 -->
+  <section class="sec" id="shijian">
+    <h2><span class="n">3</span> 实践 · 对照小宇游戏</h2>
+    <p class="big">打开小宇，看绿忍者倒地、怪物跳、尖刺动——心里默念：<strong>这是在换第几张？</strong></p>
+    <div class="row" style="margin-top:12px">
+      <a class="btn primary" href="../../xy-go/" target="_blank" rel="noopener">打开小宇闯关</a>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <a class="btn" href="../../xiao-yu/" target="_blank" rel="noopener">旧版小宇</a>
+    </div>
+  </section>
+
+  <!-- 4 2D vs 3D -->
+  <section class="sec" id="vs3d">
+    <h2><span class="n">★</span> 对照一下：2D 和 3D</h2>
+    <div class="contrast">
+      <div class="box">
+        <h3>2D · 换图片</h3>
+        <canvas id="c2d" width="200" height="160"></canvas>
+        <p>一张张平面图按顺序换。</p>
+      </div>
+      <div class="box">
+        <h3>3D · 转模型</h3>
+        <canvas id="c3d" width="200" height="160"></canvas>
+        <p>同一个立体模型转角度 / 摆骨头。</p>
+      </div>
+    </div>
+    <p style="margin-top:12px">小宇现在是 <strong>2D 逐帧</strong>；以后做立体忍者，才会用 3D 骨头。</p>
+    <div class="row" style="margin-top:8px">
+      <a class="btn" href="skeleton.html">看 3D 骨头图</a>
+    </div>
+  </section>
+
+  <a class="back" href="../kid.html?v=frame1">回今晚课</a>
+  <p class="foot">澍暘的 AI 冒险月 · 逐帧动画</p>
+</div>
+
+<script>
+(function () {
+  const HERO_SRCS = [
+    'frames/idle.png',
+    'frames/knock_0.png',
+    'frames/knock_1.png',
+    'frames/crawl_0.png',
+  ];
+  const HERO_LABELS = ['站着', '倒地1', '倒地2', '爬行'];
+
+  function drawMonster(ctx, w, h, fi) {
+    ctx.clearRect(0, 0, w, h);
+    const phases = [
+      { dy: 0, sx: 1, sy: 1 },
+      { dy: 0.06, sx: 1.12, sy: 0.88 },
+      { dy: 0, sx: 1, sy: 1 },
+      { dy: -0.05, sx: 0.9, sy: 1.12 },
+    ];
+    const p = phases[fi % 4];
+    const cx = w / 2, cy = h * 0.55 + p.dy * h;
+    const rx = w * 0.28 * p.sx, ry = h * 0.24 * p.sy;
+    // body
+    const g = ctx.createRadialGradient(cx, cy - ry * 0.3, 8, cx, cy, rx);
+    g.addColorStop(0, '#e090ff');
+    g.addColorStop(1, '#8a2fc0');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffd6ff';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    // horns
+    ctx.fillStyle = '#ffd24a';
+    ctx.beginPath();
+    ctx.moveTo(cx - rx * 0.7, cy - ry * 0.5);
+    ctx.lineTo(cx - rx * 0.35, cy - ry * 1.35);
+    ctx.lineTo(cx - rx * 0.1, cy - ry * 0.55);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx + rx * 0.7, cy - ry * 0.5);
+    ctx.lineTo(cx + rx * 0.35, cy - ry * 1.35);
+    ctx.lineTo(cx + rx * 0.1, cy - ry * 0.55);
+    ctx.fill();
+    // eyes
+    const ey = cy - ry * 0.25;
+    for (const ex of [cx - rx * 0.35, cx + rx * 0.35]) {
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.ellipse(ex, ey, 14, 18, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1a1430';
+      ctx.beginPath(); ctx.ellipse(ex, ey + 2, 6, 9, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // mouth
+    ctx.strokeStyle = '#3a1048';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(cx, cy + 8, 22, 0.2, Math.PI - 0.2);
+    ctx.stroke();
+  }
+
+  function drawTrap(ctx, w, h, fi) {
+    ctx.clearRect(0, 0, w, h);
+    const heights = [0.12, 0.32, 0.52, 0.36];
+    const hh = heights[fi % 4];
+    const gy = h * 0.72;
+    // ground
+    ctx.fillStyle = '#3c8c48';
+    roundRect(ctx, w * 0.12, gy, w * 0.76, h * 0.14, 12);
+    ctx.fill();
+    const tipY = gy - h * hh;
+    const xs = [0.28, 0.5, 0.72];
+    for (const xf of xs) {
+      const cx = w * xf;
+      ctx.fillStyle = '#d0d8e8';
+      ctx.beginPath();
+      ctx.moveTo(cx - 22, gy);
+      ctx.lineTo(cx + 22, gy);
+      ctx.lineTo(cx, tipY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    if (fi % 4 >= 2) {
+      ctx.fillStyle = 'rgba(255,80,80,0.85)';
+      ctx.beginPath();
+      ctx.arc(w / 2, h * 0.16, 16, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function roundRect(ctx, x, y, ww, hh, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + ww, y, x + ww, y + hh, r);
+    ctx.arcTo(x + ww, y + hh, x, y + hh, r);
+    ctx.arcTo(x, y + hh, x, y, r);
+    ctx.arcTo(x, y, x + ww, y, r);
+    ctx.closePath();
+  }
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = reject;
+      im.src = src;
+    });
+  }
+
+  async function setupHeroDemo(root) {
+    const imgs = await Promise.all(HERO_SRCS.map(loadImage));
+    const labels = HERO_LABELS;
+    wireDemo(root, imgs.length, (ctx, w, h, i) => {
+      ctx.clearRect(0, 0, w, h);
+      ctx.imageSmoothingEnabled = false;
+      const im = imgs[i];
+      const s = Math.min(w, h) * 0.92;
+      const x = (w - s) / 2, y = (h - s) / 2;
+      ctx.drawImage(im, x, y, s, s);
+    }, (i, thumbCtx, tw, th) => {
+      thumbCtx.clearRect(0, 0, tw, th);
+      thumbCtx.imageSmoothingEnabled = false;
+      thumbCtx.drawImage(imgs[i], 0, 0, tw, th);
+    }, labels);
+  }
+
+  function setupDrawnDemo(root, drawer, labels) {
+    wireDemo(root, 4, drawer, (i, thumbCtx, tw, th) => drawer(thumbCtx, tw, th, i), labels);
+  }
+
+  function wireDemo(root, count, drawMain, drawThumb, labels) {
+    const canvas = root.querySelector('canvas.main');
+    const ctx = canvas.getContext('2d');
+    const strip = root.querySelector('.strip');
+    const scrub = root.querySelector('.scrub');
+    const playBtn = root.querySelector('.play');
+    const stepBtn = root.querySelector('.step');
+    const lab = root.querySelector('.frame-lab');
+    scrub.max = String(count - 1);
+    let i = 0;
+    let playing = false;
+    let timer = null;
+    const thumbs = [];
+
+    for (let t = 0; t < count; t++) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.i = String(t);
+      const c = document.createElement('canvas');
+      c.width = 64; c.height = 64;
+      b.appendChild(c);
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = String(t + 1);
+      b.appendChild(tag);
+      strip.appendChild(b);
+      drawThumb(t, c.getContext('2d'), 64, 64);
+      thumbs.push(b);
+      b.addEventListener('click', () => { stop(); setFrame(t); });
+    }
+
+    function setFrame(n) {
+      i = ((n % count) + count) % count;
+      scrub.value = String(i);
+      drawMain(ctx, canvas.width, canvas.height, i);
+      lab.textContent = '第 ' + (i + 1) + ' 张 · ' + (labels[i] || '');
+      thumbs.forEach((b, idx) => b.classList.toggle('on', idx === i));
+    }
+
+    function stop() {
+      playing = false;
+      playBtn.textContent = '▶ 播放';
+      if (timer) { clearInterval(timer); timer = null; }
+    }
+    function play() {
+      if (playing) { stop(); return; }
+      playing = true;
+      playBtn.textContent = '❚❚ 暂停';
+      timer = setInterval(() => setFrame(i + 1), 220);
+    }
+
+    scrub.addEventListener('input', () => { stop(); setFrame(+scrub.value); });
+    playBtn.addEventListener('click', play);
+    stepBtn.addEventListener('click', () => { stop(); setFrame(i + 1); });
+    setFrame(0);
+  }
+
+  // boot demos
+  document.querySelectorAll('.demo').forEach((root) => {
+    const kind = root.dataset.kind;
+    if (kind === 'hero') {
+      setupHeroDemo(root).catch(() => {
+        root.querySelector('.hint').textContent = '人物图加载失败，请刷新';
+      });
+    } else if (kind === 'monster') {
+      setupDrawnDemo(root, drawMonster, ['缩着', '压扁', '弹起', '跳高']);
+    } else if (kind === 'trap') {
+      setupDrawnDemo(root, drawTrap, ['收起', '升起', '最高', '落下']);
+    }
+  });
+
+  // tiny 2D flipbook in contrast panel
+  (function () {
+    const c = document.getElementById('c2d');
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    let fi = 0;
+    function tick() {
+      drawMonster(ctx, c.width, c.height, fi);
+      // label
+      ctx.fillStyle = '#ffe7a0';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('第' + (fi + 1) + '张', c.width / 2, 18);
+      fi = (fi + 1) % 4;
+    }
+    tick();
+    setInterval(tick, 280);
+  })();
+})();
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+const canvas = document.getElementById('c3d');
+if (canvas) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  const w = canvas.clientWidth || 200;
+  const h = canvas.clientHeight || 160;
+  renderer.setSize(w, h, false);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+  camera.position.set(2.2, 1.6, 2.8);
+  camera.lookAt(0, 0.7, 0);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const sun = new THREE.DirectionalLight(0xfff0d0, 1.1);
+  sun.position.set(3, 5, 2);
+  scene.add(sun);
+
+  const mat = new THREE.MeshStandardMaterial({ color: 0x4ea85c, roughness: 0.35, metalness: 0.05 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x2a6b38, roughness: 0.5 });
+
+  const root = new THREE.Group();
+  scene.add(root);
+
+  // blocky character: head + torso + limbs (no texture swap — we rotate joints)
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 0.45), mat);
+  torso.position.y = 0.95;
+  root.add(torso);
+
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.55), mat);
+  head.position.y = 1.65;
+  root.add(head);
+
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const pupilMat = new THREE.MeshBasicMaterial({ color: 0x1a1430 });
+  for (const sx of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 0.06), eyeMat);
+    eye.position.set(sx * 0.14, 1.68, 0.28);
+    root.add(eye);
+    const pupil = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.05), pupilMat);
+    pupil.position.set(sx * 0.14, 1.66, 0.31);
+    root.add(pupil);
+  }
+
+  function limb(x, y, z, sx, sy, sz) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), dark);
+    m.position.set(x, y, z);
+    root.add(m);
+    return m;
+  }
+  const armL = limb(-0.55, 1.05, 0, 0.22, 0.7, 0.22);
+  const armR = limb(0.55, 1.05, 0, 0.22, 0.7, 0.22);
+  const legL = limb(-0.2, 0.35, 0, 0.26, 0.7, 0.26);
+  const legR = limb(0.2, 0.35, 0, 0.26, 0.7, 0.26);
+
+  // ground disc
+  const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(1.2, 32),
+    new THREE.MeshStandardMaterial({ color: 0x2a3558, roughness: 1 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
+
+  let t0 = performance.now();
+  function frame(now) {
+    const t = (now - t0) / 1000;
+    // body turns (3D = rotate the model)
+    root.rotation.y = t * 0.9;
+    // simple "bone" swing
+    armL.rotation.x = Math.sin(t * 4) * 0.7;
+    armR.rotation.x = Math.sin(t * 4 + Math.PI) * 0.7;
+    legL.rotation.x = Math.sin(t * 4 + Math.PI) * 0.5;
+    legR.rotation.x = Math.sin(t * 4) * 0.5;
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // resize
+  const ro = new ResizeObserver(() => {
+    const ww = canvas.clientWidth || 200;
+    const hh = canvas.clientHeight || 160;
+    camera.aspect = ww / hh;
+    camera.updateProjectionMatrix();
+    renderer.setSize(ww, hh, false);
+  });
+  ro.observe(canvas);
+}
+</script>
+</body>
+</html>

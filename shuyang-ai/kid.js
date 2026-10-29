@@ -14,12 +14,12 @@
   const LESSONS = [
     {
       id: '2026-10-28',
-      kicker: '今晚',
+      kicker: '昨晚',
       title: '人怎么动',
       with: ['小雨', '爸爸', '澍暘'],
       principle: '2D 是很多张画一张一张换；3D 是骨头架子在摆，皮跟着动。',
       skeleton: { url: 'learn/skeleton.html', label: '看3D骨头图' },
-      // Tonight's 2D/3D explainer (relative to kid.html).
+      // 2D/3D explainer (relative to kid.html).
       video: { url: 'videos/how-characters-move-2d-3d.mp4' },
       guess: {
         prompt: '玩小宇时，爸爸喊暂停，你猜：换画还是摆骨头？',
@@ -35,6 +35,30 @@
         label: '去玩联网双人',
       },
       star: '知道 2D 换画、3D 摆骨头',
+    },
+    {
+      id: '2026-10-29',
+      kicker: '今晚',
+      title: '逐帧动画',
+      with: ['小雨', '爸爸', '澍暘'],
+      principle: '一张张画好的图按顺序换，就「动」起来了——像翻书一样。人物、怪物、陷阱都一样。',
+      lab: { url: 'learn/frame-anim.html?v=1', label: '打开动手页 · 换帧试试' },
+      skeleton: { url: 'learn/skeleton.html', label: '对照：3D骨头图' },
+      video: { url: 'videos/frame-anim-teach.mp4?v=1' },
+      guess: {
+        prompt: '小宇绿忍者倒地爬起，是怎么「动」的？',
+        options: [
+          { id: 'frames', t: '换好几张画好的图', ok: true },
+          { id: 'bones', t: '摆立体骨头', ok: false },
+        ],
+        then: '对！小宇是 2D 逐帧：一张张图在换。打开动手页再练一遍，再去闯关看尖刺和怪物。',
+      },
+      dessert: {
+        line: '去小宇闯关：看绿忍者倒地、怪物跳、尖刺动——心里数：第几张？',
+        play: '../xy-go/',
+        label: '去玩小宇闯关',
+      },
+      star: '知道逐帧动画：换图就动',
     },
   ];
 
@@ -134,12 +158,14 @@
   function dots(n) {
     return `<div class="dots" aria-hidden="true">${[1, 2, 3].map((i) => `<i class="${i === n ? 'on' : ''}"></i>`).join('')}</div>`;
   }
-  function skeletonBtn(day) {
-    const s = day && day.skeleton;
-    if (!s || !s.url) return '';
-    const href = esc(String(s.url));
-    const label = esc(s.label || '看3D骨头图');
+  function linkBtn(cfg, fallbackLabel) {
+    if (!cfg || !cfg.url) return '';
+    const href = esc(String(cfg.url));
+    const label = esc(cfg.label || fallbackLabel);
     return `<p class="skel"><a class="big" href="${href}">${label}</a></p>`;
+  }
+  function skeletonBtn(day) {
+    return linkBtn(day && day.lab, '打开动手页') + linkBtn(day && day.skeleton, '看3D骨头图');
   }
   function videoSlot(url) {
     const src = safeVideo(url);
