@@ -111,7 +111,7 @@
 <body>
 <div class="wrap">
   <h1>拖一拖：3D 骨头人</h1>
-  <p class="tip">骨头 → 大块方块人 → 更细的小颗粒 → AI皮肤一张张贴成一个人</p>
+  <p class="tip">骨头 → 大块方块人 → 更细的小颗粒 → 把逼真忍者图直接贴在方块上</p>
   <p class="callout" id="lesson">① <strong>只看骨头</strong>——里面先有一副会动的骨头架。</p>
 
   <div class="stage" id="stage" aria-label="可拖动的3D骨头人">
@@ -130,7 +130,7 @@
       <span class="num">③</span> 更细的小颗粒
     </button>
     <button type="button" id="stepSkin" data-step="4">
-      <span class="num">④</span> 贴上逼真皮肤
+      <span class="num">④</span> 皮肤贴上方块
     </button>
   </div>
 
@@ -148,9 +148,9 @@
     </details>
   </div>
 
-  <a class="back" href="../kid.html?v=mc2">回今晚课</a>
+  <a class="back" href="../kid.html?v=mc3">回今晚课</a>
   <div class="row" style="margin-top:10px">
-    <a class="btn" href="frame-anim.html?v=mc2">回动手页 · 逐帧</a>
+    <a class="btn" href="frame-anim.html?v=mc3">回动手页 · 逐帧</a>
   </div>
 </div>
 
@@ -329,8 +329,8 @@ const particles = [];
 let particleReveal = null;
 let chunkSeq = 0;
 
-/** One large LEGO-style brick. */
-function addChunk(parent, x, y, z, w, h, d, colorIdx, delay) {
+/** One large LEGO-style brick. `part` = head|torso|armL|armR|legL|legR for skin maps. */
+function addChunk(parent, x, y, z, w, h, d, colorIdx, delay, part = 'torso') {
   const geo = new THREE.BoxGeometry(w, h, d);
   const mat = particleMats[colorIdx % particleMats.length];
   const mesh = new THREE.Mesh(geo, mat);
@@ -338,6 +338,8 @@ function addChunk(parent, x, y, z, w, h, d, colorIdx, delay) {
   // tiny tilt so bricks read as separate pieces, not one fused blob
   const tilt = ((colorIdx * 17) % 7) * 0.015 - 0.045;
   mesh.rotation.y = tilt;
+  mesh.userData.baseTilt = tilt;
+  mesh.userData.part = part;
   mesh.visible = false;
   mesh.scale.setScalar(0.01);
   parent.add(mesh);
@@ -345,6 +347,9 @@ function addChunk(parent, x, y, z, w, h, d, colorIdx, delay) {
     mesh,
     delay: delay ?? (chunkSeq * 0.035) % 0.7,
     colorMat: mat,
+    part,
+    skinMats: null, // filled after textures load
+    skinned: false,
   });
   chunkSeq++;
   return mesh;
@@ -353,10 +358,10 @@ function addChunk(parent, x, y, z, w, h, d, colorIdx, delay) {
 // Head — 2×2×2 big cubes (clear head block)
 const HS = 0.2;
 for (const xi of [-1, 1]) for (const yi of [-1, 1]) for (const zi of [-1, 1]) {
-  addChunk(hips, xi * HS * 0.55, 1.08 + yi * HS * 0.55, zi * HS * 0.55, HS, HS, HS, chunkSeq, chunkSeq * 0.03);
+  addChunk(hips, xi * HS * 0.55, 1.08 + yi * HS * 0.55, zi * HS * 0.55, HS, HS, HS, chunkSeq, chunkSeq * 0.03, 'head');
 }
 // Neck
-addChunk(hips, 0, 0.9, 0, 0.16, 0.14, 0.16, 3, 0.22);
+addChunk(hips, 0, 0.9, 0, 0.16, 0.14, 0.16, 3, 0.22, 'head');
 
 // Torso — 2×3×2 stack of big bricks (full chest silhouette)
 const TW = 0.22, TH = 0.22, TD = 0.16;
@@ -370,43 +375,44 @@ for (const xi of [-1, 1]) {
         zi * TD * 0.55,
         TW, TH, TD,
         4 + row + (xi > 0 ? 3 : 0),
-        0.25 + row * 0.04 + (xi > 0 ? 0.02 : 0)
+        0.25 + row * 0.04 + (xi > 0 ? 0.02 : 0),
+        'torso'
       );
     }
   }
 }
 // Pelvis
-addChunk(hips, -0.12, 0.02, 0, 0.22, 0.18, 0.22, 10, 0.4);
-addChunk(hips, 0.12, 0.02, 0, 0.22, 0.18, 0.22, 11, 0.42);
+addChunk(hips, -0.12, 0.02, 0, 0.22, 0.18, 0.22, 10, 0.4, 'torso');
+addChunk(hips, 0.12, 0.02, 0, 0.22, 0.18, 0.22, 11, 0.42, 'torso');
 // Shoulder pads
-addChunk(hips, -0.34, 0.76, 0, 0.2, 0.16, 0.2, 12, 0.44);
-addChunk(hips, 0.34, 0.76, 0, 0.2, 0.16, 0.2, 13, 0.46);
+addChunk(hips, -0.34, 0.76, 0, 0.2, 0.16, 0.2, 12, 0.44, 'armL');
+addChunk(hips, 0.34, 0.76, 0, 0.2, 0.16, 0.2, 13, 0.46, 'armR');
 
 // Arms — 2 stacked bricks each segment
-addChunk(upperArmL, 0, -0.1, 0, 0.18, 0.22, 0.18, 14, 0.48);
-addChunk(upperArmL, 0, -0.3, 0, 0.18, 0.2, 0.18, 15, 0.5);
-addChunk(foreArmL, 0, -0.1, 0, 0.16, 0.2, 0.16, 16, 0.52);
-addChunk(foreArmL, 0, -0.28, 0, 0.16, 0.18, 0.16, 17, 0.54);
-addChunk(foreArmL, 0, -0.38, 0, 0.14, 0.12, 0.14, 18, 0.56); // hand
+addChunk(upperArmL, 0, -0.1, 0, 0.18, 0.22, 0.18, 14, 0.48, 'armL');
+addChunk(upperArmL, 0, -0.3, 0, 0.18, 0.2, 0.18, 15, 0.5, 'armL');
+addChunk(foreArmL, 0, -0.1, 0, 0.16, 0.2, 0.16, 16, 0.52, 'armL');
+addChunk(foreArmL, 0, -0.28, 0, 0.16, 0.18, 0.16, 17, 0.54, 'armL');
+addChunk(foreArmL, 0, -0.38, 0, 0.14, 0.12, 0.14, 18, 0.56, 'armL'); // hand
 
-addChunk(upperArmR, 0, -0.1, 0, 0.18, 0.22, 0.18, 0, 0.48);
-addChunk(upperArmR, 0, -0.3, 0, 0.18, 0.2, 0.18, 1, 0.5);
-addChunk(foreArmR, 0, -0.1, 0, 0.16, 0.2, 0.16, 2, 0.52);
-addChunk(foreArmR, 0, -0.28, 0, 0.16, 0.18, 0.16, 3, 0.54);
-addChunk(foreArmR, 0, -0.38, 0, 0.14, 0.12, 0.14, 4, 0.56);
+addChunk(upperArmR, 0, -0.1, 0, 0.18, 0.22, 0.18, 0, 0.48, 'armR');
+addChunk(upperArmR, 0, -0.3, 0, 0.18, 0.2, 0.18, 1, 0.5, 'armR');
+addChunk(foreArmR, 0, -0.1, 0, 0.16, 0.2, 0.16, 2, 0.52, 'armR');
+addChunk(foreArmR, 0, -0.28, 0, 0.16, 0.18, 0.16, 3, 0.54, 'armR');
+addChunk(foreArmR, 0, -0.38, 0, 0.14, 0.12, 0.14, 4, 0.56, 'armR');
 
 // Legs
-addChunk(thighL, 0, -0.12, 0, 0.2, 0.26, 0.2, 5, 0.58);
-addChunk(thighL, 0, -0.36, 0, 0.2, 0.24, 0.2, 6, 0.6);
-addChunk(shinL, 0, -0.12, 0, 0.18, 0.24, 0.18, 7, 0.62);
-addChunk(shinL, 0, -0.36, 0, 0.18, 0.24, 0.18, 8, 0.64);
-addChunk(shinL, 0, -0.48, 0.08, 0.2, 0.12, 0.26, 9, 0.66); // foot
+addChunk(thighL, 0, -0.12, 0, 0.2, 0.26, 0.2, 5, 0.58, 'legL');
+addChunk(thighL, 0, -0.36, 0, 0.2, 0.24, 0.2, 6, 0.6, 'legL');
+addChunk(shinL, 0, -0.12, 0, 0.18, 0.24, 0.18, 7, 0.62, 'legL');
+addChunk(shinL, 0, -0.36, 0, 0.18, 0.24, 0.18, 8, 0.64, 'legL');
+addChunk(shinL, 0, -0.48, 0.08, 0.2, 0.12, 0.26, 9, 0.66, 'legL'); // foot
 
-addChunk(thighR, 0, -0.12, 0, 0.2, 0.26, 0.2, 10, 0.58);
-addChunk(thighR, 0, -0.36, 0, 0.2, 0.24, 0.2, 11, 0.6);
-addChunk(shinR, 0, -0.12, 0, 0.18, 0.24, 0.18, 12, 0.62);
-addChunk(shinR, 0, -0.36, 0, 0.18, 0.24, 0.18, 13, 0.64);
-addChunk(shinR, 0, -0.48, 0.08, 0.2, 0.12, 0.26, 14, 0.66);
+addChunk(thighR, 0, -0.12, 0, 0.2, 0.26, 0.2, 10, 0.58, 'legR');
+addChunk(thighR, 0, -0.36, 0, 0.2, 0.24, 0.2, 11, 0.6, 'legR');
+addChunk(shinR, 0, -0.12, 0, 0.18, 0.24, 0.18, 12, 0.62, 'legR');
+addChunk(shinR, 0, -0.36, 0, 0.18, 0.24, 0.18, 13, 0.64, 'legR');
+addChunk(shinR, 0, -0.48, 0.08, 0.2, 0.12, 0.26, 14, 0.66, 'legR');
 
 console.info('[skeleton] LEGO chunks', particles.length);
 
@@ -510,60 +516,90 @@ fillFineLimb(shinR, 0, -0.48, 0.1, 0.12, 400);
 console.info('[skeleton] fine particles', fineParticles.length);
 
 
-// ─── Step ④: stacked aligned AI stickers (same canvas size → one person) ───
-const skinPatches = [];
+// ─── Step ④: paint realistic AI ninja art ONTO the big cubes (no billboard) ───
 let skinReveal = null;
+let skinReady = false;
+const PART_SKIN_DELAY = { head: 0.00, torso: 0.18, armL: 0.36, armR: 0.42, legL: 0.58, legR: 0.64 };
 
-const CALM_CHUNK = new THREE.MeshStandardMaterial({
-  color: 0x4a6b55, roughness: 0.85, metalness: 0.02,
-});
-
-function makeImgTex(img) {
-  const tex = new THREE.Texture(img);
+/** Crop AI art onto opaque suit-colored canvas so cube faces stay solid + 逼真. */
+function cropOnto(img, sx, sy, sw, sh, bgCss) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(32, Math.round(sw));
+  c.height = Math.max(32, Math.round(sh));
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = bgCss;
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.format = THREE.RGBAFormat;
-  tex.generateMipmaps = false;
-  tex.minFilter = THREE.LinearFilter;
+  tex.generateMipmaps = true;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
   tex.magFilter = THREE.LinearFilter;
+  tex.anisotropy = 4;
   tex.needsUpdate = true;
   return tex;
 }
 
-/**
- * One stacked sticker on figure root — all layers share the SAME
- * position/scale so head/torso/legs/full align as one silhouette.
- */
-function addAlignedSticker(tex, delay, renderOrder) {
-  const mat = new THREE.SpriteMaterial({
-    map: tex,
-    transparent: true,
-    opacity: 0,
-    depthWrite: false,
-    depthTest: false,
-    alphaTest: 0.05,
-    toneMapped: false,
+/** 6 materials for a Box: +X -X +Y -Y +Z -Z — front (+Z) gets AI art. */
+function makeCubeSkinMats(frontTex, sideHex) {
+  const side = () => new THREE.MeshStandardMaterial({
+    color: sideHex, roughness: 0.55, metalness: 0.06,
   });
-  const spr = new THREE.Sprite(mat);
-  const aspect = (tex.image && tex.image.width && tex.image.height)
-    ? tex.image.width / tex.image.height
-    : 612 / 1047;
-  // Centered on figure: feet near ground, head up — one body only
-  const worldH = 2.15;
-  spr.scale.set(worldH * aspect, worldH, 1);
-  spr.position.set(0, 1.05, 0); // same for every layer
-  spr.visible = false;
-  spr.renderOrder = renderOrder;
-  figure.add(spr);
-  skinPatches.push({ mesh: spr, delay, mat });
-  return spr;
+  const front = new THREE.MeshStandardMaterial({
+    map: frontTex, roughness: 0.42, metalness: 0.04,
+  });
+  // slight variation on back so orbit still reads 3D
+  const back = new THREE.MeshStandardMaterial({
+    map: frontTex, roughness: 0.55, metalness: 0.04,
+    color: 0xcccccc,
+  });
+  return [side(), side(), side(), side(), front, back];
 }
 
-function buildNinjaSkin(headImg, torsoImg, legsImg, fullImg) {
-  // Band layers of the same full sticker (612×1047) — stack = one character
-  addAlignedSticker(makeImgTex(headImg), 0.00, 21);
-  addAlignedSticker(makeImgTex(torsoImg), 0.22, 22);
-  addAlignedSticker(makeImgTex(legsImg), 0.44, 23);
-  addAlignedSticker(makeImgTex(fullImg), 0.70, 24); // reinforce / climax
+function buildCubeSkins(partsImg, fullImg) {
+  // High-quality AI crops from parts.png (isolated) + sticker-full accents
+  const tex = {
+    head: cropOnto(partsImg, 101, 23, 324, 306, '#1a1a1a'),
+    torso: cropOnto(partsImg, 426, 39, 424, 293, '#1e3d22'),
+    armL: cropOnto(partsImg, 233, 369, 154, 292, '#2e5c32'),
+    armR: cropOnto(partsImg, 977, 54, 138, 272, '#2e5c32'),
+    legL: cropOnto(partsImg, 591, 366, 166, 309, '#1a1a1a'),
+    legR: cropOnto(partsImg, 952, 370, 156, 306, '#1a1a1a'),
+  };
+  // Upgrade head/torso fronts with sticker-full bands when available (more 逼真)
+  if (fullImg) {
+    const fw = fullImg.naturalWidth || fullImg.width;
+    const fh = fullImg.naturalHeight || fullImg.height;
+    tex.head = cropOnto(fullImg, Math.floor(fw * 0.08), 0, Math.floor(fw * 0.84), Math.floor(fh * 0.34), '#1a1a1a');
+    tex.torso = cropOnto(fullImg, Math.floor(fw * 0.04), Math.floor(fh * 0.28), Math.floor(fw * 0.92), Math.floor(fh * 0.30), '#1e3d22');
+    tex.legL = cropOnto(fullImg, Math.floor(fw * 0.05), Math.floor(fh * 0.55), Math.floor(fw * 0.42), Math.floor(fh * 0.44), '#1a1a1a');
+    tex.legR = cropOnto(fullImg, Math.floor(fw * 0.48), Math.floor(fh * 0.55), Math.floor(fw * 0.47), Math.floor(fh * 0.44), '#1a1a1a');
+  }
+  const sideHex = {
+    head: 0x2a2a2a,
+    torso: 0x2e5c32,
+    armL: 0x3d8b40,
+    armR: 0x3d8b40,
+    legL: 0x222222,
+    legR: 0x222222,
+  };
+  const cache = {};
+  for (const part of Object.keys(tex)) {
+    cache[part] = makeCubeSkinMats(tex[part], sideHex[part]);
+  }
+  for (const p of particles) {
+    p.skinMats = cache[p.part] || cache.torso;
+  }
+  console.info('[skeleton] cube skins ready');
+}
+
+function clearCubeSkin() {
+  skinReveal = null;
+  for (const p of particles) {
+    p.skinned = false;
+    p.mesh.material = p.colorMat;
+    p.mesh.rotation.y = p.mesh.userData.baseTilt || 0;
+  }
 }
 
 const ground = new THREE.Mesh(
@@ -606,7 +642,6 @@ new ResizeObserver(resize).observe(stage);
 let swayOn = true;
 let poseAnim = null;
 let step = 1;
-let skinReady = false;
 
 const LESSONS = {
   1: {
@@ -622,8 +657,8 @@ const LESSONS = {
     badge: '🟨 细颗粒',
   },
   4: {
-    html: '④ <strong>皮肤＝AI渲好的图，一张张贴上去</strong>——贴完只看见<strong>一个人</strong>。',
-    badge: '🥷 逼真皮肤',
+    html: '④ <strong>皮肤直接贴在方块上</strong>——AI渲好的绿忍者图，一块一块贴上，转一转还是同一个人！',
+    badge: '🎨 贴在方块上',
   },
 };
 
@@ -643,17 +678,9 @@ function hideFineParticles() {
   }
 }
 
-function hideAllSkin() {
-  skinReveal = null;
-  for (const s of skinPatches) {
-    s.mesh.visible = false;
-    s.mat.opacity = 0;
-  }
-}
-
 /** Step ② big Minecraft / LEGO chunks */
 function showBigChunks() {
-  hideAllSkin();
+  clearCubeSkin();
   hideFineParticles();
   for (const p of particles) {
     p.mesh.visible = true;
@@ -665,7 +692,7 @@ function showBigChunks() {
 
 /** Step ③ finer denser cubes */
 function showFineAssembling() {
-  hideAllSkin();
+  clearCubeSkin();
   // tuck big bricks away so fine layer reads clearly
   hideBigChunks();
   for (const p of fineParticles) {
@@ -683,29 +710,33 @@ function showRig() {
   for (const m of rigMeshes) m.visible = true;
 }
 
-/** Step ④ AI stickers — ONE silhouette only (hide bones + all particles) */
+/** Step ④ paint AI ninja textures onto big Minecraft cubes (real 3D) */
 function showSkinStaggered() {
   particleReveal = null;
   fineReveal = null;
-  hideBigChunks();
   hideFineParticles();
   hideRig();
-  // Stop idle sway so sticker stays centered on figure
-  swayOn = false;
-  hips.rotation.set(0, 0, 0);
-  upperArmL.rotation.set(0, 0, 0);
-  upperArmR.rotation.set(0, 0, 0);
-  thighL.rotation.set(0, 0, 0);
-  thighR.rotation.set(0, 0, 0);
   if (!skinReady) {
     lessonEl.innerHTML = '④ 绿色忍者皮肤加载中…稍等一下';
+    // still show big cubes unskinned so body is there
+    for (const p of particles) {
+      p.mesh.visible = true;
+      p.mesh.scale.setScalar(1);
+      p.mesh.material = p.colorMat;
+      p.skinned = false;
+    }
     return;
   }
-  for (const s of skinPatches) {
-    s.mesh.visible = true;
-    s.mat.opacity = 0;
+  // Show big block body; skin maps applied piece-by-piece in the frame loop
+  for (const p of particles) {
+    p.mesh.visible = true;
+    p.mesh.scale.setScalar(1);
+    p.mesh.material = p.colorMat;
+    p.skinned = false;
+    p.mesh.rotation.y = 0; // square faces for clear art
   }
-  skinReveal = { t0: performance.now(), dur: 2000 };
+  skinReveal = { t0: performance.now(), dur: 2200 };
+  swayOn = true; // orbit + mild sway still OK — textured cubes rotate together
 }
 
 function setStep(n) {
@@ -720,9 +751,9 @@ function setStep(n) {
 
   if (n === 1) {
     showRig();
+    clearCubeSkin();
     hideBigChunks();
     hideFineParticles();
-    hideAllSkin();
     swayOn = true;
   } else if (n === 2) {
     showRig();
@@ -858,19 +889,29 @@ function frame(now) {
   if (skinReveal) {
     const u = (now - skinReveal.t0) / skinReveal.dur;
     let allDone = true;
-    for (const s of skinPatches) {
-      const local = (u - s.delay * 0.5) / 0.25;
+    for (const p of particles) {
+      const d = PART_SKIN_DELAY[p.part] ?? 0.3;
+      const local = (u - d) / 0.22;
       if (local < 0) {
-        s.mat.opacity = 0;
-        allDone = false;
-      } else if (local < 1) {
-        s.mat.opacity = local;
+        if (p.skinned) {
+          p.mesh.material = p.colorMat;
+          p.skinned = false;
+        }
         allDone = false;
       } else {
-        s.mat.opacity = 1;
+        if (!p.skinned && p.skinMats) {
+          p.mesh.material = p.skinMats;
+          p.skinned = true;
+          // tiny pop so kid sees the piece stick on
+          p.mesh.scale.setScalar(1.08);
+        } else if (p.skinned) {
+          const s = local < 1 ? 1.08 - 0.08 * Math.min(1, local) : 1;
+          p.mesh.scale.setScalar(s);
+        }
+        if (local < 1) allDone = false;
       }
     }
-    if (u >= 1.5 && allDone) skinReveal = null;
+    if (u >= 1.35 && allDone) skinReveal = null;
   }
 
   controls.update();
@@ -892,18 +933,16 @@ function loadImage(url) {
 
 (async () => {
   try {
-    const [headImg, torsoImg, legsImg, fullImg] = await Promise.all([
-      loadImage('../../assets/sprites/mc-ninja/sticker-head.png'),
-      loadImage('../../assets/sprites/mc-ninja/sticker-torso.png'),
-      loadImage('../../assets/sprites/mc-ninja/sticker-legs.png'),
+    const [partsImg, fullImg] = await Promise.all([
+      loadImage('../../assets/sprites/mc-ninja/parts.png'),
       loadImage('../../assets/sprites/mc-ninja/sticker-full.png'),
     ]);
-    buildNinjaSkin(headImg, torsoImg, legsImg, fullImg);
+    buildCubeSkins(partsImg, fullImg);
     skinReady = true;
     if (step === 4) showSkinStaggered();
   } catch (err) {
     console.error(err);
-    lessonEl.innerHTML = '④ 绿色忍者图加载失败——请检查网络后刷新';
+    lessonEl.innerHTML = '④ 绿色忍者贴图加载失败——请检查网络后刷新';
   }
 })();
 </script>
