@@ -837,18 +837,37 @@ function setClassroomVolume(level){
   remoteAudioEls.forEach(a => {
     try { a.volume = classroomVolume; } catch (_) {}
   });
+  unlockRemoteAudio();
   try { localStorage.setItem('classroomVol', String(n)); } catch (_) {}
 }
 function applyVolumeToMedia(el){
   if (!el) return;
   try { el.volume = classroomVolume; } catch (_) {}
 }
+function unlockRemoteAudio(){
+  remoteAudioEls.forEach(a => {
+    try {
+      a.muted = false;
+      const p = a.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    } catch (_) {}
+  });
+}
 function attachRemoteAudio(track){
   const a = track.attach();
   a.autoplay = true;
+  a.playsInline = true;
+  a.muted = false;
   applyVolumeToMedia(a);
   remoteAudioEls.add(a);
   document.body.appendChild(a);
+  // Autoplay may be blocked until a user gesture; unlock on join/volume/小雨 tap.
+  try {
+    const p = a.play();
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => log('系统：浏览器暂未播放远程音频，点一下音量或小雨头像解锁'));
+    }
+  } catch (_) {}
   return a;
 }
 function applyVolumeToVideo(v){ applyVolumeToMedia(v); }
@@ -1322,7 +1341,10 @@ async function toggleXiaoyuSpeak(){
   if (next) setXiaoyuMood('star'); // brief "activated" feedback; mood cycle still available via apply
   const ok = await publishXiaoyuActive(next);
   if (!ok) applyXiaoyuSpeakUi(false);
-  else log(next ? '系统：已点小雨 — 可以开口（再点静音）' : '系统：小雨已静音旁听');
+  else {
+    unlockRemoteAudio();
+    log(next ? '系统：已点小雨 — 可以开口（再点静音）' : '系统：小雨已静音旁听');
+  }
 }
 function handleRoomDataMessage(msg, participant){
   if (!msg || typeof msg !== 'object') return;
@@ -1465,7 +1487,10 @@ async function join(role){
       }
       log('系统：同房有人进：' + (p.name||p.identity));
     });
-    room.on(RoomEvent.TrackUnsubscribed, (track) => track.detach());
+    room.on(RoomEvent.TrackUnsubscribed, (track) => {
+      const els = track.detach();
+      (els || []).forEach(el => { try { remoteAudioEls.delete(el); el.remove(); } catch(_){} });
+    });
     room.on(RoomEvent.Disconnected, () => {
       // ignore disconnect during intentional switch (joining may still be true)
       if (joining) return;
@@ -1484,17 +1509,30 @@ async function join(role){
     myChatName = role === 'dad' ? '爸爸' : role === 'mom' ? '妈妈' : '芃芃';
     const localName = myChatName + '（我）';
     try {
-      const tracks = await createLocalTracks({ audio: true, video: true });
-      const local = ensureVideoTile(localId, localName);
+      let tracks;
+      let videoOk = true;
+      try {
+        tracks = await createLocalTracks({ audio: true, video: true });
+      } catch (avErr) {
+        videoOk = false;
+        log('系统：音视频同时打开失败，改试仅麦克风: ' + (avErr.message || avErr));
+        tracks = await createLocalTracks({ audio: true, video: false });
+      }
+      const local = ensureVideoTile(localId, videoOk ? localName : (localName + '·无摄像头'));
+      let publishedAudio = false;
       for (const track of tracks) {
         if (track.kind === Track.Kind.Video) showLiveCamera(local, track);
+        if (track.kind === Track.Kind.Audio) publishedAudio = true;
         await room.localParticipant.publishTrack(track);
       }
-      log('系统：已打开摄像头并发布到同房');
+      if (publishedAudio && videoOk) log('系统：已打开摄像头+麦克风并发布到同房');
+      else if (publishedAudio) log('系统：已发布麦克风到同房（无摄像头）');
+      else log('系统：警告 — 未发布麦克风，小雨听不到');
+      unlockRemoteAudio();
     } catch (camErr) {
       ensureVideoTile(localId, localName + '·无摄像头');
       setTileLoading(loadingTile, false);
-      log('系统：摄像头不可用（已进同房）: ' + camErr.message);
+      log('系统：麦克风/摄像头不可用（已进同房，小雨听不到你）: ' + camErr.message);
     }
     markMeTile();
     document.getElementById('leave').disabled = false;

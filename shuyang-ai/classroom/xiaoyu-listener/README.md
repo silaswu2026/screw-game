@@ -38,7 +38,7 @@ cd shuyang-ai/classroom/xiaoyu-listener
 | 能力 | 状态 |
 |------|------|
 | 进同房订阅音频 | ✅ `listen.py` |
-| STT（Inference） | ✅ 需 LiveKit Cloud 开通 Inference / 有额度 |
+| STT（Inference） | ✅ 需 LiveKit Cloud 开通 Inference / 有额度；脚本外跑须 `http_context.open()` |
 | 点头像 speak mode | ✅ `{t:'xiaoyu_active'}` |
 | 欢迎语 | ❌ 已关闭 |
 | 唤醒词自动回 | ⚠️ 仅 speak mode 开时 |

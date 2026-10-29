@@ -9,10 +9,12 @@
 - 通过 publishData 推给教室页：{t:'heard'} / {t:'chat', who:'小雨', ...} / {t:'xiaoyu_active'}
 
 Secrets: .env or LIVEKIT_* env — never commit.
+Runs outside AgentSession; wraps inference STT/TTS in http_context.open().
 """
 from __future__ import annotations
 
 import asyncio
+import aiohttp
 import json
 import logging
 import os
@@ -24,6 +26,7 @@ from dotenv import load_dotenv
 from livekit import api, rtc
 from livekit.agents import inference
 from livekit.agents.stt import SpeechEventType
+from livekit.agents.utils import http_context
 
 HERE = Path(__file__).resolve().parent
 load_dotenv(HERE / ".env")
@@ -93,6 +96,7 @@ class XiaoyuListener:
         self._audio_ready = asyncio.Event()
         self._listen_started_at = 0.0
         self._tts = None
+        self._http: aiohttp.ClientSession | None = None
         self._audio_source: rtc.AudioSource | None = None
         self._audio_track: rtc.LocalAudioTrack | None = None
         self._speak_lock = asyncio.Lock()
@@ -100,6 +104,19 @@ class XiaoyuListener:
         self._speak_active = False
 
     async def start(self) -> None:
+        # Own aiohttp session so inference STT/TTS work from room callbacks
+        # (ContextVar from http_context.open may not reach LiveKit event tasks).
+        self._http = aiohttp.ClientSession()
+        try:
+            await self._start_room()
+        finally:
+            for task in list(self._stt_tasks.values()):
+                task.cancel()
+            if self._http and not self._http.closed:
+                await self._http.close()
+            self._http = None
+
+    async def _start_room(self) -> None:
         token = mint_token()
         log.info("connecting to %s room=%s as %s (LISTEN FIRST, speak gated)", LIVEKIT_URL, ROOM_NAME, IDENTITY)
 
@@ -206,7 +223,7 @@ class XiaoyuListener:
     async def _stt_loop(self, participant: rtc.RemoteParticipant, track: rtc.Track) -> None:
         who = label_for(participant)
         log.info("STT start for %s (%s) model=%s lang=%s", participant.identity, who, STT_MODEL, STT_LANGUAGE)
-        stt = inference.STT(model=STT_MODEL, language=STT_LANGUAGE)
+        stt = inference.STT(model=STT_MODEL, language=STT_LANGUAGE, http_session=self._http)
         stream = stt.stream()
         audio = rtc.AudioStream(track, sample_rate=16000, num_channels=1)
 
@@ -303,7 +320,7 @@ class XiaoyuListener:
 
     async def _speak_tts(self, text: str) -> None:
         if self._tts is None:
-            self._tts = inference.TTS(model=TTS_MODEL, language="zh")
+            self._tts = inference.TTS(model=TTS_MODEL, language="zh", http_session=self._http)
         source = await self._ensure_mic()
         stream = self._tts.synthesize(text)
         async for ev in stream:
@@ -326,8 +343,10 @@ async def main() -> None:
     missing = [k for k in ("LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET") if not os.environ.get(k)]
     if missing:
         raise SystemExit(f"missing env: {', '.join(missing)} (see .env.example)")
-    listener = XiaoyuListener()
-    await listener.start()
+    # inference STT/TTS need an http session outside the agent worker API
+    async with http_context.open():
+        listener = XiaoyuListener()
+        await listener.start()
 
 
 if __name__ == "__main__":
