@@ -515,34 +515,20 @@
     text-shadow:0 1px 2px #000a;
   }
   @keyframes tileSpin{to{transform:rotate(360deg)}}
-  /* Course fullscreen: hide chrome, teaching fills viewport */
-  body.course-fs header,
-  body.course-fs .cams,
-  body.course-fs .room-note{display:none !important}
-  body.course-fs main{
-    display:flex !important;
-    flex-direction:column !important;
-    grid-template-columns:unset !important;
-    grid-template-areas:unset !important;
-    gap:0 !important;
-    padding:0 !important;
-    max-width:none !important;
+  /* Native Fullscreen API — whole classroom page */
+  :fullscreen, :full-screen, :-webkit-full-screen{
+    background:var(--bg);
+    width:100%;
+    height:100%;
   }
-  body.course-fs .course{
-    order:unset !important;
-    flex:1 1 auto !important;
-    min-height:0 !important;
-    border:0 !important;
-    border-radius:0 !important;
-    padding:0 !important;
-    background:#000;
+  :fullscreen body, :-webkit-full-screen body{
+    width:100%;
+    height:100%;
+    min-height:100%;
   }
-  body.course-fs .course h2{display:none}
-  body.course-fs .course iframe{
-    border-radius:0 !important;
-    flex:1 !important;
-    min-height:100% !important;
-    height:100% !important;
+  html:fullscreen, html:-webkit-full-screen,
+  body:fullscreen, body:-webkit-full-screen{
+    overflow:hidden;
   }
   .fs-btn{
     position:fixed;
@@ -561,7 +547,7 @@
     -webkit-tap-highlight-color:transparent;
   }
   .fs-btn:active{transform:scale(.96)}
-  body.course-fs .fs-btn{
+  .fs-btn.is-fs{
     background:#1e7a3aee;
     border-color:#6dcf7a;
   }
@@ -1208,32 +1194,69 @@ setRainOnline(true, '在线·静默');
 setXiaoyuMood('idle');
 applyXiaoyuSpeakUi(false);
 const courseFsBtn = document.getElementById('courseFsBtn');
-function setCourseFullscreen(on){
-  document.body.classList.toggle('course-fs', !!on);
-  if (courseFsBtn) {
-    courseFsBtn.setAttribute('aria-label', on ? '退出课程全屏' : '课程全屏');
-    courseFsBtn.title = on ? '退出全屏' : '课程全屏';
-    courseFsBtn.textContent = on ? '✕' : '⛶';
-  }
+function getFullscreenElement(){
+  return document.fullscreenElement
+    || document.webkitFullscreenElement
+    || document.webkitCurrentFullScreenElement
+    || document.msFullscreenElement
+    || null;
 }
+function syncFsButton(){
+  const on = !!getFullscreenElement();
+  if (!courseFsBtn) return;
+  courseFsBtn.classList.toggle('is-fs', on);
+  courseFsBtn.setAttribute('aria-label', on ? '退出全屏' : '全屏');
+  courseFsBtn.title = on ? '退出全屏' : '全屏';
+  courseFsBtn.textContent = on ? '✕' : '⛶';
+}
+async function requestPageFullscreen(){
+  const el = document.documentElement;
+  const req = el.requestFullscreen
+    || el.webkitRequestFullscreen
+    || el.webkitRequestFullScreen
+    || el.msRequestFullscreen;
+  if (req) {
+    await req.call(el, { navigationUI: 'hide' }).catch(() => req.call(el));
+    return;
+  }
+  // iOS Safari sometimes only allows video; try body as fallback
+  const bodyReq = document.body.requestFullscreen
+    || document.body.webkitRequestFullscreen
+    || document.body.webkitRequestFullScreen;
+  if (bodyReq) {
+    await bodyReq.call(document.body);
+    return;
+  }
+  throw new Error('此浏览器不支持全屏');
+}
+async function exitPageFullscreen(){
+  const ex = document.exitFullscreen
+    || document.webkitExitFullscreen
+    || document.webkitCancelFullScreen
+    || document.msExitFullscreen;
+  if (ex) await ex.call(document);
+}
+async function togglePageFullscreen(){
+  if (getFullscreenElement()) await exitPageFullscreen();
+  else await requestPageFullscreen();
+  syncFsButton();
+}
+['fullscreenchange','webkitfullscreenchange','MSFullscreenChange'].forEach(ev => {
+  document.addEventListener(ev, syncFsButton);
+});
 if (courseFsBtn) {
   courseFsBtn.addEventListener('click', (e) => {
     e.preventDefault();
-    setCourseFullscreen(!document.body.classList.contains('course-fs'));
+    togglePageFullscreen().catch(err => log('系统：全屏失败: ' + (err && err.message ? err.message : err)));
   });
 }
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && document.body.classList.contains('course-fs')) {
-    e.preventDefault();
-    setCourseFullscreen(false);
-  }
-});
+syncFsButton();
 // Remove any stray duplicate 小雨 tiles from older sessions / bad ids
 document.querySelectorAll('.vids .tile[id^="tile-xiaoyu"]').forEach(el => {
   if (el.id !== 'tile-xiaoyu') el.remove();
 });
-log('系统：同房教室 — 点头像开摄像头。点小雨才开口；右下角可课程全屏。');
+log('系统：同房教室 — 点头像开摄像头。点小雨才开口；右下角全屏（浏览器原生）。');
 </script>
-<button type="button" class="fs-btn" id="courseFsBtn" aria-label="课程全屏" title="课程全屏">⛶</button>
+<button type="button" class="fs-btn" id="courseFsBtn" aria-label="全屏" title="全屏">⛶</button>
 </body>
 </html>
