@@ -155,6 +155,7 @@
   let rows = 1;
   let solid = new Uint8Array(1);
   let water = new Uint8Array(1); // puddles carved into terrain (not solid)
+  let grassland = new Uint8Array(1); // 草原黑草尖刺陷阱
   let terraAcc = 0;
   let terraStep = 0;
   let terraToastCd = 0;
@@ -631,7 +632,7 @@
   const LEVELS = [
     {
       name: '林间晨跑', en: 'Forest Jog',
-      hint: '第1关·沼泽：慢慢走，学跳；水伤怪不伤人',
+      hint: '第1关·沼泽：小心黑草草原陷阱（踩了掉尖刺·清空血）',
       cols: 70, rows: 14, spawn: [2, 11], goal: [66, 11],
       checks: [[34, 11]],
       slimes: [[22, 11]], crates: [[16, 11]],
@@ -1107,6 +1108,90 @@
     }
   }
 
+
+  function setGrasslandCell(c, r, on) {
+    if (c < 0 || r < 0 || c >= cols || r >= rows) return;
+    grassland[r * cols + c] = on ? 1 : 0;
+    if (on) {
+      setSolidCell(c, r, true);
+      if (r + 1 < rows) setSolidCell(c, r + 1, true);
+    }
+  }
+  /** 草原黑草陷阱：普通地块+深黑草；踩上掉进尖刺，清空全部血量（全员受伤，无免疫）. */
+  function seedGrasslandTraps() {
+    const ground = 11;
+    const marks = [];
+    let c = 8;
+    while (c < cols - 6) {
+      if (!solid[ground * cols + c] || water[ground * cols + c]) { c++; continue; }
+      const start = c;
+      while (c < cols && solid[ground * cols + c] && !water[ground * cols + c]) c++;
+      const end = c - 1;
+      const width = end - start + 1;
+      if (width < 5) continue;
+      const mid = start + 3 + ((start * 3) % Math.max(1, width - 5));
+      if (mid > start + 1 && mid < end - 1) marks.push(mid);
+      if (width >= 12) {
+        const mid2 = Math.min(end - 2, mid + 5);
+        if (mid2 !== mid) marks.push(mid2);
+      }
+    }
+    const denser = levelTerrain === 'all' || levelIndex === 0 || levelIndex === 2 || levelIndex === 4;
+    for (let i = 0; i < marks.length; i++) {
+      if (!denser && (i % 2 === 1)) continue;
+      const cc = marks[i];
+      setGrasslandCell(cc, ground, true);
+      spikes.push({
+        c0: cc, c1: cc, x0: cc * T, x1: (cc + 1) * T, y: ground * T, lethal: true, hidden: true,
+      });
+    }
+  }
+  function killAllHpGrassTrap(n) {
+    if (!n || n.down || mode !== 'play') return;
+    n.hp = 0;
+    n.invuln = 0;
+    n.shake = 0.55;
+    n.flash = 0.35;
+    n.bones = 0.7;
+    n.grounded = false;
+    n.vy = 220;
+    n.vx *= 0.3;
+    sfx.bump();
+    buzz(30);
+    puff(n.x, n.y - 8, '#1a1a1a', 10);
+    puff(n.x, n.y + 4, '#c5d0dc', 8);
+    toast('草原黑草陷阱！掉进尖刺·血量清空');
+    downOrOver(n);
+  }
+  function touchGrasslandTraps(n) {
+    if (!n || n.down || mode !== 'play') return;
+    if (!n.grounded && n.vy < 50) return;
+    const col = Math.floor(n.x / T);
+    const under = Math.floor((n.y + 1) / T);
+    if (col < 0 || under < 0 || col >= cols || under >= rows) return;
+    if (!grassland[under * cols + col]) return;
+    grassland[under * cols + col] = 0;
+    setSolidCell(col, under, false);
+    let found = false;
+    for (let i = 0; i < spikes.length; i++) {
+      const s = spikes[i];
+      if (s.c0 <= col && s.c1 >= col && Math.abs(s.y - under * T) < T) {
+        s.lethal = true;
+        s.hidden = false;
+        found = true;
+      }
+    }
+    if (!found) {
+      spikes.push({
+        c0: col, c1: col, x0: col * T, x1: (col + 1) * T, y: under * T, lethal: true, hidden: false,
+      });
+    }
+    n.grounded = false;
+    n.y = under * T + 2;
+    n.vy = 260;
+    killAllHpGrassTrap(n);
+  }
+
   function findGaps(groundRow) {
     const gaps = [];
     let c = 0;
@@ -1145,10 +1230,12 @@
     };
     def.build(box);
     water = new Uint8Array(cols * rows);
+    grassland = new Uint8Array(cols * rows);
     terraAcc = 0;
     terraStep = 0;
     terraToastCd = 0;
     seedLevelTerrain();
+    seedGrasslandTraps();
     const ground = 11;
     coins = def.coins.map(([c, r]) => Object.assign({ got: false, bob: c }, cell(c, r)));
     stars = def.stars.map(([c, r]) => Object.assign({ got: false, bob: r }, cell(c, r)));
@@ -1164,7 +1251,7 @@
     springs = (def.springs || []).map(([c, r]) => Object.assign({ squish: 0 }, feet(c, r)));
     spikes = (def.spikes || []).map((s) => {
       const c0 = s[0], c1 = s[1], row = s.length > 2 ? s[2] : ground;
-      return { c0, c1, x0: c0 * T, x1: (c1 + 1) * T, y: row * T };
+      return { c0, c1, x0: c0 * T, x1: (c1 + 1) * T, y: row * T, lethal: false };
     });
     bombs = (def.bombs || []).map(([c, r]) => {
       const p = feet(c, r);
@@ -1573,7 +1660,9 @@
     if (!n || n.down || !spikes.length) return;
     for (let i = 0; i < spikes.length; i++) {
       const s = spikes[i];
+      if (s.hidden) continue;
       if (n.x >= s.x0 - 4 && n.x <= s.x1 + 4 && n.y > s.y - 6 && n.y < s.y + 18) {
+        if (s.lethal) { killAllHpGrassTrap(n); return; }
         hurtSpike(n);
         return;
       }
@@ -2263,17 +2352,20 @@
     updateFires(dt);
     updateBolts(dt);
     touchBombs(player);
+    touchGrasslandTraps(player);
     touchSpikes(player);
     touchFires(player);
     touchBolts(player);
     if (coop) {
       touchBombs(p2);
+      touchGrasslandTraps(p2);
       touchSpikes(p2);
       touchFires(p2);
       touchBolts(p2);
     }
     if (companion) {
       touchBombs(p3);
+      touchGrasslandTraps(p3);
       touchSpikes(p3);
       touchFires(p3);
       touchBolts(p3);
@@ -3114,14 +3206,14 @@
         for (let k = 0; k < 3; k++) {
           const x = c * T + 6 + k * 12;
           const y = s.y;
-          ctx.fillStyle = '#c5d0dc';
+          ctx.fillStyle = s.lethal ? '#8b0000' : '#c5d0dc';
           ctx.beginPath();
           ctx.moveTo(x, y);
           ctx.lineTo(x + 5, y - 14);
           ctx.lineTo(x + 10, y);
           ctx.closePath();
           ctx.fill();
-          ctx.strokeStyle = '#7a8794';
+          ctx.strokeStyle = s.lethal ? '#4a0000' : '#7a8794';
           ctx.lineWidth = 1;
           ctx.stroke();
         }
