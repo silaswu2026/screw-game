@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>成长屋共学教室</title>
+<style>
+  :root{--bg:#0b1a12;--card:#12261a;--line:#2a5a3a;--txt:#e8f5ea}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#1a3a24,var(--bg));color:var(--txt);min-height:100vh}
+  header{padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid #234}
+  h1{font-size:1rem;margin:0;flex:1}
+  .btn{border:0;border-radius:999px;padding:10px 16px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#78d484,#4ea85c);color:#083018}
+  .btn.ghost{background:#1c3324;color:var(--txt);border:1px solid var(--line)}
+  .btn:disabled{opacity:.5}
+  main{display:grid;grid-template-columns:1.1fr .9fr;gap:12px;padding:12px;max-width:1100px;margin:0 auto}
+  @media(max-width:800px){main{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;min-height:280px}
+  .vids{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+  @media(max-width:700px){.vids{grid-template-columns:1fr 1fr}}
+  .tile{background:#000;border-radius:12px;aspect-ratio:4/3;overflow:hidden;position:relative;border:2px solid transparent}
+  .tile.online{border-color:#6dcf7a}
+  .tile video{width:100%;height:100%;object-fit:cover;display:block}
+  .tile .name{position:absolute;left:8px;bottom:8px;background:#000a;padding:2px 8px;border-radius:8px;font-size:12px}
+  .tile .badge{position:absolute;right:8px;top:8px;background:#1e7a3a;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700}
+  .tile.rain{background:linear-gradient(160deg,#1a3d2a,#0d2418)}
+  .tile.rain .avatar-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;font-weight:800}
+  .tile.rain .avatar-fallback .face{font-size:48px}
+  iframe{width:100%;height:min(70vh,520px);border:0;border-radius:12px;background:#000}
+  #log{font-size:12px;opacity:.85;white-space:pre-wrap;max-height:140px;overflow:auto}
+  .hint{font-size:13px;opacity:.9;line-height:1.5}
+</style>
+</head>
+<body>
+<header>
+  <h1>成长屋共学教室</h1>
+  <button class="btn" id="joinDad">爸爸进房</button>
+  <button class="btn" id="joinKid">芃芃进房</button>
+  <button class="btn ghost" id="leave" disabled>离开</button>
+</header>
+<main>
+  <section class="panel">
+    <div class="hint">三格：爸爸 / 芃芃 / <strong>小雨在线</strong>。手机微信打开本页 → 点进房 → 允许摄像头。右边是今晚课。</div>
+    <div class="vids" id="vids">
+      <div class="tile" id="tile-dad-slot"><div class="name">爸爸</div></div>
+      <div class="tile" id="tile-kid-slot"><div class="name">芃芃</div></div>
+      <div class="tile rain online" id="tile-xiaoyu">
+        <div class="avatar-fallback"><div class="face">🌧️</div><div>小雨</div></div>
+        <div class="badge" id="rainBadge">在线·待命</div>
+        <div class="name">小雨</div>
+      </div>
+    </div>
+    <pre id="log"></pre>
+  </section>
+  <section class="panel">
+    <div class="hint">右边课（同屏示意）</div>
+    <iframe title="course" src="../learn/skeleton.html?v=mc12"></iframe>
+  </section>
+</main>
+<script type="module">
+import { Room, RoomEvent, createLocalTracks, Track } from 'https://cdn.jsdelivr.net/npm/livekit-client@2.9.9/+esm';
+const URL_WS = "wss://lucas-jqrm4vbp.livekit.cloud";
+const TOKENS = {"dad": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi54i454i4IiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoiZGFkIn0.q7ont9o7nqmVxFyxYBH3ALqj09Z6m1flYMAgsNEDaHU", "kid": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi6IqD6IqDIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoibHVjYXMifQ.9i_fVBr5Tu8ES-VSO_juYjLb5HGXGJTamXMomdYQY8k", "rain": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi5bCP6ZuoIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoieGlhb3l1In0.7jL1nsyCmFYK6XqGLNHp8xLDAtByQ_n6_zv2hH-3eBA"};
+const logEl = document.getElementById('log');
+const vids = document.getElementById('vids');
+function log(m){ logEl.textContent += m + '\n'; logEl.scrollTop = logEl.scrollHeight; console.log(m); }
+let room = null;
+function ensureVideoTile(id, name){
+  let el = document.getElementById('tile-'+id);
+  if (id === 'dad' || id === 'local-dad') { el = document.getElementById('tile-dad') || document.getElementById('tile-dad-slot'); el.id = 'tile-dad'; }
+  else if (id === 'lucas' || id === 'kid') { el = document.getElementById('tile-kid') || document.getElementById('tile-kid-slot'); el.id = 'tile-kid'; }
+  else if (!el) { el = document.createElement('div'); el.className = 'tile'; el.id = 'tile-'+id; vids.insertBefore(el, document.getElementById('tile-xiaoyu')); }
+  if (!el.querySelector('video')) el.innerHTML = '<video autoplay playsinline muted></video><div class="name"></div>';
+  el.querySelector('.name').textContent = name;
+  el.classList.add('online');
+  return el;
+}
+function setRainOnline(on, detail){
+  document.getElementById('tile-xiaoyu').classList.toggle('online', !!on);
+  document.getElementById('rainBadge').textContent = on ? (detail || '在线·听你们') : '离线';
+}
+async function joinRainPresence(){
+  try {
+    const rainRoom = new Room();
+    await rainRoom.connect(URL_WS, TOKENS.rain);
+    setRainOnline(true, '在线·听你们');
+    log('小雨已进房（旁听席）');
+    window.__rainRoom = rainRoom;
+  } catch (e) {
+    setRainOnline(true, '在线·示意');
+    log('小雨旁听: ' + (e.message||e));
+  }
+}
+async function join(role){
+  if (room) return;
+  room = new Room({ adaptiveStream: true, dynacast: true });
+  room.on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
+    if (participant.identity === 'xiaoyu') return;
+    const el = ensureVideoTile(participant.identity, participant.name || participant.identity);
+    const v = el.querySelector('video');
+    if (track.kind === Track.Kind.Video) { track.attach(v); v.muted = false; }
+    if (track.kind === Track.Kind.Audio) { const a = track.attach(); a.autoplay = true; document.body.appendChild(a); }
+  });
+  room.on(RoomEvent.ParticipantConnected, (p) => {
+    if (p.identity === 'xiaoyu') setRainOnline(true, '在线·听你们');
+    log('有人进房: ' + (p.name||p.identity));
+  });
+  room.on(RoomEvent.TrackUnsubscribed, (track) => track.detach());
+  room.on(RoomEvent.Disconnected, () => { log('已离开'); room = null; document.getElementById('leave').disabled = true; });
+  log('连接 LiveKit Cloud 作为 ' + role + ' …');
+  await room.connect(URL_WS, TOKENS[role]);
+  log('已进房: ' + room.name + ' 身份=' + room.localParticipant.identity);
+  const localId = role === 'dad' ? 'dad' : 'lucas';
+  const localName = role === 'dad' ? '爸爸（我）' : '芃芃（我）';
+  try {
+    const tracks = await createLocalTracks({ audio: true, video: true });
+    const local = ensureVideoTile(localId, localName);
+    for (const track of tracks) {
+      if (track.kind === Track.Kind.Video) track.attach(local.querySelector('video'));
+      await room.localParticipant.publishTrack(track);
+    }
+    log('已发布本地音视频');
+  } catch (camErr) {
+    ensureVideoTile(localId, localName + '·无摄像头');
+    log('摄像头不可用（进房仍成功）: ' + camErr.message);
+  }
+  document.getElementById('leave').disabled = false;
+  if (!window.__rainRoom) await joinRainPresence();
+}
+document.getElementById('joinDad').onclick = () => join('dad').catch(e => log('失败: ' + (e.message||e)));
+document.getElementById('joinKid').onclick = () => join('kid').catch(e => log('失败: ' + (e.message||e)));
+document.getElementById('leave').onclick = async () => {
+  if (room) await room.disconnect();
+  if (window.__rainRoom) { await window.__rainRoom.disconnect(); window.__rainRoom = null; }
+  setRainOnline(false);
+};
+setRainOnline(true, '在线·待命');
+log('已接 LiveKit Cloud。点爸爸/芃芃进房。');
+</script>
+</body>
+</html>
