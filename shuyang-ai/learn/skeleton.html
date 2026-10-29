@@ -739,7 +739,7 @@ const LESSONS = {
     badge: '🟨 细颗粒',
   },
   4: {
-    html: '④ <strong>皮肤直接贴在方块上</strong>——像 Minecraft：头/身/手/脚共 6 个大方块，每面一张完整AI忍者图，转一转还是同一个人！',
+    html: '④ <strong>皮肤贴在方块人身上（跟着转）</strong>——像 Minecraft：头/身/手/脚共 6 个大方块，每面一张完整AI忍者图，转一转还是同一个人！',
     badge: '🎨 贴在方块上',
   },
 };
@@ -824,7 +824,16 @@ function showSkinStaggered() {
     b.mesh.scale.setScalar(0.01); // pop in piece-by-piece
     if (b.skinMats) b.mesh.material = b.skinMats;
   }
-  skinReveal = { t0: performance.now(), dur: 2000 };
+  for (const d of skinDecals) {
+    d.mesh.visible = true;
+    d.mat.opacity = 0;
+  }
+  // Face front so 逼真皮对孩子一眼可读
+  hips.rotation.set(0, 0, 0);
+  camera.position.set(0, 1.15, 3.4);
+  controls.target.set(0, 0.95, 0);
+  controls.update();
+  skinReveal = { t0: performance.now(), dur: 2200 };
   swayOn = true; // hips yaw only while step 4 (see frame)
 }
 
