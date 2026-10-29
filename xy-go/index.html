@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1d4e38">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>小宇 / Xiao Yu</title>
-<link rel="stylesheet" href="style.css?v=3039">
+<link rel="stylesheet" href="style.css?v=3040">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -21,6 +21,7 @@
     </div>
   </div>
   <div class="stats"><span id="coinN">🪙 0</span><span id="starN">⭐ 0</span></div>
+  <div id="netBanner" class="netBanner hidden" aria-live="polite"></div>
   <div class="hudBtns">
     <button id="mute" type="button" aria-label="静音 Mute">音</button>
     <button id="retry" type="button">重来 Retry</button>
@@ -79,7 +80,7 @@
     <button type="button" data-lv="7">第8关</button>
   </div>
   <p class="keys">方向键 / AD 移动 · W / 空格跳 · F / J 投掷（默认站立，不自动跑）</p>
-  <p class="netHint">联网：浏览器1点玩家A，浏览器2点玩家B（人类双人）。点玩家C可开关「小宇AI跟班」（本地笨AI，不占联网席）。微信用浏览器打开。见 TEST-AB.md</p>
+  <p class="netHint">双人：主机点「同机双人→开始」开固定房间 xygo-coop-public；另一台点「玩家B」或蓝忍者加入（?room=名字可换房）。点玩家C开关小宇AI跟班。微信用浏览器打开。</p>
 </div>
 
 <div id="roomPanel" class="hidden" aria-hidden="true">
@@ -143,6 +144,6 @@
   </div>
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="game.js?v=3039"></script>
+<script src="game.js?v=3040"></script>
 </body>
 </html>

@@ -2934,24 +2934,31 @@
 
   // ========== 联网双人 helpers ==========
   function netOnline() { return !!netRole; }
-  function netWindowKey(offset) {
-    return Math.floor(Date.now() / 60000) + (offset || 0);
+  /** Fixed coop room so two devices always meet (no minute/N race). ?room=xxx overrides. */
+  function netRoomId() {
+    try {
+      const q = new URLSearchParams(location.search);
+      const custom = (q.get('room') || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 24);
+      if (custom) return 'xygo-coop-' + custom;
+    } catch (e) { /* ignore */ }
+    return 'xygo-coop-public';
   }
-  function netPairIds() {
-    const ids = [];
-    for (let w = 0; w >= -1; w--) {
-      const key = netWindowKey(w);
-      for (let i = 0; i < NET_SLOTS; i++) ids.push(NET_PREFIX + '-' + key + '-' + i);
+  function netSetBanner(text, kind) {
+    const el = document.getElementById('netBanner');
+    if (!el) return;
+    if (!text) {
+      el.textContent = '';
+      el.classList.add('hidden');
+      el.classList.remove('ok', 'warn');
+      return;
     }
-    return ids;
+    el.textContent = text;
+    el.classList.remove('hidden', 'ok', 'warn');
+    if (kind === 'ok') el.classList.add('ok');
+    if (kind === 'warn') el.classList.add('warn');
   }
-  function netSlotId(i) {
-    const ids = netPairIds();
-    const n = Math.max(0, Math.min(ids.length - 1, i | 0));
-    return ids[n];
-  }
-  function netPeerId(code) { return String(code || netSlotId(0)); }
-  function netMakeCode() { return netSlotId(0); }
+  function netPeerId(code) { return String(code || netRoomId()); }
+  function netMakeCode() { return netRoomId(); }
   function netJoinUrl() { return location.origin + location.pathname.replace(/index\.html?$/, ''); }
   function netNewPeer(id) {
     return id ? new Peer(id, NET_PEER_OPTS) : new Peer(NET_PEER_OPTS);
@@ -3012,6 +3019,7 @@
       netConn = conn;
       if (asHost) {
         toast('玩家B来了！');
+        netSetBanner('玩家B已加入', 'ok');
         try { netSend({ t: 'hello', code: netCode, role: 'host' }); } catch (e) {}
         const alreadyPlaying = (mode === 'play' || mode === 'clear' || mode === 'win' || mode === 'over');
         if (alreadyPlaying) {
@@ -3301,6 +3309,7 @@
       companion = !!msg.cp;
       syncChrome();
       toast('开始！你是蓝色忍者');
+      netSetBanner('联网对战·你是蓝', 'ok');
     } else if (msg.t === 'snap') {
       if (mode === 'title') {
         netHideRoom();
@@ -3351,56 +3360,61 @@
       const t = (err && err.type) || '';
       fail(t || 'error');
     });
-    setTimeout(() => { if (!settled) fail('timeout'); }, 3200);
+    setTimeout(() => { if (!settled) fail('timeout'); }, 6000);
   }
   function netOpenHost(opts) {
     opts = opts || {};
     const silent = !!opts.silent;
-    if (!netEnsurePeerJs()) return;
+    const enterPlay = !!opts.enterPlay;
+    if (!netEnsurePeerJs()) {
+      if (enterPlay) {
+        prepareCoopCast();
+        start((opts.pickLv != null ? opts.pickLv : 0) | 0, true);
+        netSetBanner('联网组件失败·本地双人', 'warn');
+      }
+      return;
+    }
     unlock();
     netMatchAbort = false;
-    // keep gameplay if already in a level (同机双人 background host)
-    const keepPlay = (mode === 'play' || mode === 'clear' || mode === 'win' || mode === 'over');
     netDestroy();
     netRole = 'host';
     netPickLv = (opts.pickLv != null ? opts.pickLv : 0) | 0;
+    const room = netRoomId();
     if (!silent) {
       netShowRoom('host');
-      netSetWait('正在当玩家A…');
+      netSetWait('正在当玩家A…房间 ' + room);
     } else {
       netHideRoom();
-      toast('房间已开，对方点「玩家B」即可加入');
+      netSetBanner('正在开房…', 'warn');
+      toast('正在开房 ' + room + '…');
     }
-    const ids = netPairIds().slice(0, NET_SLOTS); // current minute only for host claim
-    // randomize start so two parents retrying don't collide forever on slot0
-    const startAt = Math.floor(Math.random() * ids.length);
-    const order = ids.slice(startAt).concat(ids.slice(0, startAt));
-    let i = 0;
-    const tryNext = () => {
-      if (netMatchAbort || netRole !== 'host') return;
-      if (i >= order.length) {
-        if (!silent) netSetWait('座位忙，请双方都点取消，再先点玩家A');
-        toast(silent ? '房间座位忙，请再点开始' : '请再点一次玩家A');
-        return;
+    // fixed public room — claim then enter play (no minute/N race)
+    netClaimPair(room, (peer, claimed) => {
+      if (netMatchAbort) { try { peer.destroy(); } catch (e) {} return; }
+      netPeer = peer;
+      netCode = claimed;
+      netPeer.on('connection', (conn) => {
+        if (netConn && netLinked) { try { conn.close(); } catch (e) {} return; }
+        netBindConn(conn, true);
+      });
+      netPeer.on('disconnected', () => { try { netPeer.reconnect(); } catch (e) {} });
+      netPeer.on('error', (err) => {
+        if (err && err.type === 'peer-unavailable') return;
+      });
+      if (enterPlay) {
+        prepareCoopCast();
+        start(netPickLv | 0, true);
       }
-      const id = order[i++];
-      if (!silent) netSetWait('等待玩家B…（座位准备中）');
-      netClaimPair(id, (peer, claimed) => {
-        netPeer = peer;
-        netCode = claimed;
-        netPeer.on('connection', (conn) => {
-          if (netConn && netLinked) { try { conn.close(); } catch (e) {} return; }
-          netBindConn(conn, true);
-        });
-        netPeer.on('disconnected', () => { try { netPeer.reconnect(); } catch (e) {} });
-        netPeer.on('error', (err) => {
-          if (err && err.type === 'peer-unavailable') return;
-        });
-        if (!silent) netSetWait('已准备好，请对方点玩家B');
-        else toast('等待玩家B加入…');
-      }, () => tryNext());
-    };
-    tryNext();
+      if (!silent) netSetWait('已准备好，请对方点玩家B');
+      netSetBanner('房间已开·等玩家B', 'ok');
+      toast('房间已开·对方点「玩家B」加入');
+    }, (why) => {
+      // room taken (other device already hosting) — join as guest instead of 2nd host
+      if (netMatchAbort) return;
+      netSetBanner('房间已有人·改为加入…', 'warn');
+      toast(silent ? '房间已有人，改为加入…' : '房间忙，改为加入玩家A…');
+      netOpenJoin({ silent: silent, enterPlay: enterPlay, pickLv: netPickLv });
+    });
   }
   function netProbeId(peer, id) {
     return new Promise((resolve) => {
@@ -3441,13 +3455,15 @@
     netMatchAbort = false;
     netDestroy();
     netRole = 'guest';
+    const room = netRoomId();
     if (!silent) {
       netShowRoom('join');
-      netSetWait('正在寻找玩家A…请先让对方点玩家A');
+      netSetWait('正在加入房间 ' + room + '…请先让对方点同机双人·开始或玩家A');
     } else {
       netHideRoom();
       toast('正在加入…');
     }
+    netSetBanner('正在加入·等房主…', 'warn');
     let peer;
     try { peer = netNewPeer(); } catch (e) {
       toast('联网失败');
@@ -3466,25 +3482,22 @@
       let round = 0;
       while (!netMatchAbort && !netLinked && Date.now() - started < NET_FIND_MS) {
         round += 1;
-        const ids = netPairIds();
-        if (!silent) netSetWait('正在配对…第' + round + '轮（确认对方已是玩家A）');
-        for (let s = 0; s < ids.length; s += 6) {
-          if (netMatchAbort || netLinked) return;
-          const batch = ids.slice(s, s + 6);
-          const won = await netProbeBatch(peer, batch);
-          if (won && won.conn) {
-            netCode = won.id;
-            netBindConn(won.conn, false);
-            if (!silent) netSetWait('配对成功！马上开始');
-            else toast('已连上，马上进入');
-            return;
-          }
+        if (!silent) netSetWait('正在配对…第' + round + '轮（房间 ' + room + '）');
+        else if (round === 1 || round % 8 === 0) toast('寻找房主…第' + round + '轮');
+        const won = await netProbeBatch(peer, [room]);
+        if (won && won.conn) {
+          netCode = won.id;
+          netBindConn(won.conn, false);
+          if (!silent) netSetWait('配对成功！马上开始');
+          else toast('已连上，马上进入');
+          return;
         }
-        await new Promise((r) => setTimeout(r, 120));
+        await new Promise((r) => setTimeout(r, 400));
       }
       if (!netLinked) {
-        if (!silent) netSetWait('没找到玩家A。请双方取消后：先A后B；微信请用右上角「浏览器打开」');
+        if (!silent) netSetWait('没找到房主。请对方先点同机双人·开始或玩家A；微信请用浏览器打开');
         toast('没找到房间：请先让对方点同机双人·开始，再点玩家B');
+        netSetBanner('没找到房主', 'warn');
       }
     });
   }
@@ -3513,6 +3526,7 @@
     netMatchAbort = true;
     netDestroy();
     netHideRoom();
+    netSetBanner('');
     mode = 'title';
     coop = false;
     wantCoop = false;
@@ -3554,7 +3568,16 @@
         b.classList.toggle('on', b === btn);
       });
       applyPickColors();
-      toast(pickColor === 'green' ? '绿忍者（玩家A）' : '蓝忍者（玩家B）');
+      if (pickColor === 'blue') {
+        // 玩家B alone → join fixed coop room (no need to also tap 同机双人)
+        wantCoop = true;
+        mode2.classList.add('on');
+        mode1.classList.remove('on');
+        toast('蓝忍者（玩家B）· 正在加入');
+        netOpenJoin({ silent: true });
+        return;
+      }
+      toast('绿忍者（玩家A）· 点同机双人·开始开房，或点玩家A');
     });
   });
 
@@ -3572,32 +3595,31 @@
     });
     syncCompanionUi();
   }
-  /** Local start: 同机双人 = play immediately + open net room in background.
-   *  P2: 玩家B auto-discovers same minute-slot room (existing net match). */
+  /** 同机双人: claim fixed PeerJS room first, then enter play + lasting banner.
+   *  P2: 玩家B / 蓝 cast joins same id. If room busy, host path auto-joins as guest. */
   function requestLocalOrSoloStart(lv) {
     if (netRole === 'guest') return;
     if (netRole === 'host') {
-      // already hosting — if linked, (re)start level; else just keep playing / set pick
       netPickLv = lv | 0;
       if (netLinked) netHostStart();
       else {
         unlock();
         prepareCoopCast();
         start(lv | 0, true);
+        netSetBanner(netPeer ? '房间已开·等玩家B' : '正在开房…', netPeer ? 'ok' : 'warn');
         toast('同机双人：已开打 · 对方点「玩家B」加入');
       }
       return;
     }
     if (wantCoop) {
+      // wait for Peer open before start — avoids P2 probing an empty id
       prepareCoopCast();
       unlock();
-      start(lv | 0, true);
-      toast('同机双人：已开打 · 对方点「玩家B」加入');
-      // background room — no roomPanel
-      netOpenHost({ silent: true, pickLv: lv | 0 });
+      netOpenHost({ silent: true, enterPlay: true, pickLv: lv | 0 });
       return;
     }
     unlock();
+    netSetBanner('');
     start(lv | 0, false);
   }
 
@@ -3709,12 +3731,12 @@
   syncChrome();
   requestAnimationFrame(frame);
   try {
-    // A/B matchmaking: no room codes. Optional ?b=1 opens as player B.
+    // Fixed-day room (or ?room=xxx). Optional ?b=1 / ?a=1 opens as B/A.
     const q = new URLSearchParams(location.search);
     if (q.get('b') === '1' || q.get('as') === 'b') {
-      setTimeout(() => netOpenJoin(), 200);
+      setTimeout(() => netOpenJoin({ silent: true }), 200);
     } else if (q.get('a') === '1' || q.get('as') === 'a') {
-      setTimeout(() => netOpenHost(), 200);
+      setTimeout(() => netOpenHost({ silent: false }), 200);
     }
   } catch (e) { /* ignore */ }
 

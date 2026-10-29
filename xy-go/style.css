@@ -125,3 +125,8 @@ button{font:inherit;font-weight:900;border:0;cursor:pointer}
 .backClassroom:active{transform:translateY(2px)}
 /* local ready / auto-pair panels removed — 同机双人 uses silent PeerJS room */
 
+
+.netBanner{position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:5;background:#1d3557;color:#fff;font-weight:900;font-size:13px;padding:8px 14px;border-radius:999px;box-shadow:0 6px 18px #0004;pointer-events:none;max-width:92vw;text-align:center}
+.netBanner.hidden{display:none}
+.netBanner.ok{background:#1d4e38}
+.netBanner.warn{background:#9a3412}
