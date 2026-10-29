@@ -140,10 +140,10 @@
   }
   .vids::-webkit-scrollbar{display:none}
   #tile-xiaoyu{grid-area:xy;align-self:end}
-  /* 小雨 visibly smaller than dad/kid/mom (~70%) */
+  /* 小雨 visibly smaller than dad/kid/mom (~50%) */
   #tile-xiaoyu.tile,
   .tile.rain{
-    height:calc(var(--chip-h) * 0.7);
+    height:calc(var(--chip-h) * 0.5);
     width:auto;
   }
   #tile-dad{grid-area:dad;align-self:start}
@@ -524,8 +524,8 @@
     }
     #tile-xiaoyu.tile,
     .tile.rain{
-      width:70%;
-      max-width:70%;
+      width:50%;
+      max-width:50%;
       height:auto;
       align-self:center;
     }
@@ -700,7 +700,7 @@
   </section>
 
   <section class="panel cams">
-    <h2>我素养的家</h2>
+    <h2>伍澍暘</h2>
     <div class="vids" id="vids">
       <div class="tile rain online digital mood-idle" id="tile-xiaoyu" data-role="xiaoyu" role="button" tabindex="0" aria-label="小雨数字人，点一下开口或静音" title="点小雨：开口/静音">
         <div class="tile-inner">
