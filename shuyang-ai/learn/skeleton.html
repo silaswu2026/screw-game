@@ -607,24 +607,25 @@ console.info('[skeleton] MC 6-box body', mcBoxes.length);
 
 // Front "skin paper" stuck ON the figure (Plane child of mcSkinRoot — yaws with boxes, not camera Sprite)
 const skinDecals = [];
-function addFrontDecal(name, imgUrl, delay) {
-  // placeholder; real map filled in buildMcSkins
+function addFrontDecal(name, delay) {
   const mat = new THREE.MeshBasicMaterial({
-    transparent: true, opacity: 0, depthMapped: false, depthWrite: false, side: THREE.DoubleSide,
+    transparent: true, opacity: 0, toneMapped: false, depthWrite: false,
+    side: THREE.DoubleSide, alphaTest: 0.02,
   });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 1.85), mat);
-  mesh.position.set(0, 0.55, 0.20); // flush on front of torso/arms depth
+  // Tall plane covering head→feet; z beyond deepest box half-depth (head 0.25)
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 2.05), mat);
+  mesh.position.set(0, 0.55, 0.32);
   mesh.visible = false;
-  mesh.renderOrder = 5;
+  mesh.renderOrder = 20;
   mesh.userData.decal = name;
   mcSkinRoot.add(mesh);
-  skinDecals.push({ mesh, mat, name, delay, url: imgUrl });
+  skinDecals.push({ mesh, mat, name, delay });
 }
-addFrontDecal('head',  '../../assets/sprites/mc-ninja/sticker-head.png', 0.00);
-addFrontDecal('torso', '../../assets/sprites/mc-ninja/sticker-torso.png', 0.20);
-addFrontDecal('legs',  '../../assets/sprites/mc-ninja/sticker-legs.png', 0.40);
-addFrontDecal('full',  '../../assets/sprites/mc-ninja/sticker-full.png', 0.65);
-
+// Piece-by-piece teaching: head/torso/legs bands then full (same canvas size → aligned)
+addFrontDecal('head', 0.00);
+addFrontDecal('torso', 0.22);
+addFrontDecal('legs', 0.44);
+addFrontDecal('full', 0.70);
 
 function texFromImage(img) {
   const tex = new THREE.Texture(img);
@@ -643,13 +644,13 @@ function solidMats(hex) {
   return [m, m, m, m, m, m];
 }
 
-function buildMcSkins(boxImgs, decalImgs) {
-  // Boxes = 3D volume (solid colors). Decals = 逼真 ninja art glued on the FRONT, parented so they rotate with the body.
+function buildMcSkins(_boxImgs, decalImgs) {
+  // Bright volume boxes + 逼真 art glued on the FRONT plane (parented → orbits with body)
   const sideHex = {
-    head: 0x1a1a1a, torso: 0x2e5c32, armL: 0x3d8b40, armR: 0x3d8b40, legL: 0x222222, legR: 0x222222,
+    head: 0x222222, torso: 0x3d8b40, armL: 0x4caf50, armR: 0x4caf50, legL: 0x333333, legR: 0x333333,
   };
   for (const box of mcBoxes) {
-    box.skinMats = solidMats(sideHex[box.part] || 0x2e5c32);
+    box.skinMats = solidMats(sideHex[box.part] || 0x3d8b40);
     box.mesh.material = box.skinMats;
   }
   const map = {
@@ -661,11 +662,13 @@ function buildMcSkins(boxImgs, decalImgs) {
     const tex = texFromImage(img);
     d.mat.map = tex;
     d.mat.transparent = true;
-    d.mat.alphaTest = 0.05;
+    d.mat.alphaTest = 0.02;
     d.mat.needsUpdate = true;
   }
   console.info('[skeleton] MC volume + front decals ready');
 }
+
+
 
 function hideMcSkin() {
   skinReveal = null;
