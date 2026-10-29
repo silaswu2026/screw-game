@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#1d4e38">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>3D骨头人 · 骨头→颗粒→皮肤</title>
+<title>3D骨头人 · 骨头→颗粒→四面接皮 (mc9)</title>
 <script type="importmap">{"imports":{
   "three":"../../vendor/three.module.js",
   "three/addons/":"../../vendor/addons/"
@@ -111,7 +111,7 @@
 <body>
 <div class="wrap">
   <h1>拖一拖：3D 骨头人</h1>
-  <p class="tip">骨头 → 大块方块人 → 更细的小颗粒 → Minecraft式6方块贴上逼真皮肤</p>
+  <p class="tip">骨头 → 大块方块人 → 更细的小颗粒 → Minecraft式6方块 · 前后左右贴皮 + 灯光阴影</p>
   <p class="callout" id="lesson">① <strong>只看骨头</strong>——里面先有一副会动的骨头架。</p>
 
   <div class="stage" id="stage" aria-label="可拖动的3D骨头人">
@@ -148,9 +148,9 @@
     </details>
   </div>
 
-  <a class="back" href="../kid.html?v=mc3">回今晚课</a>
+  <a class="back" href="../kid.html?v=mc9">回今晚课</a>
   <div class="row" style="margin-top:10px">
-    <a class="btn" href="frame-anim.html?v=mc3">回动手页 · 逐帧</a>
+    <a class="btn" href="frame-anim.html?v=mc9">回动手页 · 逐帧</a>
   </div>
 </div>
 
@@ -166,17 +166,32 @@ const badgeEl = document.getElementById('badge');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+// mc9: soft shadows so orbiting reads volume (boxes/ground lit; stickers stay Basic for clarity)
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
 camera.position.set(2.6, 1.9, 3.4);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-const key = new THREE.DirectionalLight(0xfff5e0, 1.2);
-key.position.set(3.5, 6, 2.5);
+scene.add(new THREE.AmbientLight(0xffffff, 0.48));
+const hemi = new THREE.HemisphereLight(0xeafff2, 0x243528, 0.55);
+scene.add(hemi);
+const key = new THREE.DirectionalLight(0xfff5e0, 1.15);
+key.position.set(2.8, 5.5, 3.2); // upper-front key
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+key.shadow.camera.near = 0.5;
+key.shadow.camera.far = 18;
+key.shadow.camera.left = -3.2;
+key.shadow.camera.right = 3.2;
+key.shadow.camera.top = 4.2;
+key.shadow.camera.bottom = -1.8;
+key.shadow.bias = -0.0008;
+key.shadow.normalBias = 0.025;
 scene.add(key);
-const fill = new THREE.DirectionalLight(0xa8d8ff, 0.4);
-fill.position.set(-3, 2, -2);
+const fill = new THREE.DirectionalLight(0xa8d8ff, 0.35);
+fill.position.set(-3, 2.2, -2);
 scene.add(fill);
 
 const BONE = new THREE.MeshStandardMaterial({
@@ -204,6 +219,8 @@ function addBone(parent, ax, ay, az, bx, by, bz, radius = 0.055) {
   const mesh = new THREE.Mesh(geo, BONE);
   mesh.position.copy(mid);
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
   parent.add(mesh);
   rigMeshes.push(mesh);
   return mesh;
@@ -212,6 +229,8 @@ function addBone(parent, ax, ay, az, bx, by, bz, radius = 0.055) {
 function addJoint(parent, x, y, z, r = 0.09) {
   const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), JOINT);
   m.position.set(x, y, z);
+  m.castShadow = true;
+  m.receiveShadow = true;
   parent.add(m);
   rigMeshes.push(m);
   return m;
@@ -340,6 +359,8 @@ function addChunk(parent, x, y, z, w, h, d, colorIdx, delay, part = 'torso') {
   mesh.rotation.y = tilt;
   mesh.userData.baseTilt = tilt;
   mesh.userData.part = part;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
   mesh.visible = false;
   mesh.scale.setScalar(0.01);
   parent.add(mesh);
@@ -582,6 +603,8 @@ function addMcBox(part, x, y, z, w, h, d) {
   const placeholder = new THREE.MeshStandardMaterial({ color: 0x2e5c32, roughness: 0.55 });
   const mesh = new THREE.Mesh(geo, placeholder);
   mesh.position.set(x, y, z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
   mesh.visible = false;
   mesh.scale.setScalar(0.01);
   mesh.userData.part = part;
@@ -605,13 +628,20 @@ addMcBox('legL', -0.14, -0.10, 0, 0.24, 0.70, 0.24);
 addMcBox('legR',  0.14, -0.10, 0, 0.24, 0.70, 0.24);
 console.info('[skeleton] MC 6-box body', mcBoxes.length);
 
-// Front "skin paper" stuck ON the figure (Plane child of mcSkinRoot — yaws with boxes, not camera Sprite)
-const skinDecals = [];
-function addFrontDecal(name, delay) {
-  const mat = new THREE.MeshBasicMaterial({
+// mc9: front teaching stagger + 4-side wrap planes (parented → yaw with body, not Sprites)
+const skinDecals = []; // front head→torso→legs→full bands
+const wrapFaces = [];  // front/back/left/right full stickers
+
+function makeDecalMat() {
+  // Basic keeps sticker colors readable; boxes+ground carry lighting/shadows
+  return new THREE.MeshBasicMaterial({
     transparent: true, opacity: 0, toneMapped: false, depthWrite: false,
     side: THREE.DoubleSide, alphaTest: 0.02,
   });
+}
+
+function addFrontDecal(name, delay) {
+  const mat = makeDecalMat();
   // Tall plane covering head→feet; z beyond deepest box half-depth (head 0.25)
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 2.05), mat);
   mesh.position.set(0, 0.55, 0.32);
@@ -626,6 +656,29 @@ addFrontDecal('head', 0.00);
 addFrontDecal('torso', 0.22);
 addFrontDecal('legs', 0.44);
 addFrontDecal('full', 0.70);
+
+/** Full-body wrap plane just outside box extents (offset ~0.04 beyond half extents). */
+function addWrapFace(face, delay, w, h, x, y, z, rotY) {
+  const mat = makeDecalMat();
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+  mesh.position.set(x, y, z);
+  mesh.rotation.y = rotY;
+  mesh.visible = false;
+  mesh.renderOrder = 21;
+  mesh.userData.wrap = face;
+  mcSkinRoot.add(mesh);
+  wrapFaces.push({ mesh, mat, face, delay });
+}
+const WRAP_Y = 0.55;
+const WRAP_H = 2.05;
+const WRAP_FW = 1.05;
+const WRAP_SW = 0.72; // side depth silhouette (head depth 0.5 + margin)
+const OFF_Z = 0.30;   // outside head half-depth 0.25
+const OFF_X = 0.56;   // outside arm half-extent ~0.52
+// Front wrap = existing stagger "full" plane (sticker-front/full). Add back/left/right after it.
+addWrapFace('back',  0.95, WRAP_FW, WRAP_H, 0, WRAP_Y, -OFF_Z, Math.PI);
+addWrapFace('left',  1.05, WRAP_SW, WRAP_H, -OFF_X, WRAP_Y, 0, -Math.PI / 2);
+addWrapFace('right', 1.10, WRAP_SW, WRAP_H,  OFF_X, WRAP_Y, 0,  Math.PI / 2);
 
 function texFromImage(img) {
   const tex = new THREE.Texture(img);
@@ -645,7 +698,7 @@ function solidMats(hex) {
 }
 
 function buildMcSkins(_boxImgs, decalImgs) {
-  // Bright volume boxes + 逼真 art glued on the FRONT plane (parented → orbits with body)
+  // Bright volume boxes + wrap stickers on 4 sides (parented → orbits with body)
   const sideHex = {
     head: 0x222222, torso: 0x3d8b40, armL: 0x4caf50, armR: 0x4caf50, legL: 0x333333, legR: 0x333333,
   };
@@ -654,7 +707,8 @@ function buildMcSkins(_boxImgs, decalImgs) {
     box.mesh.material = box.skinMats;
   }
   const map = {
-    head: decalImgs.head, torso: decalImgs.torso, legs: decalImgs.legs, full: decalImgs.full,
+    head: decalImgs.head, torso: decalImgs.torso, legs: decalImgs.legs,
+    full: decalImgs.front || decalImgs.full,
   };
   for (const d of skinDecals) {
     const img = map[d.name];
@@ -665,7 +719,21 @@ function buildMcSkins(_boxImgs, decalImgs) {
     d.mat.alphaTest = 0.02;
     d.mat.needsUpdate = true;
   }
-  console.info('[skeleton] MC volume + front decals ready');
+  const wrapMap = {
+    back: decalImgs.back,
+    left: decalImgs.left,
+    right: decalImgs.right,
+  };
+  for (const w of wrapFaces) {
+    const img = wrapMap[w.face];
+    if (!img) continue;
+    const tex = texFromImage(img);
+    w.mat.map = tex;
+    w.mat.transparent = true;
+    w.mat.alphaTest = 0.02;
+    w.mat.needsUpdate = true;
+  }
+  console.info('[skeleton] mc9 volume + 4-side wrap ready', wrapFaces.length);
 }
 
 
@@ -675,6 +743,10 @@ function hideMcSkin() {
   for (const d of skinDecals) {
     d.mesh.visible = false;
     d.mat.opacity = 0;
+  }
+  for (const w of wrapFaces) {
+    w.mesh.visible = false;
+    w.mat.opacity = 0;
   }
   mcSkinRoot.visible = false;
   for (const b of mcBoxes) {
@@ -689,10 +761,11 @@ function clearCubeSkin() {
 
 const ground = new THREE.Mesh(
   new THREE.CircleGeometry(1.35, 48),
-  new THREE.MeshStandardMaterial({ color: 0x1e3a28, roughness: 1 })
+  new THREE.MeshStandardMaterial({ color: 0x163022, roughness: 1 })
 );
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = 0.02;
+ground.receiveShadow = true;
 scene.add(ground);
 const ring = new THREE.Mesh(
   new THREE.TorusGeometry(1.2, 0.025, 8, 48),
@@ -742,8 +815,8 @@ const LESSONS = {
     badge: '🟨 细颗粒',
   },
   4: {
-    html: '④ <strong>皮肤贴在方块人身上（跟着转）</strong>——像 Minecraft：头/身/手/脚共 6 个大方块，每面一张完整AI忍者图，转一转还是同一个人！',
-    badge: '🎨 贴在方块上',
+    html: '④ <strong>前后左右都贴皮</strong>——6 个大方块 + 前/后/左/右四张忍者贴图跟着转；有灯光和脚下阴影，转一转更立体！',
+    badge: '🎨 四面接皮',
   },
 };
 
@@ -831,12 +904,16 @@ function showSkinStaggered() {
     d.mesh.visible = true;
     d.mat.opacity = 0;
   }
+  for (const w of wrapFaces) {
+    w.mesh.visible = true;
+    w.mat.opacity = 0;
+  }
   // Face front so 逼真皮对孩子一眼可读
   hips.rotation.set(0, 0, 0);
   camera.position.set(0, 1.15, 3.4);
   controls.target.set(0, 0.95, 0);
   controls.update();
-  skinReveal = { t0: performance.now(), dur: 2200 };
+  skinReveal = { t0: performance.now(), dur: 2600 };
   swayOn = true; // hips yaw only while step 4 (see frame)
 }
 
@@ -1018,7 +1095,19 @@ function frame(now) {
         d.mat.opacity = 1;
       }
     }
-    if (u >= 1.6 && allDone) skinReveal = null;
+    for (const w of wrapFaces) {
+      const local = (u - w.delay) / 0.28;
+      if (local < 0) {
+        w.mat.opacity = 0;
+        allDone = false;
+      } else if (local < 1) {
+        w.mat.opacity = local;
+        allDone = false;
+      } else {
+        w.mat.opacity = 1;
+      }
+    }
+    if (u >= 1.75 && allDone) skinReveal = null;
   }
 
   controls.update();
@@ -1040,7 +1129,7 @@ function loadImage(url) {
 
 (async () => {
   try {
-    const [face, chest, legs, armL, armR, dHead, dTorso, dLegs, dFull] = await Promise.all([
+    const [face, chest, legs, armL, armR, dHead, dTorso, dLegs, dFull, dFront, dBack, dLeft, dRight] = await Promise.all([
       loadImage('../../assets/sprites/mc-ninja/box-face.png'),
       loadImage('../../assets/sprites/mc-ninja/box-chest.png'),
       loadImage('../../assets/sprites/mc-ninja/box-legs.png'),
@@ -1050,10 +1139,14 @@ function loadImage(url) {
       loadImage('../../assets/sprites/mc-ninja/sticker-torso.png'),
       loadImage('../../assets/sprites/mc-ninja/sticker-legs.png'),
       loadImage('../../assets/sprites/mc-ninja/sticker-full.png'),
+      loadImage('../../assets/sprites/mc-ninja/sticker-front.png'),
+      loadImage('../../assets/sprites/mc-ninja/sticker-back.png'),
+      loadImage('../../assets/sprites/mc-ninja/sticker-left.png'),
+      loadImage('../../assets/sprites/mc-ninja/sticker-right.png'),
     ]);
     buildMcSkins(
       { face, chest, legs, armL, armR },
-      { head: dHead, torso: dTorso, legs: dLegs, full: dFull }
+      { head: dHead, torso: dTorso, legs: dLegs, full: dFull, front: dFront, back: dBack, left: dLeft, right: dRight }
     );
     skinReady = true;
     if (step === 4) showSkinStaggered();
