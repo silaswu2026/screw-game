@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#1d4e38">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>3D骨头人 · 骨头→颗粒→方块贴皮 · 小太阳 (mc11)</title>
+<title>3D骨头人 · 骨头→颗粒→方块贴皮 · 小太阳 (mc12)</title>
 <script type="importmap">{"imports":{
   "three":"../../vendor/three.module.js",
   "three/addons/":"../../vendor/addons/"
@@ -170,9 +170,9 @@
     </details>
   </div>
 
-  <a class="back" href="../kid.html?v=mc11">回今晚课</a>
+  <a class="back" href="../kid.html?v=mc12">回今晚课</a>
   <div class="row" style="margin-top:10px">
-    <a class="btn" href="frame-anim.html?v=mc11">回动手页 · 逐帧</a>
+    <a class="btn" href="frame-anim.html?v=mc12">回动手页 · 逐帧</a>
   </div>
 </div>
 
@@ -188,7 +188,7 @@ const badgeEl = document.getElementById('badge');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-// mc9–mc11: soft shadows; mc10 draggable sun; mc11 per-box-face skin + body material toggle
+// mc9–mc12: soft shadows; mc10 draggable sun; mc11 per-box-face skin + body material toggle
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -196,12 +196,12 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
 camera.position.set(2.6, 1.9, 3.4);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.48));
-const hemi = new THREE.HemisphereLight(0xeafff2, 0x243528, 0.55);
+scene.add(new THREE.AmbientLight(0xffffff, 0.72));
+const hemi = new THREE.HemisphereLight(0xeafff2, 0x243528, 0.88);
 scene.add(hemi);
-// mc10/mc11: key light aims at figure; position driven by draggable 「小太阳」
-const key = new THREE.DirectionalLight(0xfff5e0, 1.15);
-key.position.set(2.0, 3.1, 2.2); // start upper-front, in-frame for kids
+// mc10/mc12: key light aims at figure; position driven by draggable 「小太阳」
+const key = new THREE.DirectionalLight(0xfff5e0, 1.55);
+key.position.set(1.25, 1.85, 1.5); // upper-front of figure, in default step-④ frame
 key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024);
 key.shadow.camera.near = 0.5;
@@ -215,7 +215,7 @@ key.shadow.normalBias = 0.025;
 key.target.position.set(0, 1.0, 0);
 scene.add(key);
 scene.add(key.target);
-const fill = new THREE.DirectionalLight(0xa8d8ff, 0.35);
+const fill = new THREE.DirectionalLight(0xa8d8ff, 0.58);
 fill.position.set(-3, 2.2, -2);
 scene.add(fill);
 
@@ -623,10 +623,11 @@ function cropSkinFace(skinImg, sx, sy, sw, sh, outW, outH) {
   return tex;
 }
 
-function matSkinFeel(tex, { rough = 0.55, metal = 0.04 } = {}) {
-  // 皮肤感：会吃小太阳的光/影，略粗糙 + 一点点高光
+function matSkinFeel(tex, { rough = 0.42, metal = 0.04, emit = 0.12 } = {}) {
+  // 皮肤感：吃小太阳光/影；略降粗糙 + 轻微 emissive，避免腿溶进绿台
   return new THREE.MeshStandardMaterial({
     map: tex, roughness: rough, metalness: metal,
+    emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: emit,
   });
 }
 
@@ -705,8 +706,9 @@ function makePartMatsPair(skinImg, part) {
     const isTop = i === 2;
     flat.push(matFlatPhoto(tex));
     skin.push(matSkinFeel(tex, {
-      rough: isTop ? 0.72 : (isFront ? 0.48 : 0.62),
+      rough: isTop ? 0.55 : (isFront ? 0.36 : 0.45),
       metal: isFront ? 0.04 : 0.02,
+      emit: isFront ? 0.14 : 0.10,
     }));
   });
   return { flat, skin };
@@ -715,6 +717,8 @@ function makePartMatsPair(skinImg, part) {
 // Classic Minecraft player: 1 head + 1 torso + 2 arms + 2 legs (parented under hips → orbit as one)
 const mcSkinRoot = new THREE.Group();
 mcSkinRoot.name = 'mcSkin';
+// Drop boxes toward ground ring (~feet nearer y≈0.2); hips/orbit target unchanged for bones
+mcSkinRoot.position.y = -0.38;
 hips.add(mcSkinRoot);
 mcSkinRoot.visible = false;
 
@@ -822,7 +826,7 @@ function buildMcSkins(skinImg, decalImgs) {
     d.mat.alphaTest = 0.02;
     d.mat.needsUpdate = true;
   }
-  console.info('[skeleton] mc11 per-box-face + flat/skin-feel toggle', mcBoxes.length);
+  console.info('[skeleton] mc12 per-box-face + flat/skin-feel toggle', mcBoxes.length);
 }
 
 function hideMcSkin() {
@@ -874,31 +878,40 @@ controls.maxPolarAngle = Math.PI * 0.92;
 controls.enablePan = false;
 controls.update();
 
-// ─── mc10/mc11: draggable 「小太阳」; mc11 body 材质：普通图↔皮肤感 ───
-const SUN_HOME = new THREE.Vector3(2.0, 3.1, 2.2);
+// ─── mc10/mc12: draggable 「小太阳」; mc11 body 材质：普通图↔皮肤感 ───
+const SUN_HOME = new THREE.Vector3(1.25, 1.85, 1.5); // in-frame upper-front of ninja
 const sunGroup = new THREE.Group();
 sunGroup.name = 'littleSun';
 sunGroup.visible = false;
 scene.add(sunGroup);
 
 const sunMat = new THREE.MeshBasicMaterial({
-  color: 0xffcc33, toneMapped: false, transparent: true, opacity: 0.98,
+  color: 0xffe066, toneMapped: false, transparent: true, opacity: 1,
 });
-const sunCore = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 18), sunMat);
+const sunCore = new THREE.Mesh(new THREE.SphereGeometry(0.30, 28, 20), sunMat);
 sunCore.renderOrder = 40;
 sunGroup.add(sunCore);
 
 const sunGlowMat = new THREE.MeshBasicMaterial({
-  color: 0xff9800, toneMapped: false, transparent: true, opacity: 0.28,
+  color: 0xffb020, toneMapped: false, transparent: true, opacity: 0.42,
   depthWrite: false, side: THREE.DoubleSide,
 });
-const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(0.38, 20, 16), sunGlowMat);
+const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(0.52, 22, 16), sunGlowMat);
 sunGlow.renderOrder = 39;
 sunGroup.add(sunGlow);
 
+// Soft outer halo (sprite-ish glow for kids)
+const sunHaloMat = new THREE.MeshBasicMaterial({
+  color: 0xfff3a0, toneMapped: false, transparent: true, opacity: 0.18,
+  depthWrite: false, side: THREE.DoubleSide,
+});
+const sunHalo = new THREE.Mesh(new THREE.SphereGeometry(0.72, 18, 14), sunHaloMat);
+sunHalo.renderOrder = 38;
+sunGroup.add(sunHalo);
+
 // Larger invisible hit target for small fingers
 const sunHit = new THREE.Mesh(
-  new THREE.SphereGeometry(0.45, 12, 10),
+  new THREE.SphereGeometry(0.58, 12, 10),
   new THREE.MeshBasicMaterial({ visible: false })
 );
 sunHit.name = 'sunHit';
@@ -1123,8 +1136,8 @@ function showSkinStaggered() {
   }
   // Face front so 脸/肚子对孩子一眼可读
   hips.rotation.set(0, 0, 0);
-  camera.position.set(0, 1.15, 3.4);
-  controls.target.set(0, 0.95, 0);
+  camera.position.set(0, 1.0, 3.4);
+  controls.target.set(0, 0.78, 0);
   controls.update();
   skinReveal = { t0: performance.now(), dur: 2800 };
   swayOn = true; // hips yaw only while step 4 (see frame)
@@ -1351,7 +1364,7 @@ function loadImage(url) {
 (async () => {
   try {
     const [skinImg, dHead, dTorso, dLegs] = await Promise.all([
-      loadImage('../../assets/sprites/mc-ninja/mc-skin-256.png?v=mc11'),
+      loadImage('../../assets/sprites/mc-ninja/mc-skin-256.png?v=mc12'),
       loadImage('../../assets/sprites/mc-ninja/sticker-head.png'),
       loadImage('../../assets/sprites/mc-ninja/sticker-torso.png'),
       loadImage('../../assets/sprites/mc-ninja/sticker-legs.png'),
