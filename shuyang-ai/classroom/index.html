@@ -836,7 +836,7 @@
       <p class="ts-overview" id="todayOverview"></p>
       <ul class="ts-steps" id="todaySteps"></ul>
       <div class="course-play-bar">
-        <button type="button" class="play-game-btn" id="playGameBtn" aria-label="去玩小宇闯关">去玩小宇闯关</button>
+        <button type="button" class="play-game-btn" id="playGameBtn" aria-label="去玩小雨闯关">去玩小雨闯关</button>
       </div>
     </div>
     <div class="course-shell" id="courseShell">
@@ -979,7 +979,8 @@ let courseStepIdx = 0;
 let courseFrameReady = false;
 let pendingSkelStep = null; // last desired skeleton.html step (1 bones, 2 blocks, 3 fine, 4 skin)
 let courseViewMode = 'course'; // course | play — iframe hosts skeleton or xy-go
-const GAME_IFRAME_URL = '../../xy-go/'; // real parkour path in repo
+const GAME_IFRAME_URL = '../../xy-go/'; // legacy embed path (unused for play button)
+const GAME_STANDALONE_URL = '../../xy-go/'; // standalone 小雨闯关 (also https://silaswu2026.github.io/shuyang-chengzhangwu/xy-go/)
 const courseFrame = document.getElementById('courseFrame');
 const courseFlow = document.getElementById('courseFlow');
 const courseShell = document.getElementById('courseShell');
@@ -1261,7 +1262,14 @@ window.addEventListener('message', (ev) => {
   }
   // Child pages (skeleton / frame-anim / kid) ask parent to swap course panel to game
   if (d.type === 'course-view-request' && (d.mode === 'play' || d.mode === 'course')) {
-    applyCourseView(d.mode, { publish: true });
+    if (d.mode === 'play') {
+      const url = (typeof GAME_STANDALONE_URL === 'string' && GAME_STANDALONE_URL) ? GAME_STANDALONE_URL : '../../xy-go/';
+      try { const w = window.open(url, '_blank', 'noopener,noreferrer'); if (!w) location.href = url; }
+      catch (_) { location.href = url; }
+      log('系统：课件请求打开小雨闯关（独立页面）');
+    } else {
+      applyCourseView('course', { publish: true });
+    }
   }
 });
 if (courseFrame) {
@@ -1797,7 +1805,8 @@ function handleRoomDataMessage(msg, participant){
     return;
   }
   if (msg.t === 'course_view' && (msg.mode === 'play' || msg.mode === 'course')) {
-    applyCourseView(msg.mode, { publish: false });
+    // play no longer embeds xy-go; ignore remote play, only honor return-to-course
+    if (msg.mode === 'course') applyCourseView('course', { publish: false });
     return;
   }
   if (msg.t === 'heard' && typeof msg.text === 'string') {
@@ -2111,7 +2120,17 @@ document.querySelectorAll('.vids .tile[id^="tile-xiaoyu"]').forEach(el => {
 });
 playGameBtn?.addEventListener('click', (e) => {
   e.preventDefault();
-  applyCourseView('play', { publish: true });
+  // Standalone link — do NOT embed xy-go in classroom iframe
+  const url = (typeof GAME_STANDALONE_URL === 'string' && GAME_STANDALONE_URL)
+    ? GAME_STANDALONE_URL
+    : '../../xy-go/';
+  try {
+    const w = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!w) location.href = url; // popup blocked → same tab
+  } catch (_) {
+    location.href = url;
+  }
+  log('系统：已打开小雨闯关（独立页面，未嵌入教室）');
 });
 backCourseBtn?.addEventListener('click', (e) => {
   e.preventDefault();

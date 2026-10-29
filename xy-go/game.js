@@ -149,16 +149,19 @@
   let pickColor = 'green';
   function applyPickColors() {
     // Humans: A green + B blue. C is always red companion when enabled.
+    // 同机/联网双人: never swap — 玩家B must stay blue visually.
     player.palette = 'green';
     p2.palette = 'blue';
     p3.palette = 'red';
-    if (!netRole && pickColor === 'blue') {
-      player.palette = 'blue';
-      p2.palette = 'green';
-    } else if (!netRole && pickColor === 'red' && !wantCompanion) {
-      // single-player cosmetic red only when C companion off
-      player.palette = 'red';
-      p2.palette = 'blue';
+    if (!netRole && !wantCoop && !coop) {
+      if (pickColor === 'blue') {
+        player.palette = 'blue';
+        p2.palette = 'green';
+      } else if (pickColor === 'red' && !wantCompanion) {
+        // single-player cosmetic red only when C companion off
+        player.palette = 'red';
+        p2.palette = 'blue';
+      }
     }
   }
 
@@ -268,21 +271,67 @@
     return null;
   }
 
-  function drawSpriteFrame(name, face, alpha, drawH) {
+  // Green sheet is authored; blue/red get a source-atop tint so they don't look green.
+  const SPRITE_TINT = {
+    blue: 'rgba(35, 120, 255, 0.58)',
+    red: 'rgba(230, 45, 45, 0.55)',
+  };
+  let _tintCanvas = null;
+  function drawSpriteFrame(name, face, alpha, drawH, palette) {
     const entry = getFrameEntry(name);
     if (!entry) return false;
     const h = drawH || 78;
+    const tint = (palette && palette !== 'green') ? SPRITE_TINT[palette] : null;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.scale(face, 1);
+    let w;
     if (entry.sheet) {
       const sh = FRAME_CACHE.sheet;
-      const w = h * (entry.w / entry.h);
-      ctx.drawImage(sh, entry.x, entry.y, entry.w, entry.h, -w / 2, -h + 2, w, h);
+      w = h * (entry.w / entry.h);
+      if (tint) {
+        if (!_tintCanvas) _tintCanvas = document.createElement('canvas');
+        const iw = Math.max(1, Math.ceil(w));
+        const ih = Math.max(1, Math.ceil(h));
+        if (_tintCanvas.width !== iw || _tintCanvas.height !== ih) {
+          _tintCanvas.width = iw;
+          _tintCanvas.height = ih;
+        }
+        const o = _tintCanvas.getContext('2d');
+        o.clearRect(0, 0, iw, ih);
+        o.globalCompositeOperation = 'source-over';
+        o.drawImage(sh, entry.x, entry.y, entry.w, entry.h, 0, 0, iw, ih);
+        o.globalCompositeOperation = 'source-atop';
+        o.fillStyle = tint;
+        o.fillRect(0, 0, iw, ih);
+        o.globalCompositeOperation = 'source-over';
+        ctx.drawImage(_tintCanvas, -w / 2, -h + 2, w, h);
+      } else {
+        ctx.drawImage(sh, entry.x, entry.y, entry.w, entry.h, -w / 2, -h + 2, w, h);
+      }
     } else {
       const im = entry.img;
-      const w = h * (im.naturalWidth / im.naturalHeight);
-      ctx.drawImage(im, -w / 2, -h + 2, w, h);
+      w = h * (im.naturalWidth / im.naturalHeight);
+      if (tint) {
+        if (!_tintCanvas) _tintCanvas = document.createElement('canvas');
+        const iw = Math.max(1, Math.ceil(w));
+        const ih = Math.max(1, Math.ceil(h));
+        if (_tintCanvas.width !== iw || _tintCanvas.height !== ih) {
+          _tintCanvas.width = iw;
+          _tintCanvas.height = ih;
+        }
+        const o = _tintCanvas.getContext('2d');
+        o.clearRect(0, 0, iw, ih);
+        o.globalCompositeOperation = 'source-over';
+        o.drawImage(im, 0, 0, iw, ih);
+        o.globalCompositeOperation = 'source-atop';
+        o.fillStyle = tint;
+        o.fillRect(0, 0, iw, ih);
+        o.globalCompositeOperation = 'source-over';
+        ctx.drawImage(_tintCanvas, -w / 2, -h + 2, w, h);
+      } else {
+        ctx.drawImage(im, -w / 2, -h + 2, w, h);
+      }
     }
     ctx.restore();
     return true;
@@ -2431,7 +2480,7 @@
     const alpha = (n.flash > 0 && Math.sin(sim * 55) > 0) ? 0.55 : 1;
     const fname = knockFrameName(n);
     // green authored; blue/red reuse green knockdown frames (same sequence)
-    let ok = drawSpriteFrame(fname, n.face || 1, alpha, 82);
+    let ok = drawSpriteFrame(fname, n.face || 1, alpha, 82, n.palette || 'green');
     if (!ok) {
       // fallback: old portrait lean only if frames not loaded yet
       ctx.save();
@@ -2451,7 +2500,7 @@
       ctx.restore();
     }
     if (n.bones > 0) {
-      const sk = drawSpriteFrame('hurt_skeleton', n.face || 1, Math.min(0.85, n.bones / 0.2), 82);
+      const sk = drawSpriteFrame('hurt_skeleton', n.face || 1, Math.min(0.85, n.bones / 0.2), 82, n.palette || 'green');
       if (!sk) {
         ctx.globalAlpha = Math.min(1, n.bones / 0.2);
         drawBoneOverlay(n.face || 1);
@@ -2498,7 +2547,7 @@
     // Prefer Cocos-style sprite frames for idle/walk/jump (same cache as knockdown)
     ctx.translate(0, -bob);
     const fname = locoFrameName(n);
-    let ok = drawSpriteFrame(fname, n.face, alpha, 82);
+    let ok = drawSpriteFrame(fname, n.face, alpha, 82, n.palette || 'green');
     if (!ok) {
       ok = drawHeroSprite(n.face, alpha, n.palette || 'green', 0);
       if (!ok) drawHero(n.phase, n.anim, n.face, alpha, n.palette, Math.abs(n.vx));
@@ -3409,6 +3458,102 @@
       toast(pickColor === 'green' ? '绿忍者（玩家A）' : '蓝忍者（玩家B）');
     });
   });
+
+  // —— 同机双人 ready gate (local, same device) ——
+  let localReadyLv = 0;
+  let localReadyA = false;
+  let localReadyB = false;
+  function syncLocalReadyUi() {
+    const aBtn = document.getElementById('readyA');
+    const bBtn = document.getElementById('readyB');
+    const aState = document.getElementById('readyAState');
+    const bState = document.getElementById('readyBState');
+    const wait = document.getElementById('localReadyWait');
+    const go = document.getElementById('localReadyGo');
+    if (aBtn) {
+      aBtn.classList.toggle('on', localReadyA);
+      aBtn.setAttribute('aria-pressed', localReadyA ? 'true' : 'false');
+    }
+    if (bBtn) {
+      bBtn.classList.toggle('on', localReadyB);
+      bBtn.setAttribute('aria-pressed', localReadyB ? 'true' : 'false');
+    }
+    if (aState) aState.textContent = localReadyA ? '已准备 ✓' : '点一下 · 准备好了';
+    if (bState) bState.textContent = localReadyB ? '已准备 ✓' : '点一下 · 准备好了';
+    const both = localReadyA && localReadyB;
+    if (wait) {
+      wait.textContent = both
+        ? '双方都准备好了！点「进关」开始'
+        : (!localReadyA && !localReadyB
+          ? '等双方都点「准备好了」'
+          : (!localReadyA ? '等玩家A（芃芃）准备…' : '等玩家B（爸爸）准备…'));
+    }
+    if (go) go.disabled = !both;
+  }
+  function showLocalReady(lv) {
+    localReadyLv = lv | 0;
+    localReadyA = false;
+    localReadyB = false;
+    const panel = document.getElementById('localReadyPanel');
+    if (!panel) {
+      // fallback if markup missing
+      unlock();
+      start(localReadyLv, true);
+      return;
+    }
+    const sub = document.getElementById('localReadySub');
+    if (sub) sub.textContent = '同屏分键 · 第' + (localReadyLv + 1) + '关 · 双方都准备好再进关';
+    panel.classList.remove('hidden');
+    panel.setAttribute('aria-hidden', 'false');
+    syncLocalReadyUi();
+    toast('同机双人：请双方点准备');
+  }
+  function hideLocalReady() {
+    const panel = document.getElementById('localReadyPanel');
+    if (panel) {
+      panel.classList.add('hidden');
+      panel.setAttribute('aria-hidden', 'true');
+    }
+    localReadyA = false;
+    localReadyB = false;
+  }
+  function beginLocalCoop() {
+    if (!(localReadyA && localReadyB)) {
+      toast('请双方都点准备');
+      return;
+    }
+    hideLocalReady();
+    unlock();
+    start(localReadyLv, true);
+    toast('开始！同机双人');
+  }
+  /** Local start: 同机双人 = same-screen P1绿+P2蓝 + 小宇红AI, auto-enter (no ready panel).
+   *  Network pair stays on 联网 玩家A/B buttons. */
+  function requestLocalOrSoloStart(lv) {
+    if (netRole === 'guest') return;
+    if (netRole === 'host') { netHostStart(); return; }
+    if (wantCoop) {
+      // 同机=一屏双人+红AI — auto companion, fixed colors, start now
+      wantCompanion = true;
+      companion = true;
+      pickColor = 'green'; // A stays green; B is always blue via applyPickColors
+      document.querySelectorAll('#castRow .cast').forEach((b) => {
+        if (b.id === 'castC') {
+          b.classList.add('on');
+          return;
+        }
+        b.classList.toggle('on', b.getAttribute('data-color') === 'green');
+      });
+      syncCompanionUi();
+      unlock();
+      start(lv | 0, true);
+      toast('同机=一屏双人+红AI：绿芃芃 · 蓝爸爸 · 红小宇跟班');
+      return;
+    }
+    unlock();
+    start(lv | 0, false);
+  }
+
   mode1.addEventListener('click', () => {
     if (netRole) return;
     wantCoop = false;
@@ -3418,13 +3563,14 @@
   mode2.addEventListener('click', () => {
     if (netRole) return;
     wantCoop = true;
+    wantCompanion = true; // 同机双人默认带红小宇AI跟班
     mode2.classList.add('on');
     mode1.classList.remove('on');
+    syncCompanionUi();
+    toast('同机=一屏双人+红AI（联网请点玩家A/B）');
   });
   document.getElementById('play').addEventListener('click', () => {
-    if (netRole === 'guest') return;
-    if (netRole === 'host') { netHostStart(); return; }
-    unlock(); start(0, wantCoop);
+    requestLocalOrSoloStart(0);
   });
   document.querySelectorAll('.picks button').forEach((b) => {
     b.addEventListener('click', () => {
@@ -3436,7 +3582,7 @@
         else toast('先点玩家A等待配对');
         return;
       }
-      unlock(); start(Number(b.dataset.lv), wantCoop);
+      requestLocalOrSoloStart(Number(b.dataset.lv));
     });
   });
   document.getElementById('retry').addEventListener('click', () => {
@@ -3487,6 +3633,20 @@
     toast(wantCompanion ? '小宇AI跟班：开' : '小宇AI跟班：关');
   });
   syncCompanionUi();
+
+  document.getElementById('readyA')?.addEventListener('click', () => {
+    localReadyA = !localReadyA;
+    syncLocalReadyUi();
+  });
+  document.getElementById('readyB')?.addEventListener('click', () => {
+    localReadyB = !localReadyB;
+    syncLocalReadyUi();
+  });
+  document.getElementById('localReadyGo')?.addEventListener('click', () => beginLocalCoop());
+  document.getElementById('localReadyClose')?.addEventListener('click', () => {
+    hideLocalReady();
+    toast('已取消同机准备');
+  });
   document.getElementById('roomClose').addEventListener('click', () => netBackMenu());
   const roomStartBtn = document.getElementById('roomStart');
   if (roomStartBtn) roomStartBtn.addEventListener('click', () => netHostStart());
@@ -3498,8 +3658,7 @@
   addEventListener('keydown', (e) => {
     if (mode === 'title' && (e.code === 'Space' || e.code === 'Enter') && !netRole) {
       e.preventDefault();
-      unlock();
-      start(0, false);
+      requestLocalOrSoloStart(0);
       return;
     }
     if (P1K[e.code]) {
