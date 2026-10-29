@@ -154,6 +154,10 @@
   let cols = 1;
   let rows = 1;
   let solid = new Uint8Array(1);
+  let water = new Uint8Array(1); // puddles carved into terrain (not solid)
+  let terraAcc = 0;
+  let terraStep = 0;
+  let terraToastCd = 0;
   let coins = [];
   let stars = [];
   let slimes = [];
@@ -820,6 +824,161 @@
     },
   ];
 
+
+  function setSolidCell(c, r, on) {
+    if (c < 0 || r < 0 || c >= cols || r >= rows) return;
+    solid[r * cols + c] = on ? 1 : 0;
+  }
+  function setWaterCell(c, r, on) {
+    if (c < 0 || r < 0 || c >= cols || r >= rows) return;
+    water[r * cols + c] = on ? 1 : 0;
+    if (on) solid[r * cols + c] = 0; // water is a hole/puddle
+  }
+  /** Carve a small water puddle in the middle of a solid ground stretch. */
+  function carveWaterPool(cMid, groundRow, halfW) {
+    halfW = halfW || 1;
+    const c0 = Math.max(2, cMid - halfW);
+    const c1 = Math.min(cols - 3, cMid + halfW);
+    // keep a solid floor under the puddle (row+1) so it is a pool, not a pit
+    for (let c = c0; c <= c1; c++) {
+      if (!solid[groundRow * cols + c] && !water[groundRow * cols + c]) continue;
+      setWaterCell(c, groundRow, true);
+      // ensure under-floor still solid for standing splash feel
+      if (groundRow + 1 < rows) setSolidCell(c, groundRow + 1, true);
+      if (groundRow + 2 < rows) setSolidCell(c, groundRow + 2, true);
+    }
+    return { c0, c1, r: groundRow };
+  }
+  /** Spawn a small floating island with water in its middle. */
+  function spawnWaterIsland(cMid, topRow) {
+    const half = 2;
+    const c0 = Math.max(2, cMid - half);
+    const c1 = Math.min(cols - 3, cMid + half);
+    const r = Math.max(5, Math.min(rows - 4, topRow));
+    for (let c = c0; c <= c1; c++) {
+      setSolidCell(c, r, true);
+      setSolidCell(c, r + 1, true);
+    }
+    // water in the middle tile(s)
+    const mid0 = c0 + 1;
+    const mid1 = c1 - 1;
+    for (let c = mid0; c <= mid1; c++) setWaterCell(c, r, true);
+    if (mid0 > mid1) setWaterCell(c0 + half, r, true);
+    return { c0, c1, r };
+  }
+  function seedWaterPools() {
+    // Initial small terrains with water in the middle on each ground island
+    const ground = 11;
+    let c = 4;
+    let islands = 0;
+    while (c < cols - 4 && islands < 6) {
+      if (!solid[ground * cols + c]) { c++; continue; }
+      const start = c;
+      while (c < cols && solid[ground * cols + c]) c++;
+      const end = c - 1;
+      const width = end - start + 1;
+      if (width >= 7) {
+        const mid = Math.floor((start + end) / 2);
+        carveWaterPool(mid, ground, width >= 14 ? 2 : 1);
+        islands++;
+      }
+    }
+    // one floating water-island early-mid level
+    const floatC = Math.min(cols - 6, Math.max(10, Math.floor(cols * 0.35)));
+    spawnWaterIsland(floatC, 8);
+  }
+  function nearAnyNinja(cx, cy, rad) {
+    const rs = rad * rad;
+    const check = (n) => {
+      if (!n || n.down) return false;
+      const dx = n.x - cx, dy = n.y - cy;
+      return dx * dx + dy * dy < rs;
+    };
+    return check(player) || check(p2) || check(p3);
+  }
+  function applyTerraEvent(ev, announce) {
+    if (!ev) return;
+    if (ev.kind === 'pool') carveWaterPool(ev.c, ev.r | 11, ev.w || 1);
+    else if (ev.kind === 'island') spawnWaterIsland(ev.c, ev.r | 8);
+    else if (ev.kind === 'sink') {
+      // sink a short top stretch into water
+      for (let c = ev.c0; c <= ev.c1; c++) setWaterCell(c, ev.r, true);
+      if (ev.r + 1 < rows) {
+        for (let c = ev.c0; c <= ev.c1; c++) setSolidCell(c, ev.r + 1, true);
+      }
+    }
+    if (announce && terraToastCd <= 0) {
+      toast(ev.kind === 'island' ? '小地形出现·中间有水！' : '地形变了·中间出现水域！');
+      terraToastCd = 4;
+    }
+  }
+  function pickTerraEvent() {
+    const ground = 11;
+    const focusX = player && !player.down ? player.x : (cols * T * 0.4);
+    // Prefer ahead of the lead player
+    const aheadC = Math.floor(focusX / T) + 8 + (terraStep % 5) * 3;
+    const kindRoll = terraStep % 3;
+    if (kindRoll === 0) {
+      let c = Math.max(4, Math.min(cols - 5, aheadC));
+      // find solid ground nearby
+      for (let k = 0; k < 12; k++) {
+        const cc = Math.max(3, Math.min(cols - 4, c + ((k % 2) ? k : -k)));
+        if (solid[ground * cols + cc] || water[ground * cols + cc]) {
+          if (nearAnyNinja((cc + 0.5) * T, ground * T, 90)) continue;
+          return { kind: 'pool', c: cc, r: ground, w: 1 + (terraStep % 2) };
+        }
+      }
+    }
+    if (kindRoll === 1) {
+      const c = Math.max(5, Math.min(cols - 6, aheadC));
+      const r = 7 + (terraStep % 3);
+      if (!nearAnyNinja((c + 0.5) * T, r * T, 100)) {
+        return { kind: 'island', c, r };
+      }
+    }
+    // sink: open water on a short solid top row
+    let c0 = Math.max(3, Math.min(cols - 8, aheadC));
+    for (let k = 0; k < 10; k++) {
+      const cc = Math.max(3, Math.min(cols - 6, c0 + k));
+      if (solid[ground * cols + cc]) {
+        const a = cc;
+        const b = Math.min(cols - 3, cc + 2);
+        if (nearAnyNinja(((a + b) / 2 + 0.5) * T, ground * T, 90)) continue;
+        return { kind: 'sink', c0: a, c1: b, r: ground };
+      }
+    }
+    return null;
+  }
+  function tickDynamicTerrain(dt) {
+    if (mode !== 'play') return;
+    terraToastCd = Math.max(0, terraToastCd - dt);
+    terraAcc += dt;
+    // terrain can change anytime — fire every ~6.5s
+    if (terraAcc < 6.5) return;
+    terraAcc = 0;
+    terraStep += 1;
+    const ev = pickTerraEvent();
+    if (!ev) return;
+    applyTerraEvent(ev, true);
+    if (netRole === 'host' && netLinked) {
+      try { netSend({ t: 'terra', ev: ev, step: terraStep }); } catch (e) {}
+    }
+  }
+  function inWaterAt(x, y) {
+    const c = Math.floor(x / T);
+    const r = Math.floor(y / T);
+    if (c < 0 || r < 0 || c >= cols || r >= rows) return false;
+    return water[r * cols + c] === 1;
+  }
+  function touchWater(n) {
+    if (!n || n.down || n.invuln > 0) return;
+    // splash slow while feet in water puddle
+    if (inWaterAt(n.x, n.y - 4) || inWaterAt(n.x, n.y + 2)) {
+      n.vx *= 0.82;
+      if (n.grounded) n.vy = Math.min(n.vy, 40);
+    }
+  }
+
   function findGaps(groundRow) {
     const gaps = [];
     let c = 0;
@@ -857,6 +1016,11 @@
       }
     };
     def.build(box);
+    water = new Uint8Array(cols * rows);
+    terraAcc = 0;
+    terraStep = 0;
+    terraToastCd = 0;
+    seedWaterPools();
     const ground = 11;
     coins = def.coins.map(([c, r]) => Object.assign({ got: false, bob: c }, cell(c, r)));
     stars = def.stars.map(([c, r]) => Object.assign({ got: false, bob: r }, cell(c, r)));
@@ -1959,9 +2123,13 @@
       if (netRole === 'host') netMaybeSnap(dt);
       return;
     }
+    tickDynamicTerrain(dt);
     controlNinja(player, input, dt);
     if (coop && mode === 'play') controlNinja(p2, input2, dt);
     if (companion && mode === 'play') controlNinja(p3, aiCompanionInput(dt), dt);
+    touchWater(player);
+    if (coop) touchWater(p2);
+    if (companion) touchWater(p3);
     updateBombs(dt);
     updateFires(dt);
     updateBolts(dt);
@@ -2760,6 +2928,32 @@
         ctx.fillRect(c * T, r * T, T + 0.6, T + 0.6);
       }
     }
+    // Dynamic / seeded water puddles (middle of small terrains)
+    for (let r = r0; r <= r1; r++) {
+      for (let c = c0; c <= c1; c++) {
+        if (!water[r * cols + c]) continue;
+        const x = c * T;
+        const y = r * T;
+        const wave = Math.sin(sim * 4 + c * 0.7 + r) * 2;
+        ctx.fillStyle = 'rgba(40,140,220,0.78)';
+        ctx.fillRect(x, y + 6, T + 0.6, T - 4);
+        ctx.fillStyle = 'rgba(120,210,255,0.55)';
+        ctx.beginPath();
+        ctx.moveTo(x, y + 10 + wave);
+        ctx.quadraticCurveTo(x + T * 0.35, y + 4 - wave, x + T * 0.7, y + 11 + wave * 0.5);
+        ctx.quadraticCurveTo(x + T * 0.85, y + 8, x + T, y + 10 - wave);
+        ctx.lineTo(x + T, y + 16);
+        ctx.lineTo(x, y + 16);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(200,240,255,0.45)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + 4, y + 12 + wave * 0.3);
+        ctx.lineTo(x + T - 4, y + 12 - wave * 0.3);
+        ctx.stroke();
+      }
+    }
     for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++) {
         if (!solid[r * cols + c]) continue;
@@ -3456,6 +3650,11 @@
       netApplySnap(msg);
     } else if (msg.t === 'mode') {
       netApplySnap({ t: 'snap', m: msg.m, lv: msg.lv, c: msg.coins, s: msg.stars, p1: netPackNinja(player), p2: netPackNinja(p2) });
+    } else if (msg.t === 'terra') {
+      if (msg.ev) {
+        terraStep = msg.step | terraStep;
+        applyTerraEvent(msg.ev, true);
+      }
     } else if (msg.t === 'cmd') {
       if (msg.a === 'cont') {
         continueRun();
