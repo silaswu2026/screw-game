@@ -55,37 +55,33 @@
   let netPickLv = 0;
   let netGuestPrev = { left: false, right: false, jump: false, throw: false };
   let netOutAcc = 0;
-  const NET_PREFIX = 'xygo3';
-  const NET_SLOTS = 4; // per minute window
-  const NET_PROBE_MS = 1200;
-  const NET_FIND_MS = 90000;
+  const NET_PREFIX = 'xygo4';
+  const NET_SLOTS = 2; // two slots per time bucket
+  const NET_PROBE_MS = 5500; // ICE needs seconds; short timeout never opens
+  const NET_FIND_MS = 120000;
   const NET_PEER_OPTS = {
     debug: 0,
+    host: '0.peerjs.com',
+    port: 443,
+    path: '/',
+    secure: true,
+    key: 'peerjs',
     config: {
+      // STUN only — dead public TURN was hanging candidate gather so DataConnection never opened
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun.cloudflare.com:3478' },
-        // public TURN — mobile/WeChat NAT often needs relay or datachannel never opens
-        {
-          urls: 'turn:openrelay.metered.ca:80',
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443',
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
       ],
     },
   };
   let netMatchAbort = false;
+  // Same-browser / same-profile assist (two tabs test + one computer two windows)
+  let netBC = null;
+  try { netBC = new BroadcastChannel('xygo-coop-v4'); } catch (e) { netBC = null; }
+  function netBCPost(msg) {
+    try { if (netBC) netBC.postMessage(msg); } catch (e) {}
+  }
 
   let cols = 1;
   let rows = 1;
@@ -2949,11 +2945,12 @@
   function netRoomCandidates() {
     const custom = netCustomRoom();
     if (custom) return [custom];
-    const m = Math.floor(Date.now() / 60000);
+    // 3-minute buckets keep ids stable while avoiding forever-stuck PeerJS ghosts
+    const bucket = Math.floor(Date.now() / 180000);
     const out = [];
-    for (const mm of [m, m - 1]) {
-      const tag = ((mm % 100000) + 100000) % 100000;
-      for (let s = 0; s < NET_SLOTS; s++) out.push(NET_PREFIX + '-m' + tag + '-s' + s);
+    for (const b of [bucket, bucket - 1]) {
+      const tag = ((b % 100000) + 100000) % 100000;
+      for (let s = 0; s < NET_SLOTS; s++) out.push(NET_PREFIX + '-b' + tag + '-s' + s);
     }
     return out;
   }
@@ -3471,6 +3468,21 @@
       netPeer = won.peer;
       netCode = won.id;
       netRole = 'host';
+      netBCPost({ t: 'host', id: won.id, lv: netPickLv | 0 });
+      try {
+        if (netBC) {
+          netBC.addEventListener('message', (ev) => {
+            const m = ev && ev.data;
+            if (m && m.t === 'need' && netRole === 'host' && netCode) {
+              netBCPost({ t: 'host', id: netCode, lv: netPickLv | 0 });
+            }
+          });
+        }
+      } catch (e) {}
+      const bcPulse = setInterval(() => {
+        if (netMatchAbort || netRole !== 'host' || netLinked) { clearInterval(bcPulse); return; }
+        netBCPost({ t: 'host', id: netCode, lv: netPickLv | 0 });
+      }, 2000);
       netPeer.on('connection', (conn) => {
         if (netConn && netLinked) { try { conn.close(); } catch (e) {} return; }
         netBindConn(conn, true);
@@ -3484,7 +3496,8 @@
         start(netPickLv | 0, true);
       }
       if (!silent) netSetWait('已准备好，请对方点玩家B');
-      netSetBanner('房间已开·等玩家B', 'ok');
+      const short = String(won.id || '').slice(-6);
+      netSetBanner('房间已开·等玩家B·' + short, 'ok');
       toast('房间已开·对方点「玩家B」加入');
     })();
   }
@@ -3508,16 +3521,14 @@
     });
   }
   async function netProbeBatch(peer, ids) {
-    // parallel batch — first open wins; close the rest
+    // Sequential — parallel connect-to-missing-ids wedges the PeerJS client
     if (netMatchAbort || !ids.length) return null;
-    const jobs = ids.map((id) => netProbeId(peer, id).then((conn) => ({ id, conn })));
-    const results = await Promise.all(jobs);
-    let won = null;
-    for (const r of results) {
-      if (r.conn && !won) won = r;
-      else if (r.conn) { try { r.conn.close(); } catch (e) {} }
+    for (const id of ids) {
+      if (netMatchAbort || netLinked) return null;
+      const conn = await netProbeId(peer, id);
+      if (conn) return { id, conn };
     }
-    return won;
+    return null;
   }
   function netOpenJoin(opts) {
     opts = opts || {};
@@ -3544,6 +3555,15 @@
       return;
     }
     netPeer = peer;
+    let bcHostId = '';
+    const onBC = (ev) => {
+      const m = ev && ev.data;
+      if (!m || m.t !== 'host' || !m.id) return;
+      bcHostId = String(m.id);
+      netBCPost({ t: 'need', want: 1 });
+    };
+    try { if (netBC) netBC.addEventListener('message', onBC); } catch (e) {}
+    netBCPost({ t: 'need', want: 1 });
     peer.on('error', (err) => {
       if (err && err.type === 'peer-unavailable') return;
       if (!netLinked && !netMatchAbort) {
@@ -3551,24 +3571,43 @@
         else toast('联网信号不稳，请用系统浏览器打开后再试');
       }
     });
-    peer.on('open', async () => {
+    const runFind = async (activePeer) => {
       const started = Date.now();
       let round = 0;
+      let peerRef = activePeer;
       while (!netMatchAbort && !netLinked && Date.now() - started < NET_FIND_MS) {
         round += 1;
-        // refresh candidates each round so minute rollover still finds host
         const ids = netRoomCandidates();
+        if (bcHostId && ids.indexOf(bcHostId) < 0) ids.unshift(bcHostId);
+        else if (bcHostId) { ids.splice(ids.indexOf(bcHostId), 1); ids.unshift(bcHostId); }
         if (!silent) netSetWait('正在配对…第' + round + '轮');
-        else if (round === 1 || round % 8 === 0) toast('寻找房主…第' + round + '轮');
-        const won = await netProbeBatch(peer, ids);
+        else if (round === 1 || round % 4 === 0) toast('寻找房主…第' + round + '轮');
+        const won = await netProbeBatch(peerRef, ids);
         if (won && won.conn) {
+          netPeer = peerRef;
           netCode = won.id;
           netBindConn(won.conn, false);
           if (!silent) netSetWait('配对成功！马上开始');
           else toast('已连上，马上进入');
           return;
         }
-        await new Promise((r) => setTimeout(r, 350));
+        // Fresh Peer every 2 rounds — avoids wedged client after many failed connects
+        if (round % 2 === 0 && !netLinked && !netMatchAbort) {
+          try { peerRef.destroy(); } catch (e) {}
+          try {
+            peerRef = netNewPeer();
+            netPeer = peerRef;
+            await new Promise((resolve) => {
+              let d = false;
+              const done = () => { if (d) return; d = true; resolve(); };
+              peerRef.on('open', done);
+              peerRef.on('error', done);
+              setTimeout(done, 5000);
+            });
+          } catch (e) { break; }
+        } else {
+          await new Promise((r) => setTimeout(r, 200));
+        }
       }
       if (!netLinked) {
         if (!silent) netSetWait('没找到房主。请对方先点同机双人·开始或玩家A；微信请用浏览器打开');
@@ -3576,7 +3615,8 @@
         netSetBanner('没找到房主', 'warn');
         if (onFailLocal) onFailLocal();
       }
-    });
+    };
+    peer.on('open', () => { runFind(peer); });
   }
   function netDoJoin() { netOpenJoin(); }
 
