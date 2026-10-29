@@ -23,7 +23,6 @@
     overflow:hidden;
   }
 
-  /* ===== MOBILE-FIRST portrait: course + cams only ===== */
   header{
     padding:8px 10px;
     padding-top:max(8px, env(safe-area-inset-top, 0px));
@@ -38,7 +37,7 @@
     z-index:20;
   }
   h1{
-    font-size:.92rem;
+    font-size:.88rem;
     margin:0;
     flex:1;
     min-width:0;
@@ -48,9 +47,9 @@
   }
   .btn{
     border:0;border-radius:999px;
-    padding:8px 11px;
+    padding:7px 10px;
     font-weight:800;
-    font-size:12px;
+    font-size:11px;
     cursor:pointer;
     background:linear-gradient(180deg,#78d484,#4ea85c);
     color:#083018;
@@ -120,16 +119,16 @@
     flex:0 0 auto;
     border-bottom:0;
     background:#0f2218;
-    padding-bottom:max(6px, var(--safe-b));
+    padding-bottom:0;
   }
   .cams h2{padding:6px 10px 4px}
   .vids{
     display:flex;
     flex-direction:row;
     gap:8px;
-    padding:0 10px 10px;
+    padding:12px 10px 8px; /* room for head bubbles */
     overflow-x:auto;
-    overflow-y:hidden;
+    overflow-y:visible;
     -webkit-overflow-scrolling:touch;
     scrollbar-width:none;
     scroll-snap-type:x proximity;
@@ -141,24 +140,30 @@
     aspect-ratio:3/4;
     height:var(--chip-h);
     width:auto;
-    overflow:hidden;
+    overflow:visible; /* bubbles above head */
     position:relative;
     border:2px solid transparent;
     flex:0 0 auto;
     scroll-snap-align:start;
   }
+  .tile-inner{
+    position:absolute;inset:0;
+    border-radius:inherit;
+    overflow:hidden;
+    background:#000;
+  }
   .tile.online{border-color:#6dcf7a}
   .tile video{width:100%;height:100%;object-fit:cover;display:block}
   .tile .name{
-    position:absolute;left:4px;bottom:4px;
+    position:absolute;left:4px;bottom:4px;z-index:2;
     background:#000a;padding:1px 6px;border-radius:7px;font-size:10px;
   }
   .tile .badge{
-    position:absolute;right:4px;top:4px;
+    position:absolute;right:4px;top:4px;z-index:2;
     background:#1e7a3a;padding:1px 5px;border-radius:7px;font-size:9px;font-weight:700;
   }
   .tile.rain{background:linear-gradient(160deg,#1a3d2a,#0d2418)}
-  .tile img.avatar{width:100%;height:100%;object-fit:cover;object-position:center 18%;display:block}
+  .tile img.avatar{width:100%;height:100%;object-fit:cover;object-position:center 18%;display:block;transition:filter .25s ease, transform .25s ease}
   .tile.live video{display:block;width:100%;height:100%;object-fit:cover}
   .tile.live img.avatar{display:none}
   .tile.live .badge{background:#2a6fd4}
@@ -170,7 +175,104 @@
   .tile.rain.online{box-shadow:0 0 0 2px #6dcf7a, 0 0 14px #6dcf7a66}
   .tile.rain.speaking .xy-bob{animation-duration:0.9s}
 
-  /* ===== Chat modal (hidden by default) ===== */
+  /* 小雨表情（轻量 CSS / 叠加） */
+  .xy-face{
+    position:absolute;left:50%;top:58%;
+    transform:translate(-50%,-50%);
+    font-size:clamp(18px, 28%, 36px);
+    line-height:1;
+    opacity:0;
+    pointer-events:none;
+    z-index:3;
+    filter:drop-shadow(0 2px 4px #0008);
+    transition:opacity .2s ease, transform .25s ease;
+  }
+  .tile.rain.expr-smile img.avatar{filter:saturate(1.15) brightness(1.06)}
+  .tile.rain.expr-surprise img.avatar{filter:saturate(1.2) contrast(1.05) brightness(1.08)}
+  .tile.rain.expr-think img.avatar{filter:saturate(.85) brightness(.96) hue-rotate(-8deg)}
+  .tile.rain.expr-cheer img.avatar{filter:saturate(1.25) brightness(1.1)}
+  .tile.rain.expr-smile .xy-face,
+  .tile.rain.expr-surprise .xy-face,
+  .tile.rain.expr-think .xy-face,
+  .tile.rain.expr-cheer .xy-face{opacity:1}
+  .tile.rain.expr-smile .xy-face{content:""}
+  .tile.rain.expr-smile .xy-face::before{content:"😊"}
+  .tile.rain.expr-surprise .xy-face::before{content:"😮"}
+  .tile.rain.expr-think .xy-face::before{content:"🤔"}
+  .tile.rain.expr-cheer .xy-face::before{content:"🥳"}
+  .tile.rain.expr-cheer .xy-bob{animation-duration:.7s}
+
+  /* 头顶冒泡 */
+  .bubble{
+    position:absolute;
+    left:50%;
+    bottom:calc(100% + 4px);
+    transform:translateX(-50%) translateY(8px) scale(.92);
+    max-width:min(160px, 42vw);
+    background:#fffef8;
+    color:#1a2e20;
+    border:2px solid #6dcf7a;
+    border-radius:14px;
+    padding:5px 9px;
+    font-size:13px;
+    font-weight:700;
+    line-height:1.25;
+    text-align:center;
+    white-space:pre-wrap;
+    word-break:break-word;
+    box-shadow:0 6px 16px #0006;
+    opacity:0;
+    pointer-events:none;
+    z-index:5;
+    transition:opacity .22s ease, transform .28s ease;
+  }
+  .bubble::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:100%;
+    transform:translateX(-50%);
+    border:6px solid transparent;
+    border-top-color:#6dcf7a;
+  }
+  .bubble.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0) scale(1);
+  }
+  .bubble.emoji{
+    font-size:22px;
+    padding:4px 8px;
+    line-height:1.1;
+  }
+
+  /* 快捷表情条 */
+  .react-bar{
+    display:flex;
+    gap:6px;
+    padding:0 10px max(8px, var(--safe-b));
+    background:#0f2218;
+    flex-shrink:0;
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .react-bar::-webkit-scrollbar{display:none}
+  .react{
+    border:1px solid var(--line);
+    background:#1a3022;
+    color:var(--txt);
+    border-radius:999px;
+    min-width:40px;
+    height:36px;
+    padding:0 10px;
+    font-size:18px;
+    cursor:pointer;
+    flex:0 0 auto;
+    line-height:1;
+  }
+  .react:active{transform:scale(.94)}
+  .react.bang{font-size:16px;font-weight:900}
+
+  /* Chat modal */
   .chat-backdrop{
     position:fixed;
     inset:0;
@@ -184,10 +286,7 @@
     pointer-events:none;
     transition:opacity .18s ease;
   }
-  .chat-backdrop.open{
-    opacity:1;
-    pointer-events:auto;
-  }
+  .chat-backdrop.open{opacity:1;pointer-events:auto}
   .chat-modal{
     width:100%;
     max-width:480px;
@@ -205,206 +304,120 @@
   }
   .chat-backdrop.open .chat-modal{transform:translateY(0)}
   .chat-modal-head{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    flex-shrink:0;
-    margin-bottom:8px;
+    display:flex;align-items:center;gap:8px;flex-shrink:0;margin-bottom:8px;
   }
-  .chat-modal-head h2{
-    margin:0;
-    flex:1;
-    font-size:14px;
-    font-weight:800;
-    opacity:.95;
-    padding:0;
-  }
+  .chat-modal-head h2{margin:0;flex:1;font-size:14px;font-weight:800;opacity:.95;padding:0}
   .chat-close{
-    border:0;
-    background:#1c3324;
-    color:var(--txt);
-    border:1px solid var(--line);
-    width:36px;height:36px;
-    border-radius:10px;
-    font-size:18px;
-    line-height:1;
-    cursor:pointer;
-    flex-shrink:0;
+    background:#1c3324;color:var(--txt);border:1px solid var(--line);
+    width:36px;height:36px;border-radius:10px;font-size:18px;line-height:1;cursor:pointer;flex-shrink:0;
   }
+  .chat-reacts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .chat-reacts .react{height:34px;min-width:38px;font-size:17px}
   #log{
-    flex:1;
-    font-size:13px;
-    opacity:.92;
-    white-space:pre-wrap;
-    overflow:auto;
-    background:var(--chat-bg);
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:10px 12px;
-    margin:0 0 10px;
-    min-height:120px;
-    line-height:1.45;
+    flex:1;font-size:13px;opacity:.92;white-space:pre-wrap;overflow:auto;
+    background:var(--chat-bg);border:1px solid var(--line);border-radius:12px;
+    padding:10px 12px;margin:0 0 10px;min-height:100px;line-height:1.45;
     -webkit-overflow-scrolling:touch;
   }
-  .chat-compose{
-    display:flex;
-    gap:8px;
-    flex-shrink:0;
-  }
+  .chat-compose{display:flex;gap:8px;flex-shrink:0}
   .chat-compose input{
-    flex:1;
-    border:1px solid var(--line);
-    border-radius:12px;
-    background:#0a1810;
-    color:var(--txt);
-    padding:11px 12px;
-    font-size:16px;
-    outline:none;
+    flex:1;border:1px solid var(--line);border-radius:12px;background:#0a1810;
+    color:var(--txt);padding:11px 12px;font-size:16px;outline:none;
   }
   .chat-compose input:focus{border-color:#6dcf7a}
 
-  @media(min-width:360px) and (orientation:portrait){
-    :root{--chip-h:92px}
-  }
-  @media(min-width:390px) and (orientation:portrait){
-    :root{--chip-h:96px}
-  }
+  @media(min-width:360px) and (orientation:portrait){ :root{--chip-h:92px} }
+  @media(min-width:390px) and (orientation:portrait){ :root{--chip-h:96px} }
 
-  /* ===== LANDSCAPE / WIDE: cams | course (no chat column) ===== */
   @media (orientation: landscape), (min-width: 600px){
     body{overflow:hidden}
     header{
       padding:4px 8px;
       padding-top:max(4px, env(safe-area-inset-top, 0px));
-      gap:6px;
-      flex-wrap:nowrap;
+      gap:5px;flex-wrap:nowrap;
     }
-    h1{font-size:.85rem}
-    .btn{padding:6px 10px;font-size:11px}
+    h1{font-size:.8rem}
+    .btn{padding:5px 8px;font-size:10px}
     .btn.send{padding:8px 12px;border-radius:10px;font-size:13px}
 
     main{
       display:grid;
-      grid-template-columns:minmax(72px,120px) minmax(0,1fr);
+      grid-template-columns:minmax(80px,130px) minmax(0,1fr);
       grid-template-areas:"cams course";
       gap:6px;
       padding:6px;
-      padding-bottom:max(6px, env(safe-area-inset-bottom, 0px));
+      padding-bottom:0;
       max-width:100%;
       flex:1;
       min-height:0;
     }
     .panel{
-      background:var(--card);
-      border:1px solid var(--line);
-      border-radius:12px;
-      padding:6px;
+      background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px;
     }
-    .panel h2{
-      font-size:10px;
-      opacity:.85;
-      padding:0 0 4px;
-      letter-spacing:.03em;
-    }
+    .panel h2{font-size:10px;opacity:.85;padding:0 0 4px;letter-spacing:.03em}
     .hint{display:none}
 
     .cams{
-      order:unset;
-      grid-area:cams;
-      flex:unset;
-      max-height:none;
-      min-height:0;
-      border:1px solid var(--line);
-      background:var(--card);
-      padding-bottom:6px;
+      order:unset;grid-area:cams;flex:unset;max-height:none;min-height:0;
+      border:1px solid var(--line);background:var(--card);padding-bottom:0;
+      display:flex;flex-direction:column;
     }
     .vids{
-      flex-direction:column;
-      overflow:auto;
-      overflow-x:hidden;
-      padding:0;
-      gap:5px;
-      flex:1;
-      min-height:0;
-      scroll-snap-type:none;
-      -webkit-overflow-scrolling:touch;
+      flex-direction:column;overflow:auto;overflow-x:hidden;
+      padding:10px 4px 4px;gap:14px;flex:1;min-height:0;scroll-snap-type:none;
     }
     .tile{
-      width:100%;
-      height:auto;
-      max-height:none;
-      aspect-ratio:3/4;
-      border-radius:10px;
-      flex:0 0 auto;
+      width:100%;height:auto;max-height:none;aspect-ratio:3/4;
+      border-radius:10px;flex:0 0 auto;
     }
     .tile .name{left:3px;bottom:3px;padding:1px 5px;border-radius:6px;font-size:9px}
     .tile .badge{right:3px;top:3px;padding:1px 4px;border-radius:6px;font-size:8px}
+    .bubble{font-size:11px;max-width:110%;padding:4px 7px}
+    .bubble.emoji{font-size:18px}
+    .react-bar{padding:4px 4px 6px;gap:4px;background:transparent}
+    .react{min-width:32px;height:30px;font-size:15px;padding:0 6px}
 
     .course{
-      order:unset;
-      grid-area:course;
-      flex:unset;
-      min-height:0;
-      border:1px solid var(--line);
-      background:var(--card);
+      order:unset;grid-area:course;flex:unset;min-height:0;
+      border:1px solid var(--line);background:var(--card);
     }
     .course h2{padding:0 0 4px}
-    .course iframe{
-      border-radius:8px;
-      flex:1;
-      min-height:0;
-      height:auto;
-    }
+    .course iframe{border-radius:8px;flex:1;min-height:0;height:auto}
 
     .chat-backdrop{align-items:center;padding:16px}
     .chat-modal{
-      border-radius:16px;
-      max-height:min(80dvh, 560px);
-      width:min(92vw, 420px);
-      box-shadow:0 16px 48px #000a;
+      border-radius:16px;max-height:min(80dvh, 560px);
+      width:min(92vw, 420px);box-shadow:0 16px 48px #000a;
     }
   }
 
-  /* ===== DESKTOP polish (≥901px) ===== */
   @media(min-width:901px){
     body{overflow:auto}
     header{padding:10px 14px;gap:8px;flex-wrap:wrap}
     h1{font-size:1rem}
-    .btn{padding:10px 16px;font-size:14px}
+    .btn{padding:10px 14px;font-size:13px}
     .btn.send{padding:8px 14px;border-radius:10px;font-size:13px}
 
     main{
       grid-template-columns:minmax(120px,150px) minmax(0,1fr);
-      gap:10px;
-      padding:10px;
-      max-width:1400px;
+      gap:10px;padding:10px;padding-bottom:0;max-width:1400px;
     }
-    .panel{
-      border-radius:16px;
-      padding:10px;
-    }
+    .panel{border-radius:16px;padding:10px}
     .panel h2{font-size:13px;opacity:.9;padding:0 0 8px}
     .hint{display:block;font-size:12px;opacity:.85;line-height:1.45;margin-bottom:8px}
-
-    .cams{background:var(--card);padding-bottom:10px}
-    .vids{gap:8px}
+    .cams{padding-bottom:0}
+    .vids{gap:16px;padding-top:14px}
     .tile{border-radius:14px}
     .tile .name{left:6px;bottom:6px;padding:2px 7px;border-radius:8px;font-size:11px}
     .tile .badge{right:6px;top:6px;padding:2px 7px;border-radius:8px;font-size:10px}
-
+    .bubble{font-size:13px;max-width:140%}
+    .react-bar{padding:6px 2px 8px;gap:6px}
+    .react{min-width:40px;height:36px;font-size:18px}
     .course{border-radius:16px}
     .course h2{padding:0 0 8px}
-    .course iframe{
-      border-radius:12px;
-      min-height:min(72vh,640px);
-    }
-
-    .chat-modal{
-      width:min(92vw, 460px);
-      max-height:min(78vh, 600px);
-      padding:14px;
-    }
-    #log{font-size:13px;padding:12px;min-height:180px}
+    .course iframe{border-radius:12px;min-height:min(72vh,640px)}
+    .chat-modal{width:min(92vw, 460px);max-height:min(78vh, 600px);padding:14px}
+    #log{font-size:13px;padding:12px;min-height:160px}
     .chat-compose input{font-size:14px;padding:10px 12px}
   }
 </style>
@@ -413,43 +426,64 @@
 <header>
   <h1>成长屋共学教室</h1>
   <button class="btn ghost chat-toggle" id="openChat" type="button" aria-haspopup="dialog" aria-controls="chatBackdrop">聊天</button>
-  <button class="btn" id="joinDad">爸爸进房</button>
-  <button class="btn" id="joinKid">芃芃进房</button>
+  <button class="btn" id="joinDad">爸爸进</button>
+  <button class="btn" id="joinKid">芃芃进</button>
+  <button class="btn" id="joinMom">妈妈进</button>
   <button class="btn ghost" id="leave" disabled>离开</button>
 </header>
 <main>
   <section class="panel course">
     <h2>课程同屏</h2>
-    <iframe title="course" src="../learn/skeleton.html?v=mc15"></iframe>
+    <iframe title="course" src="../learn/skeleton.html?v=mc16"></iframe>
   </section>
 
   <section class="panel cams">
     <h2>画面</h2>
-    <div class="hint">竖屏卡通形象；进房开摄像头后换成真人。小雨保持角色动画。</div>
+    <div class="hint">竖屏卡通；进房开摄像头后换真人。说话会在头顶冒泡。小雨有表情。</div>
     <div class="vids" id="vids">
-      <div class="tile online" id="tile-dad">
-        <img class="avatar" src="../avatars/dad-wuxin.jpg" alt="爸爸"/>
-        <video autoplay playsinline muted hidden></video>
-        <div class="badge">卡通</div>
-        <div class="name">爸爸</div>
+      <div class="tile online" id="tile-dad" data-role="dad">
+        <div class="tile-inner">
+          <img class="avatar" src="../avatars/dad-wuxin.jpg" alt="爸爸"/>
+          <video autoplay playsinline muted hidden></video>
+          <div class="badge">卡通</div>
+          <div class="name">爸爸</div>
+        </div>
+        <div class="bubble" aria-hidden="true"></div>
       </div>
-      <div class="tile online" id="tile-kid">
-        <img class="avatar" src="../avatars/pengpeng.jpg" alt="芃芃"/>
-        <video autoplay playsinline muted hidden></video>
-        <div class="badge">卡通</div>
-        <div class="name">芃芃</div>
+      <div class="tile online" id="tile-kid" data-role="kid">
+        <div class="tile-inner">
+          <img class="avatar" src="../avatars/pengpeng.jpg" alt="芃芃"/>
+          <video autoplay playsinline muted hidden></video>
+          <div class="badge">卡通</div>
+          <div class="name">芃芃</div>
+        </div>
+        <div class="bubble" aria-hidden="true"></div>
       </div>
-      <div class="tile online" id="tile-mom">
-        <img class="avatar" src="../avatars/mom-chunyan.jpg" alt="妈妈"/>
-        <video autoplay playsinline muted hidden></video>
-        <div class="badge">卡通</div>
-        <div class="name">妈妈</div>
+      <div class="tile online" id="tile-mom" data-role="mom">
+        <div class="tile-inner">
+          <img class="avatar" src="../avatars/mom-chunyan.jpg" alt="妈妈"/>
+          <video autoplay playsinline muted hidden></video>
+          <div class="badge">卡通</div>
+          <div class="name">妈妈</div>
+        </div>
+        <div class="bubble" aria-hidden="true"></div>
       </div>
-      <div class="tile rain online" id="tile-xiaoyu">
-        <img class="avatar xy-bob" src="../avatars/xiaoyu.jpg" alt="小雨"/>
-        <div class="badge" id="rainBadge">在线·待命</div>
-        <div class="name">小雨</div>
+      <div class="tile rain online" id="tile-xiaoyu" data-role="xiaoyu">
+        <div class="tile-inner">
+          <img class="avatar xy-bob" src="../avatars/xiaoyu.jpg" alt="小雨"/>
+          <div class="xy-face" aria-hidden="true"></div>
+          <div class="badge" id="rainBadge">在线·待命</div>
+          <div class="name">小雨</div>
+        </div>
+        <div class="bubble" aria-hidden="true"></div>
       </div>
+    </div>
+    <div class="react-bar" id="reactBar" aria-label="快捷表情">
+      <button type="button" class="react bang" data-react="！">！</button>
+      <button type="button" class="react" data-react="😄">😄</button>
+      <button type="button" class="react" data-react="👍">👍</button>
+      <button type="button" class="react" data-react="❤️">❤️</button>
+      <button type="button" class="react" data-react="🎉">🎉</button>
     </div>
   </section>
 </main>
@@ -460,9 +494,16 @@
       <h2 id="chatTitle">聊天</h2>
       <button type="button" class="chat-close" id="closeChat" aria-label="关闭">×</button>
     </div>
+    <div class="chat-reacts" id="chatReacts">
+      <button type="button" class="react bang" data-react="！">！</button>
+      <button type="button" class="react" data-react="😄">😄</button>
+      <button type="button" class="react" data-react="👍">👍</button>
+      <button type="button" class="react" data-react="❤️">❤️</button>
+      <button type="button" class="react" data-react="🎉">🎉</button>
+    </div>
     <pre id="log"></pre>
     <div class="chat-compose">
-      <input type="text" id="chatInput" placeholder="说点什么…" maxlength="500" autocomplete="off"/>
+      <input type="text" id="chatInput" placeholder="说点什么…" maxlength="80" autocomplete="off"/>
       <button class="btn send" id="chatSend" type="button">发送</button>
     </div>
   </div>
@@ -471,7 +512,13 @@
 <script type="module">
 import { Room, RoomEvent, createLocalTracks, Track } from 'https://cdn.jsdelivr.net/npm/livekit-client@2.9.9/+esm';
 const URL_WS = "wss://lucas-jqrm4vbp.livekit.cloud";
-const TOKENS = {"dad": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi54i454i4IiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoiZGFkIn0.q7ont9o7nqmVxFyxYBH3ALqj09Z6m1flYMAgsNEDaHU", "kid": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi6IqD6IqDIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoibHVjYXMifQ.9i_fVBr5Tu8ES-VSO_juYjLb5HGXGJTamXMomdYQY8k", "rain": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi5bCP6ZuoIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoieGlhb3l1In0.7jL1nsyCmFYK6XqGLNHp8xLDAtByQ_n6_zv2hH-3eBA"};
+const TOKENS = {"dad": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi54i454i4IiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoiZGFkIn0.q7ont9o7nqmVxFyxYBH3ALqj09Z6m1flYMAgsNEDaHU","kid": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi6IqD6IqDIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoibHVjYXMifQ.9i_fVBr5Tu8ES-VSO_juYjLb5HGXGJTamXMomdYQY8k","rain": "eyJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoi5bCP6ZuoIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoieGlhb3l1In0.7jL1nsyCmFYK6XqGLNHp8xLDAtByQ_n6_zv2hH-3eBA","mom": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoi5aaI5aaIIiwidmlkZW8iOnsicm9vbUpvaW4iOnRydWUsInJvb20iOiJjaGVuZ3poYW5nd3UiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpc3MiOiJBUEluN0dxWjJMSjVqTm0iLCJleHAiOjE3OTU4NTY1OTIsIm5iZiI6MTc5MzI2NDU5Miwic3ViIjoibW9tIn0.7KmMmR5g2Ok4YbVvhPjrO-BzM5tyyInsMSfNjpIHUrQ"};
+const REACTIONS = new Set(['！','😄','👍','❤️','🎉']);
+const XY_EXPR = {
+  '😄': 'smile', '😊': 'smile', '！': 'surprise', '!': 'surprise',
+  '😮': 'surprise', '🤔': 'think', '🎉': 'cheer', '🥳': 'cheer', '👍': 'cheer', '❤️': 'smile',
+};
+
 const logEl = document.getElementById('log');
 const vids = document.getElementById('vids');
 const chatInput = document.getElementById('chatInput');
@@ -479,6 +526,11 @@ const chatBackdrop = document.getElementById('chatBackdrop');
 const openChatBtn = document.getElementById('openChat');
 const closeChatBtn = document.getElementById('closeChat');
 let chatOpen = false;
+let room = null;
+let myChatName = '我';
+let myRole = null; // dad | kid | mom
+const bubbleTimers = new WeakMap();
+let xyExprTimer = null;
 
 function openChat(){
   chatOpen = true;
@@ -510,26 +562,112 @@ function log(m){
   }
 }
 function appendChat(who, text){
-  const line = who ? `[${who}] ${text}` : text;
-  log(line);
+  log(who ? `[${who}] ${text}` : text);
 }
-let room = null;
-let myChatName = '我';
+
+function identityToTileId(identity){
+  if (!identity) return null;
+  const id = String(identity).toLowerCase();
+  if (id === 'dad' || id === 'local-dad') return 'tile-dad';
+  if (id === 'lucas' || id === 'kid') return 'tile-kid';
+  if (id === 'mom' || id === 'chunyan') return 'tile-mom';
+  if (id === 'xiaoyu' || id === 'rain') return 'tile-xiaoyu';
+  return 'tile-' + identity;
+}
+function whoToTileId(who, identity){
+  if (identity) {
+    const t = identityToTileId(identity);
+    if (t && document.getElementById(t)) return t;
+  }
+  const w = String(who || '');
+  if (/爸爸|dad/i.test(w)) return 'tile-dad';
+  if (/芃芃|澍暘|kid|lucas/i.test(w)) return 'tile-kid';
+  if (/妈妈|mom/i.test(w)) return 'tile-mom';
+  if (/小雨|xiaoyu|rain/i.test(w)) return 'tile-xiaoyu';
+  if (myRole === 'dad') return 'tile-dad';
+  if (myRole === 'kid') return 'tile-kid';
+  if (myRole === 'mom') return 'tile-mom';
+  return 'tile-dad';
+}
+function isEmojiOnly(text){
+  const t = String(text || '').trim();
+  if (!t) return false;
+  if (REACTIONS.has(t)) return true;
+  // short emoji / bang
+  return /^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}！!]{1,4}$/u.test(t);
+}
+function showBubble(tileEl, text){
+  if (!tileEl) return;
+  let bubble = tileEl.querySelector(':scope > .bubble');
+  if (!bubble) {
+    bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    tileEl.appendChild(bubble);
+  }
+  const t = String(text || '').trim();
+  if (!t) return;
+  bubble.textContent = t.length > 40 ? t.slice(0, 39) + '…' : t;
+  bubble.classList.toggle('emoji', isEmojiOnly(t));
+  bubble.classList.remove('show');
+  // restart animation
+  void bubble.offsetWidth;
+  bubble.classList.add('show');
+  const prev = bubbleTimers.get(tileEl);
+  if (prev) clearTimeout(prev);
+  const hideMs = isEmojiOnly(t) ? 2800 : 3800;
+  bubbleTimers.set(tileEl, setTimeout(() => {
+    bubble.classList.remove('show');
+  }, hideMs));
+}
+function setXiaoyuExpr(kind){
+  const el = document.getElementById('tile-xiaoyu');
+  if (!el) return;
+  el.classList.remove('expr-smile','expr-surprise','expr-think','expr-cheer');
+  if (!kind) return;
+  el.classList.add('expr-' + kind);
+  if (xyExprTimer) clearTimeout(xyExprTimer);
+  xyExprTimer = setTimeout(() => {
+    el.classList.remove('expr-smile','expr-surprise','expr-think','expr-cheer');
+  }, 3200);
+}
+function maybeXiaoyuReact(who, text, identity){
+  const tileId = whoToTileId(who, identity);
+  // If message is from/about xiaoyu or reaction maps, show face on xiaoyu when she "speaks"
+  if (tileId === 'tile-xiaoyu') {
+    const expr = XY_EXPR[String(text||'').trim()] || (isEmojiOnly(text) ? 'cheer' : 'smile');
+    setXiaoyuExpr(expr);
+    return;
+  }
+  // Kid-friendly: when anyone sends surprise/cheer emoji, xiaoyu mirrors lightly
+  const expr = XY_EXPR[String(text||'').trim()];
+  if (expr === 'surprise' || expr === 'cheer') {
+    setXiaoyuExpr(expr);
+  }
+}
+function presentMessage(who, text, identity){
+  appendChat(who, text);
+  const tile = document.getElementById(whoToTileId(who, identity));
+  showBubble(tile, text);
+  maybeXiaoyuReact(who, text, identity);
+}
 
 function ensureVideoTile(id, name){
   let el;
   if (id === 'dad' || id === 'local-dad') el = document.getElementById('tile-dad');
   else if (id === 'lucas' || id === 'kid') el = document.getElementById('tile-kid');
+  else if (id === 'mom' || id === 'chunyan') el = document.getElementById('tile-mom');
+  else if (id === 'xiaoyu' || id === 'rain') el = document.getElementById('tile-xiaoyu');
   else {
     el = document.getElementById('tile-'+id);
     if (!el) {
       el = document.createElement('div');
       el.className = 'tile'; el.id = 'tile-'+id;
-      el.innerHTML = '<img class="avatar" alt=""/><video autoplay playsinline muted hidden></video><div class="badge">卡通</div><div class="name"></div>';
+      el.innerHTML = '<div class="tile-inner"><img class="avatar" alt=""/><video autoplay playsinline muted hidden></video><div class="badge">卡通</div><div class="name"></div></div><div class="bubble" aria-hidden="true"></div>';
       vids.insertBefore(el, document.getElementById('tile-xiaoyu'));
     }
   }
-  el.querySelector('.name').textContent = name;
+  const nameEl = el.querySelector('.name');
+  if (nameEl) nameEl.textContent = name;
   el.classList.add('online');
   return el;
 }
@@ -540,7 +678,7 @@ function showLiveCamera(el, track){
   if (!v) return;
   track.attach(v);
   v.hidden = false;
-  v.muted = (el.id === 'tile-dad' || el.id === 'tile-kid');
+  v.muted = (el.id === 'tile-dad' || el.id === 'tile-kid' || el.id === 'tile-mom');
   el.classList.add('live');
   if (img) img.style.display = 'none';
   if (badge) badge.textContent = '摄像头';
@@ -555,6 +693,20 @@ async function joinRainPresence(){
     await rainRoom.connect(URL_WS, TOKENS.rain);
     setRainOnline(true, '在线·听你们');
     log('系统：小雨已进房（旁听席）');
+    // listen so 小雨 presence can show bubbles if someone publishes as xiaoyu later
+    rainRoom.on(RoomEvent.DataReceived, (payload, participant) => {
+      try {
+        const raw = new TextDecoder().decode(payload);
+        const msg = JSON.parse(raw);
+        if (msg && msg.t === 'chat' && typeof msg.text === 'string') {
+          // ignore duplicates if main room also receives — only handle when no main room
+          if (room) return;
+          const who = msg.who || (participant && (participant.name || participant.identity)) || '对方';
+          const identity = msg.id || (participant && participant.identity);
+          presentMessage(who, msg.text, identity);
+        }
+      } catch (_) {}
+    });
     window.__rainRoom = rainRoom;
   } catch (e) {
     setRainOnline(true, '在线·示意');
@@ -568,25 +720,50 @@ function setupChatHandlers(r){
       const msg = JSON.parse(raw);
       if (msg && msg.t === 'chat' && typeof msg.text === 'string') {
         const who = (msg.who) || (participant && (participant.name || participant.identity)) || '对方';
-        appendChat(who, msg.text);
+        const identity = msg.id || (participant && participant.identity);
+        presentMessage(who, msg.text, identity);
       }
     } catch (_) { /* ignore non-chat */ }
   });
+}
+async function publishChat(text){
+  const t = String(text || '').trim();
+  if (!t) return;
+  if (!myRole) {
+    // allow local demo bubble before join — default to dad tile visually but prompt
+    presentMessage(myChatName, t, null);
+    log('系统：还没进房，气泡仅本地可见。点爸爸/芃芃/妈妈进房后可同步。');
+    return;
+  }
+  const identity = myRole === 'kid' ? 'lucas' : myRole;
+  presentMessage(myChatName, t, identity);
+  if (room && room.localParticipant) {
+    try {
+      const data = new TextEncoder().encode(JSON.stringify({ t: 'chat', who: myChatName, text: t, id: identity }));
+      await room.localParticipant.publishData(data, { reliable: true });
+    } catch (e) {
+      log('系统：发送失败（本地已冒泡）: ' + (e.message||e));
+    }
+  }
 }
 async function sendChat(){
   const text = (chatInput.value || '').trim();
   if (!text) return;
   chatInput.value = '';
-  appendChat(myChatName, text);
-  if (room && room.localParticipant) {
-    try {
-      const data = new TextEncoder().encode(JSON.stringify({ t: 'chat', who: myChatName, text }));
-      await room.localParticipant.publishData(data, { reliable: true });
-    } catch (e) {
-      log('系统：聊天发送失败（已本地显示）: ' + (e.message||e));
-    }
-  }
+  await publishChat(text);
+  closeChat();
 }
+function bindReactButtons(root){
+  root.querySelectorAll('[data-react]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = btn.getAttribute('data-react');
+      if (v) publishChat(v);
+    });
+  });
+}
+bindReactButtons(document.getElementById('reactBar'));
+bindReactButtons(document.getElementById('chatReacts'));
+
 async function join(role){
   if (room) return;
   room = new Room({ adaptiveStream: true, dynacast: true });
@@ -602,13 +779,18 @@ async function join(role){
     log('系统：有人进房: ' + (p.name||p.identity));
   });
   room.on(RoomEvent.TrackUnsubscribed, (track) => track.detach());
-  room.on(RoomEvent.Disconnected, () => { log('系统：已离开'); room = null; document.getElementById('leave').disabled = true; });
+  room.on(RoomEvent.Disconnected, () => {
+    log('系统：已离开');
+    room = null; myRole = null; myChatName = '我';
+    document.getElementById('leave').disabled = true;
+  });
   log('系统：连接 LiveKit Cloud 作为 ' + role + ' …');
   await room.connect(URL_WS, TOKENS[role]);
   log('系统：已进房: ' + room.name + ' 身份=' + room.localParticipant.identity);
-  const localId = role === 'dad' ? 'dad' : 'lucas';
-  myChatName = role === 'dad' ? '爸爸' : '芃芃';
-  const localName = role === 'dad' ? '爸爸（我）' : '芃芃（我）';
+  myRole = role;
+  const localId = role === 'dad' ? 'dad' : role === 'mom' ? 'mom' : 'lucas';
+  myChatName = role === 'dad' ? '爸爸' : role === 'mom' ? '妈妈' : '芃芃';
+  const localName = myChatName + '（我）';
   try {
     const tracks = await createLocalTracks({ audio: true, video: true });
     const local = ensureVideoTile(localId, localName);
@@ -623,20 +805,25 @@ async function join(role){
   }
   document.getElementById('leave').disabled = false;
   if (!window.__rainRoom) await joinRainPresence();
+  // 小雨打个招呼表情
+  setXiaoyuExpr('smile');
+  showBubble(document.getElementById('tile-xiaoyu'), '你好呀～');
 }
 document.getElementById('joinDad').onclick = () => join('dad').catch(e => log('系统：失败: ' + (e.message||e)));
 document.getElementById('joinKid').onclick = () => join('kid').catch(e => log('系统：失败: ' + (e.message||e)));
+document.getElementById('joinMom').onclick = () => join('mom').catch(e => log('系统：失败: ' + (e.message||e)));
 document.getElementById('leave').onclick = async () => {
   if (room) await room.disconnect();
   if (window.__rainRoom) { await window.__rainRoom.disconnect(); window.__rainRoom = null; }
   setRainOnline(false);
+  myRole = null; myChatName = '我';
 };
 document.getElementById('chatSend').onclick = () => sendChat();
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
 });
 setRainOnline(true, '在线·待命');
-log('系统：已接 LiveKit Cloud。点爸爸/芃芃进房。点「聊天」打开弹窗。');
+log('系统：已接 LiveKit Cloud。点爸爸/芃芃/妈妈进房。说话会头顶冒泡；点 ！😄👍 发表情。');
 </script>
 </body>
 </html>
