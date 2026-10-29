@@ -432,6 +432,16 @@
   .vol-bar label{white-space:nowrap;opacity:.8}
   .vol-bar input[type=range]{flex:1;min-width:0;accent-color:#6dcf7a}
   .vol-bar .vol-val{min-width:1.4em;text-align:right;font-variant-numeric:tabular-nums}
+  .vol-bar .xy-mute-btn{
+    flex-shrink:0;white-space:nowrap;
+    font-size:11px;font-weight:800;letter-spacing:.02em;
+    padding:5px 9px;border-radius:9px;border:1px solid #8ab46a;
+    background:#1a3d2a;color:#e8f5ea;cursor:pointer;
+  }
+  .vol-bar .xy-mute-btn:active{transform:scale(.96)}
+  .vol-bar .xy-mute-btn.is-muted{
+    background:#3a2a1a;border-color:#c9a06a;color:#ffe8c8;
+  }
 
   /* 课程流程遮罩：小雨头像在上，文字在下（上方不放文案） */
   .course{position:relative}
@@ -769,7 +779,7 @@
       <ul class="ts-steps" id="todaySteps"></ul>
     </div>
     <div class="course-shell">
-      <iframe id="courseFrame" title="course" src="../learn/skeleton.html?v=mc21"></iframe>
+      <iframe id="courseFrame" title="course" src="../learn/skeleton.html?v=mc22"></iframe>
       <div class="course-flow" id="courseFlow" role="dialog" aria-labelledby="cfTheme">
         <img class="xy-hero" src="../avatars/xiaoyu.jpg" alt="小雨" width="96" height="96"/>
         <div class="cf-body">
@@ -789,7 +799,7 @@
   <section class="panel cams">
     <h2>伍澍暘</h2>
     <div class="vids" id="vids">
-      <div class="tile rain online digital mood-idle" id="tile-xiaoyu" data-role="xiaoyu" role="button" tabindex="0" aria-label="小雨：点一下切换开口/静音" title="点小雨：开口说话 / 再点静音（仍旁听）">
+      <div class="tile rain online digital mood-idle" id="tile-xiaoyu" data-role="xiaoyu" role="button" tabindex="0" aria-label="小雨：默认静音旁听，点一下开口；再点静音" title="默认静音。点小雨开口说话；再点静音（仍旁听）。Grok 电话时请静音或点「关掉小雨声音」">
         <div class="tile-inner">
           <div class="xy-glow" aria-hidden="true"></div>
           <img class="avatar xy-bob" src="../avatars/xiaoyu.jpg" alt="小雨"/>
@@ -836,6 +846,7 @@
       <label for="volSlider">音量</label>
       <input type="range" id="volSlider" min="0" max="10" step="1" value="3" aria-valuemin="0" aria-valuemax="10" aria-valuenow="3"/>
       <span class="vol-val" id="volVal">3</span>
+      <button type="button" class="xy-mute-btn is-muted" id="xyMuteBtn" aria-pressed="true" title="关掉网页小雨声音（Grok 电话时用；仍旁听）">关掉小雨声音</button>
     </div>
     <div class="react-bar" id="reactBar" aria-label="快捷表情">
       <button type="button" class="react bang" data-react="！">！</button>
@@ -898,10 +909,58 @@ let applyingRemoteSkel = false;
 let courseData = null;
 let coursePhase = 'intro'; // intro | steps | done
 let courseStepIdx = 0;
+let courseFrameReady = false;
+let pendingSkelStep = null; // last desired skeleton.html step (1 bones, 2 blocks, 3 fine, 4 skin)
 const courseFrame = document.getElementById('courseFrame');
 const courseFlow = document.getElementById('courseFlow');
 
 const remoteAudioEls = new Set();
+const xiaoyuAudioEls = new Set();
+/** Playback mute for LiveKit xiaoyu-voice (independent of family mics). Default on until 开口. */
+let xiaoyuPlaybackMuted = true;
+function readXiaoyuForceMute(){
+  try {
+    const v = localStorage.getItem('xiaoyuForceMute');
+    return v === '1' || v === 'true' || v === 'yes';
+  } catch (_) { return false; }
+}
+function isXiaoyuAudioEl(a){
+  return !!(a && ((a.dataset && a.dataset.xiaoyuVoice === '1') || xiaoyuAudioEls.has(a)));
+}
+function updateXyMuteBtnUi(){
+  const btn = document.getElementById('xyMuteBtn');
+  if (!btn) return;
+  const muted = xiaoyuPlaybackMuted || !xiaoyuSpeakActive;
+  btn.classList.toggle('is-muted', muted);
+  btn.setAttribute('aria-pressed', muted ? 'true' : 'false');
+  btn.textContent = muted ? '关掉小雨声音' : '小雨有声·点静音';
+  btn.title = muted
+    ? '网页小雨已静音（Grok 电话时请保持；点小雨头像可再开口）'
+    : '点一下关掉网页小雨声音（发布静音 + 停播 TTS）';
+}
+function setXiaoyuPlaybackMuted(muted){
+  xiaoyuPlaybackMuted = !!muted;
+  xiaoyuAudioEls.forEach(a => {
+    try {
+      a.muted = xiaoyuPlaybackMuted;
+      a.volume = xiaoyuPlaybackMuted ? 0 : classroomVolume;
+      if (xiaoyuPlaybackMuted) {
+        try { a.pause(); } catch (_) {}
+      } else {
+        const p = a.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      }
+    } catch (_) {}
+  });
+  const mood = document.getElementById('xyMoodAudio');
+  if (mood) {
+    try {
+      if (xiaoyuPlaybackMuted) { mood.pause(); mood.volume = 0; }
+      else { mood.volume = classroomVolume; }
+    } catch (_) {}
+  }
+  updateXyMuteBtnUi();
+}
 function setClassroomVolume(level){
   const n = Math.max(0, Math.min(10, Number(level)));
   classroomVolume = n / 10;
@@ -914,39 +973,71 @@ function setClassroomVolume(level){
     try { v.volume = classroomVolume; } catch (_) {}
   });
   remoteAudioEls.forEach(a => {
-    try { a.volume = classroomVolume; } catch (_) {}
+    try {
+      if (isXiaoyuAudioEl(a) && (xiaoyuPlaybackMuted || !xiaoyuSpeakActive)) {
+        a.volume = 0;
+        a.muted = true;
+      } else {
+        a.volume = classroomVolume;
+      }
+    } catch (_) {}
   });
   unlockRemoteAudio();
   try { localStorage.setItem('classroomVol', String(n)); } catch (_) {}
 }
 function applyVolumeToMedia(el){
   if (!el) return;
-  try { el.volume = classroomVolume; } catch (_) {}
+  try {
+    if (isXiaoyuAudioEl(el) && (xiaoyuPlaybackMuted || !xiaoyuSpeakActive)) {
+      el.volume = 0;
+      el.muted = true;
+    } else {
+      el.volume = classroomVolume;
+    }
+  } catch (_) {}
 }
 function unlockRemoteAudio(){
   remoteAudioEls.forEach(a => {
     try {
+      if (isXiaoyuAudioEl(a) && (xiaoyuPlaybackMuted || !xiaoyuSpeakActive)) {
+        a.muted = true;
+        a.volume = 0;
+        try { a.pause(); } catch (_) {}
+        return;
+      }
       a.muted = false;
       const p = a.play();
       if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch (_) {}
   });
 }
-function attachRemoteAudio(track){
+function attachRemoteAudio(track, opts = {}){
+  const fromXiaoyu = !!(opts && opts.fromXiaoyu);
   const a = track.attach();
   a.autoplay = true;
   a.playsInline = true;
-  a.muted = false;
-  applyVolumeToMedia(a);
+  if (fromXiaoyu) {
+    a.dataset.xiaoyuVoice = '1';
+    xiaoyuAudioEls.add(a);
+    const mutePlay = xiaoyuPlaybackMuted || !xiaoyuSpeakActive;
+    a.muted = mutePlay;
+    try { a.volume = mutePlay ? 0 : classroomVolume; } catch (_) {}
+  } else {
+    a.muted = false;
+    applyVolumeToMedia(a);
+  }
   remoteAudioEls.add(a);
   document.body.appendChild(a);
   // Autoplay may be blocked until a user gesture; unlock on join/volume/小雨 tap.
-  try {
-    const p = a.play();
-    if (p && typeof p.catch === 'function') {
-      p.catch(() => log('系统：浏览器暂未播放远程音频，点一下音量或小雨头像解锁'));
-    }
-  } catch (_) {}
+  // Never auto-play 小雨 TTS while in 静音 / force-mute (phone-call clash).
+  if (!(fromXiaoyu && (xiaoyuPlaybackMuted || !xiaoyuSpeakActive))) {
+    try {
+      const p = a.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => log('系统：浏览器暂未播放远程音频，点一下音量或小雨头像解锁'));
+      }
+    } catch (_) {}
+  }
   return a;
 }
 function applyVolumeToVideo(v){ applyVolumeToMedia(v); }
@@ -989,6 +1080,39 @@ function postToCourse(msg){
     }
   } catch (_) {}
 }
+/** Resolve skelStep for current course index (fallback pending / 1). */
+function currentDesiredSkelStep(){
+  if (courseData && courseData.steps && courseData.steps.length) {
+    const step = courseData.steps[courseStepIdx];
+    if (step && typeof step.skelStep === 'number') return step.skelStep;
+  }
+  if (typeof pendingSkelStep === 'number') return pendingSkelStep;
+  return 1;
+}
+/** postMessage skel-set-step; queue if iframe not ready. Always re-sent on iframe load. */
+function sendSkelStep(n, { force = false } = {}){
+  if (typeof n !== 'number' || !Number.isFinite(n)) return;
+  pendingSkelStep = n;
+  if (!courseFrame || !courseFrame.contentWindow) return;
+  if (!courseFrameReady && !force) {
+    // Dropped until load / skel-ready; load handler will flush pendingSkelStep
+    return;
+  }
+  applyingRemoteSkel = true;
+  postToCourse({ type: 'skel-set-step', n });
+  setTimeout(() => { applyingRemoteSkel = false; }, 120);
+}
+function flushSkelStepToFrame(){
+  const n = currentDesiredSkelStep();
+  // force: iframe just became ready
+  courseFrameReady = true;
+  sendSkelStep(n, { force: true });
+}
+function setCourseFrameSrc(url){
+  if (!courseFrame) return;
+  courseFrameReady = false;
+  courseFrame.src = url;
+}
 function applySkelFromNet(msg){
   applyingRemoteSkel = true;
   postToCourse({
@@ -1002,6 +1126,11 @@ function applySkelFromNet(msg){
 window.addEventListener('message', (ev) => {
   const d = ev && ev.data;
   if (!d || typeof d !== 'object') return;
+  if (d.type === 'skel-ready') {
+    // Child finished wiring message handlers — apply desired step (covers race after src set)
+    flushSkelStepToFrame();
+    return;
+  }
   if (d.type === 'skel-sync') {
     if (applyingRemoteSkel) return;
     publishRoomData({
@@ -1014,14 +1143,26 @@ window.addEventListener('message', (ev) => {
   }
   if (d.type === 'skel-step' && typeof d.n === 'number') {
     if (applyingRemoteSkel) return;
+    pendingSkelStep = d.n;
     publishRoomData({ t: 'skel_step', n: d.n }, { reliable: true });
   }
 });
+if (courseFrame) {
+  courseFrame.addEventListener('load', () => {
+    // Scripts in skeleton.html have run by the time iframe 'load' fires
+    flushSkelStepToFrame();
+  });
+}
 
 async function askXiaoyuSay(text, mood){
   const t = String(text || '').trim();
   if (!t) return;
+  if (readXiaoyuForceMute() || (xiaoyuPlaybackMuted && !xiaoyuSpeakActive)) {
+    log('系统：小雨静音中，跳过朗读：' + t.slice(0, 40));
+    return;
+  }
   await publishXiaoyuActive(true);
+  applyXiaoyuSpeakUi(true);
   const ok = await publishRoomData({ t: 'xiaoyu_say', text: t, mood: mood || 'happy' });
   if (!ok && 'speechSynthesis' in window) {
     try {
@@ -1099,9 +1240,7 @@ function goCourseStep(idx, { speak = true, publish = true } = {}){
   markCourseStepActive(i);
   const step = courseData.steps[i];
   if (step && typeof step.skelStep === 'number') {
-    applyingRemoteSkel = true;
-    postToCourse({ type: 'skel-set-step', n: step.skelStep });
-    setTimeout(() => { applyingRemoteSkel = false; }, 120);
+    sendSkelStep(step.skelStep);
   }
   if (speak && step && step.speak) askXiaoyuSay(step.speak);
   if (publish) publishRoomData({ t: 'course', phase: 'steps', step: i });
@@ -1110,9 +1249,12 @@ async function startCourseFlow({ publish = true } = {}){
   if (!courseData) return;
   showCourseStepsUi();
   if (publish) await publishRoomData({ t: 'course', phase: 'start' });
+  // Switch iframe to step1 (骨头) immediately — do not wait for overview TTS
+  goCourseStep(0, { speak: false, publish: true });
+  // Overview speak is optional (skipped when 小雨静音)
   await askXiaoyuSay(courseData.speakOverview || courseData.overview || courseData.theme);
-  // After overview, land on 第一步
-  goCourseStep(0, { speak: true, publish: true });
+  const step0 = courseData.steps && courseData.steps[0];
+  if (step0 && step0.speak) await askXiaoyuSay(step0.speak);
 }
 function applyCourseFromNet(msg){
   if (!msg || !courseData) return;
@@ -1136,8 +1278,10 @@ async function loadCourseToday(){
     if (courseData.iframe && courseFrame) {
       const raw = String(courseData.iframe);
       const base = raw.split('?')[0];
-      const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : 'v=mc21';
-      courseFrame.src = base + '?' + q + '&_=' + bust;
+      const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : 'v=mc22';
+      // Mark not-ready before src change so early 开始 queues skelStep until load/skel-ready
+      pendingSkelStep = 1;
+      setCourseFrameSrc(base + '?' + q + '&_=' + bust);
     }
     renderCourseIntro();
   } catch (e) {
@@ -1415,6 +1559,10 @@ const XY_LIORA = {
 function playLioraCue(kind){
   const a = document.getElementById('xyMoodAudio');
   if (!a) return;
+  if (xiaoyuPlaybackMuted || !xiaoyuSpeakActive || readXiaoyuForceMute()) {
+    try { a.pause(); a.volume = 0; } catch (_) {}
+    return;
+  }
   const src = XY_LIORA[kind] || XY_LIORA.happy;
   try {
     a.pause();
@@ -1428,7 +1576,12 @@ function playLioraCue(kind){
   } catch (_) {}
 }
 function applyXiaoyuSpeakUi(on){
+  if (on && readXiaoyuForceMute()) {
+    on = false;
+    log('系统：localStorage xiaoyuForceMute 已开 — 保持网页小雨静音（Grok 电话时请勿关）');
+  }
   xiaoyuSpeakActive = !!on;
+  setXiaoyuPlaybackMuted(!xiaoyuSpeakActive);
   const el = document.getElementById('tile-xiaoyu');
   if (el) el.classList.toggle('speaking', xiaoyuSpeakActive);
   const mode = document.getElementById('xySpeakMode');
@@ -1449,7 +1602,15 @@ function applyXiaoyuSpeakUi(on){
     playLioraCue('happy');
   } else {
     setXiaoyuMood('idle');
+    try {
+      const mood = document.getElementById('xyMoodAudio');
+      if (mood) mood.pause();
+    } catch (_) {}
+    if ('speechSynthesis' in window) {
+      try { speechSynthesis.cancel(); } catch (_) {}
+    }
   }
+  updateXyMuteBtnUi();
 }
 async function publishXiaoyuActive(on){
   const payload = new TextEncoder().encode(JSON.stringify({ t: 'xiaoyu_active', on: !!on }));
@@ -1467,16 +1628,30 @@ async function publishXiaoyuActive(on){
     return false;
   }
 }
+async function muteXiaoyuSound(){
+  applyXiaoyuSpeakUi(false);
+  setXiaoyuPlaybackMuted(true);
+  const ok = await publishXiaoyuActive(false);
+  unlockRemoteAudio();
+  log(ok
+    ? '系统：已【关掉小雨声音】— 网页静音旁听；与 Grok 电话同时用时请保持静音'
+    : '系统：已静音网页小雨播放（进房后再点可通知 listener）');
+  updateXyMuteBtnUi();
+}
 async function toggleXiaoyuSpeak(){
+  if (readXiaoyuForceMute() && !xiaoyuSpeakActive) {
+    log('系统：xiaoyuForceMute=1 — 无法开口。电话结束后：localStorage.removeItem("xiaoyuForceMute") 再点小雨');
+    applyXiaoyuSpeakUi(false);
+    return;
+  }
   const next = !xiaoyuSpeakActive;
-  // Optimistic UI; listener echoes xiaoyu_active for sync
   applyXiaoyuSpeakUi(next);
-  if (next) setXiaoyuMood('star'); // brief "activated" feedback; mood cycle still available via apply
+  if (next) setXiaoyuMood('star');
   const ok = await publishXiaoyuActive(next);
   if (!ok) applyXiaoyuSpeakUi(false);
   else {
     unlockRemoteAudio();
-    log(next ? '系统：小雨【开口】— 听你说话并回复（Liora 音色）；再点变静音' : '系统：小雨【静音】— 仍旁听，不说话');
+    log(next ? '系统：小雨【开口】— 听你说话并回复（Liora 音色）；再点变静音' : '系统：小雨【静音】— 仍旁听，不说话；网页也不播 TTS');
   }
 }
 function handleRoomDataMessage(msg, participant){
@@ -1490,9 +1665,7 @@ function handleRoomDataMessage(msg, participant){
     return;
   }
   if (msg.t === 'skel_step' && typeof msg.n === 'number') {
-    applyingRemoteSkel = true;
-    postToCourse({ type: 'skel-set-step', n: msg.n });
-    setTimeout(() => { applyingRemoteSkel = false; }, 120);
+    sendSkelStep(msg.n);
     return;
   }
   if (msg.t === 'course') {
@@ -1606,7 +1779,7 @@ async function join(role){
       // One 小雨 only: cartoon tile. Never spawn tile for xiaoyu / xiaoyu-listener.
       if (isXiaoyuIdentity(participant.identity)) {
         setRainOnline(true, xiaoyuSpeakActive ? '在线·开口' : '在线·静音');
-        if (track.kind === Track.Kind.Audio) attachRemoteAudio(track);
+        if (track.kind === Track.Kind.Audio) attachRemoteAudio(track, { fromXiaoyu: true });
         return;
       }
       const el = ensureVideoTile(participant.identity, participant.name || participant.identity);
@@ -1622,7 +1795,13 @@ async function join(role){
     });
     room.on(RoomEvent.TrackUnsubscribed, (track) => {
       const els = track.detach();
-      (els || []).forEach(el => { try { remoteAudioEls.delete(el); el.remove(); } catch(_){} });
+      (els || []).forEach(el => {
+        try {
+          remoteAudioEls.delete(el);
+          xiaoyuAudioEls.delete(el);
+          el.remove();
+        } catch(_){}
+      });
     });
     room.on(RoomEvent.Disconnected, () => {
       // ignore disconnect during intentional switch (joining may still be true)
@@ -1669,6 +1848,10 @@ async function join(role){
     }
     markMeTile();
     document.getElementById('leave').disabled = false;
+    // Default classroom 小雨 = 静音 until user taps 开口
+    applyXiaoyuSpeakUi(false);
+    setXiaoyuPlaybackMuted(true);
+    try { await publishXiaoyuActive(false); } catch (_) {}
     if (!window.__rainRoom) await joinRainPresence();
     /* no auto welcome bubble */
   } catch (joinErr) {
@@ -1709,6 +1892,11 @@ xyTile.addEventListener('keydown', (e) => {
     e.preventDefault();
     toggleXiaoyuSpeak().catch(err => log('系统：小雨开口失败: ' + (err.message||err)));
   }
+});
+document.getElementById('xyMuteBtn')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  muteXiaoyuSound().catch(err => log('系统：关小雨声失败: ' + (err.message||err)));
 });
 
 document.getElementById('joinDad').onclick = () => join('dad').catch(e => log('系统：失败: ' + (e.message||e)));
@@ -1818,9 +2006,9 @@ async function hardRefreshPage(){
   try {
     const frame = document.getElementById('courseFrame');
     if (frame) {
-      const raw = frame.getAttribute('src') || '../learn/skeleton.html?v=mc21';
+      const raw = frame.getAttribute('src') || '../learn/skeleton.html?v=mc22';
       const base = raw.split('?')[0];
-      frame.setAttribute('src', base + '?v=mc21&_=' + bust);
+      frame.setAttribute('src', base + '?v=mc22&_=' + bust);
     }
   } catch (_) {}
   // Clear Cache Storage
@@ -1851,7 +2039,7 @@ document.getElementById('hardRefreshBtn')?.addEventListener('click', (e) => {
   });
 });
 
-log('系统：同房教室 — 点头像开摄像头。点小雨切换【开口/静音】（音色 Liora）；右下角强制刷新 / 全屏。');
+log('系统：同房教室 — 默认小雨【静音】旁听。点小雨【开口】才 TTS；音量旁「关掉小雨声音」可一键静音网页播放。与 Grok 电话同时用时请保持静音（或 localStorage xiaoyuForceMute=1）。');
 
 </script>
 <div class="fs-stack">

@@ -4,9 +4,11 @@
 - 加入 LiveKit room（默认 chengzhangwu）身份 xiaoyu-listener
 - 订阅家人音频 → LiveKit Inference STT
 - 始终旁听并 publish {t:'heard'}；开口（TTS + 小雨 chat）须教室页点小雨激活（开口）
-- 静音：STT 继续，但不回复 / 不 TTS
+- 默认 _speak_active=False（静音）：进房不 TTS，直到教室页发布 {t:'xiaoyu_active',on:true}
+- 静音：STT 继续，但不回复 / 不 TTS；中途关静音会中止正在推的 TTS 帧
 - TTS：xAI Grok voice **liora**（用户口中的 Lyora；与 Grok Bot 通话音色一致）via LiveKit Inference
 - 唤醒后用 Inference LLM 生成真实回复；说话期间静音 STT，防回声循环
+- 与 Grok Bot 电话同时用教室页时：请保持网页静音（教室默认静音 / 「关掉小雨声音」）
 
 Secrets: .env or LIVEKIT_* env — never commit.
 """
@@ -211,9 +213,14 @@ class XiaoyuListener:
 
         await self.room.connect(LIVEKIT_URL, token)
         self._listen_started_at = time.time()
-        log.info("joined — 开口/静音由教室页 xiaoyu_active 控制；voice=%s", TTS_VOICE)
-
-        await self._publish_system("小雨已进同房旁听（点小雨「开口」才说话；再点「静音」）")
+        log.info(
+            "joined — speak default OFF (静音); 教室页 xiaoyu_active 控制开口；voice=%s",
+            TTS_VOICE,
+        )
+        # Durable default: announce 静音 so all classroom tabs sync playback off
+        self._speak_active = False
+        await self._publish({"t": "xiaoyu_active", "on": False})
+        await self._publish_system("小雨已进同房旁听（默认静音；点小雨「开口」才说话；Grok 电话时请保持静音）")
         for p in self.room.remote_participants.values():
             for pub in p.track_publications.values():
                 if pub.track and pub.track.kind == rtc.TrackKind.KIND_AUDIO:
@@ -243,6 +250,10 @@ class XiaoyuListener:
             log.info("speak mode %s → %s (from %s)  # 开口=%s 静音=%s", prev, on, who or "?", on, not on)
             if not on:
                 self._conv_until = 0.0
+                # Drop mid-utterance TTS ASAP (phone-call clash / 关掉小雨声音)
+                if self._speaking:
+                    self._mark_speaking(False, cooldown=0.3)
+                    log.info("abort speaking on 静音")
             await self._publish({"t": "xiaoyu_active", "on": on})
             return
 
@@ -250,9 +261,10 @@ class XiaoyuListener:
             text = (msg.get("text") or "").strip()
             if not text:
                 return
+            # Do NOT auto-flip to 开口 — classroom must publish xiaoyu_active on:true first
             if not self._speak_active:
-                self._speak_active = True
-                await self._publish({"t": "xiaoyu_active", "on": True})
+                log.info("skip xiaoyu_say (静音): %s", text[:60])
+                return
             mood = msg.get("mood") or "happy"
             log.info("xiaoyu_say (%s): %s", mood, text[:80])
             await self._say(text, mood=mood)
@@ -443,6 +455,9 @@ class XiaoyuListener:
         source = await self._ensure_mic()
         stream = self._tts.synthesize(text)
         async for ev in stream:
+            if not self._speak_active:
+                log.info("TTS frame loop aborted (静音)")
+                break
             frame = getattr(ev, "frame", None) or ev
             if hasattr(frame, "data"):
                 await source.capture_frame(frame)
