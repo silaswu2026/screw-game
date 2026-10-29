@@ -87,6 +87,18 @@
   function netMakeSession() {
     return 's' + Math.floor(Date.now() % 1e9) + '-' + Math.floor(Math.random() * 1e6);
   }
+  function netHostPushGuestIn() {
+    if (netRole !== 'host' || !netLinked || netTransport !== 'bc') return;
+    try { netSend({ t: 'hello', code: netCode, role: 'host' }); } catch (e) {}
+    const playing = (mode === 'play' || mode === 'clear' || mode === 'win' || mode === 'over');
+    if (playing) {
+      try { netSend({ t: 'go', lv: levelIndex, cp: companion ? 1 : 0 }); } catch (e) {}
+      try { netSend(netBuildSnap()); } catch (e) {}
+      syncChrome();
+    } else {
+      setTimeout(() => { if (netRole === 'host' && netLinked) netHostStart(); }, 400);
+    }
+  }
   function netLinkViaBC(asHost, session, code) {
     if (netLinked) return;
     netTransport = 'bc';
@@ -98,20 +110,21 @@
     if (asHost) {
       toast('玩家B来了！（同机直连）');
       netSetBanner('玩家B已加入·同机', 'ok');
-      try { netSend({ t: 'hello', code: netCode, role: 'host' }); } catch (e) {}
-      const alreadyPlaying = (mode === 'play' || mode === 'clear' || mode === 'win' || mode === 'over');
-      if (alreadyPlaying) {
-        try { netSend({ t: 'go', lv: levelIndex, cp: companion ? 1 : 0 }); } catch (e) {}
-        try { netSend(netBuildSnap()); } catch (e) {}
-        syncChrome();
-      } else {
-        netSetWait('配对成功！马上开始');
-        setTimeout(() => { if (netRole === 'host' && netLinked) netHostStart(); }, 400);
-      }
+      // Guest may not be listening yet — push now and again shortly
+      netHostPushGuestIn();
+      setTimeout(() => netHostPushGuestIn(), 250);
+      setTimeout(() => netHostPushGuestIn(), 700);
     } else {
-      netSetWait('配对成功！等一下就开打');
+      netSetWait('配对成功！马上进关');
       toast('已连上玩家A（同机直连）');
       netSetBanner('已连上·同机', 'ok');
+      // Ask host to (re)send go+snap — first push often raced before we were linked
+      netBCPost({ t: 'bc-need-go', session: netBcSession, id: netCode });
+      setTimeout(() => {
+        if (netLinked && netTransport === 'bc' && mode === 'title') {
+          netBCPost({ t: 'bc-need-go', session: netBcSession, id: netCode });
+        }
+      }, 400);
     }
   }
   function netOnBCMessage(ev) {
@@ -122,6 +135,12 @@
       if (m.session && netBcSession && m.session !== netBcSession) return;
       if (m.role === netRole) return; // ignore echo of own sends
       if (m.payload) netOnMsg(m.payload, netRole === 'host');
+      return;
+    }
+    // Guest ready → host re-pushes go+snap (fixes race where first push arrived before guest linked)
+    if (m.t === 'bc-need-go' && netRole === 'host' && netLinked && netTransport === 'bc') {
+      if (m.session && netBcSession && m.session !== netBcSession) return;
+      netHostPushGuestIn();
       return;
     }
     // Guest asks → host answers with session offer
@@ -136,12 +155,12 @@
       netBcSession = sess;
       netCode = String(m.id);
       netBCPost({ t: 'bc-hello', id: netCode, session: sess });
-      // If offer already has session, host may accept immediately; also self-complete guest side after short wait if host acks
       return;
     }
     if (m.t === 'bc-hello' && netRole === 'host' && !netLinked && m.id && String(m.id) === String(netCode)) {
-      netLinkViaBC(true, m.session || netMakeSession(), netCode);
-      netBCPost({ t: 'bc-ok', id: netCode, session: netBcSession, lv: netPickLv | 0 });
+      const sess = m.session || netMakeSession();
+      netBCPost({ t: 'bc-ok', id: netCode, session: sess, lv: netPickLv | 0 });
+      netLinkViaBC(true, sess, netCode);
       return;
     }
     if (m.t === 'bc-ok' && netRole === 'guest' && !netLinked) {
@@ -3963,7 +3982,7 @@
       companion = !!msg.cp;
       syncChrome();
       toast('开始！你是蓝色忍者');
-      netSetBanner('联网对战·你是蓝', 'ok');
+      netSetBanner(netTransport === 'bc' ? '同机对战·你是蓝' : '联网对战·你是蓝', 'ok');
     } else if (msg.t === 'snap') {
       if (mode === 'title') {
         netHideRoom();
