@@ -140,6 +140,12 @@
   }
   .vids::-webkit-scrollbar{display:none}
   #tile-xiaoyu{grid-area:xy;align-self:end}
+  /* 小雨 visibly smaller than dad/kid/mom (~70%) */
+  #tile-xiaoyu.tile,
+  .tile.rain{
+    height:calc(var(--chip-h) * 0.7);
+    width:auto;
+  }
   #tile-dad{grid-area:dad;align-self:start}
   #tile-kid{grid-area:kid}
   #tile-mom{grid-area:mom}
@@ -372,7 +378,7 @@
   }
   .course-flow[hidden]{display:none !important}
   .course-flow .xy-hero{
-    width:min(42%, 160px);aspect-ratio:1;border-radius:50%;
+    width:min(42%, 96px);aspect-ratio:1;border-radius:50%;
     object-fit:cover;display:block;margin:4px auto 10px;
     box-shadow:0 0 0 3px #6dcf7a88, 0 8px 28px #000a;
     background:#1a3022;
@@ -515,6 +521,13 @@
     .tile{
       width:100%;height:auto;max-height:none;aspect-ratio:3/4;
       border-radius:8px;flex:0 0 auto;
+    }
+    #tile-xiaoyu.tile,
+    .tile.rain{
+      width:70%;
+      max-width:70%;
+      height:auto;
+      align-self:center;
     }
     .tile .name{left:3px;bottom:3px;padding:1px 5px;border-radius:6px;font-size:9px}
     .tile .badge{right:3px;top:3px;padding:1px 4px;border-radius:6px;font-size:8px}
@@ -671,7 +684,7 @@
     <div class="course-shell">
       <iframe id="courseFrame" title="course" src="../learn/skeleton.html?v=mc20"></iframe>
       <div class="course-flow" id="courseFlow" role="dialog" aria-labelledby="cfTheme">
-        <img class="xy-hero" src="../avatars/xiaoyu.jpg" alt="小雨" width="160" height="160"/>
+        <img class="xy-hero" src="../avatars/xiaoyu.jpg" alt="小雨" width="96" height="96"/>
         <div class="cf-body">
           <div class="cf-intro">
             <h3 class="cf-theme" id="cfTheme">今日课程</h3>
