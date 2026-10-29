@@ -356,15 +356,9 @@
   }
 
   function locoFrameName(n) {
-    // Cocos Animation-style: idle / walk flipbook / jump pose from sprite frames
+    // Jump/slide frames only — walk uses drawHero (no old walk_* images).
     const anim = n.anim || 'idle';
     if (anim === 'jump' || anim === 'walljump' || anim === 'slide') return 'jump_0';
-    if (anim === 'run') {
-      const t = (n.locoT != null) ? n.locoT : (n.phase || 0);
-      const i = Math.floor(t / SPRITE_DELAY) % WALK_SEQ.length;
-      return WALK_SEQ[i < 0 ? 0 : i];
-    }
-    // throw / idle / prone leftovers → idle frame (not portrait JPG)
     return 'idle';
   }
 
@@ -2612,19 +2606,23 @@
     }
     let alpha = blink ? 0.45 : 1;
     if (n.flash > 0 && Math.sin(sim * 55) > 0) alpha = 0.5;
-    // Walk/run: procedural limbs so arms swing naturally (sprite walk frames had white hands / stiff arms).
-    // Idle/jump still prefer Cocos sprite frames.
+    // Loco: always procedural arm-swing for walk/run (green/blue/red same new swing).
+    // Idle/jump may use Cocos frames; never use old walk_* images (white hands / stiff arms).
     ctx.translate(0, -bob);
     let ok = false;
     if (n.anim === 'run') {
-      drawHero(n.phase, 'run', n.face, alpha, n.palette, Math.abs(n.vx));
+      drawHero(n.phase, 'run', n.face, alpha, n.palette || 'green', Math.abs(n.vx));
       ok = true;
-    } else {
+    } else if (n.anim === 'jump' || n.anim === 'walljump' || n.anim === 'slide') {
       const fname = locoFrameName(n);
       ok = drawSpriteFrame(fname, n.face, alpha, 82, n.palette || 'green');
+      if (!ok) drawHero(n.phase, n.anim, n.face, alpha, n.palette || 'green', Math.abs(n.vx));
+    } else {
+      // idle / throw: prefer idle sprite, else procedural (not walk flipbook)
+      ok = drawSpriteFrame('idle', n.face, alpha, 82, n.palette || 'green');
       if (!ok) {
         ok = drawHeroSprite(n.face, alpha, n.palette || 'green', 0);
-        if (!ok) drawHero(n.phase, n.anim, n.face, alpha, n.palette, Math.abs(n.vx));
+        if (!ok) drawHero(n.phase, n.anim || 'idle', n.face, alpha, n.palette || 'green', Math.abs(n.vx));
       }
     }
     if (n.bones > 0) {
@@ -2866,15 +2864,8 @@
     ctx.save();
     ctx.translate(land ? viewW * 0.72 : viewW * 0.5, hy - 18);
     ctx.scale(sc, sc);
-    // Title preview: cycle walk sprite frames (~10 fps) so 逐帧 is obvious before play
-    const ti = Math.floor(sim / SPRITE_DELAY) % WALK_SEQ.length;
-    const bob = Math.abs(Math.sin(sim * 8)) * 3;
-    ctx.translate(0, -bob);
-    if (!drawSpriteFrame(WALK_SEQ[ti], 1, 1, 82)) {
-      if (!drawHeroSprite(1, 1, pickColor || 'green', 0)) {
-        drawHero(sim * 10, 'run', 1, 1, pickColor || 'green', 180);
-      }
-    }
+    // Title preview: same procedural arm-swing walk as in-game (all skins, including green)
+    drawHero(sim * 10, 'run', 1, 1, pickColor || 'green', 180);
     ctx.restore();
   }
   function draw() {
