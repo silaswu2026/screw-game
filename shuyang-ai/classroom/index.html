@@ -96,7 +96,7 @@
     letter-spacing:.04em;
     padding:6px 10px 0;
   }
-  .hint,.room-note,.cams>h2{display:none!important}
+  .hint,.room-note{display:none!important}
 
   .course{
     order:1;
@@ -597,11 +597,32 @@
   body:fullscreen, body:-webkit-full-screen{
     overflow:hidden;
   }
-  .fs-btn{
+  .fs-stack{
     position:fixed;
     right:max(10px, env(safe-area-inset-right, 0px));
     bottom:max(10px, env(safe-area-inset-bottom, 0px));
     z-index:40;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:8px;
+  }
+  .hard-refresh-btn{
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:#0f2218ee;
+    color:var(--txt);
+    font-size:12px;font-weight:800;line-height:1.2;
+    padding:8px 10px;
+    min-height:36px;
+    cursor:pointer;
+    backdrop-filter:blur(8px);
+    box-shadow:0 4px 16px #0008;
+    -webkit-tap-highlight-color:transparent;
+    white-space:nowrap;
+  }
+  .hard-refresh-btn:active{transform:scale(.96)}
+  .fs-btn{
     width:40px;height:40px;
     border:1px solid var(--line);
     border-radius:12px;
@@ -620,6 +641,7 @@
   }
   @media (orientation: landscape), (min-width: 600px){
     .fs-btn{width:36px;height:36px;font-size:16px;border-radius:10px}
+    .hard-refresh-btn{font-size:11px;padding:7px 9px;min-height:32px}
   }
 </style>
 </head>
@@ -654,6 +676,7 @@
   </section>
 
   <section class="panel cams">
+    <h2>我素养的家</h2>
     <div class="vids" id="vids">
       <div class="tile online joinable" id="tile-dad" data-role="dad" role="button" tabindex="0" aria-label="点爸爸头像进房开摄像头" title="点一下开摄像头">
         <div class="tile-inner">
@@ -1595,9 +1618,52 @@ document.getElementById('cfNext')?.addEventListener('click', () => {
   goCourseStep(courseStepIdx + 1, { speak: true, publish: true });
 });
 loadCourseToday();
-log('系统：同房教室 — 点头像开摄像头。点小雨才开口；右下角全屏（浏览器原生）。音量默认 3。');
+
+async function hardRefreshPage(){
+  const bust = String(Date.now());
+  // Bump course iframe query so the next load is not a cached shell
+  try {
+    const frame = document.getElementById('courseFrame');
+    if (frame) {
+      const raw = frame.getAttribute('src') || '../learn/skeleton.html?v=mc20';
+      const base = raw.split('?')[0];
+      frame.setAttribute('src', base + '?v=mc20&_=' + bust);
+    }
+  } catch (_) {}
+  // Clear Cache Storage
+  try {
+    if (typeof caches !== 'undefined' && caches.keys) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } catch (_) {}
+  // Unregister service workers that could serve stale shells
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+  } catch (_) {}
+  // Hard navigation with cache-busting query (keeps hash)
+  const hash = location.hash || '';
+  const path = location.pathname || '/';
+  const next = path + '?_=' + encodeURIComponent(bust) + hash;
+  try { location.replace(next); }
+  catch (_) { location.href = next; }
+}
+document.getElementById('hardRefreshBtn')ocument.getElementById('hardRefreshBtn')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  hardRefreshPage().catch(() => {
+    location.href = location.pathname + '?_=' + Date.now() + (location.hash || '');
+  });
+});
+
+log('系统：同房教室 — 点头像开摄像头。点小雨才开口；右下角强制刷新 / 全屏。音量默认 3。');
 
 </script>
+<div class="fs-stack">
+<button type="button" class="hard-refresh-btn" id="hardRefreshBtn" aria-label="强制刷新" title="强制刷新（清缓存）">强制刷新</button>
 <button type="button" class="fs-btn" id="courseFsBtn" aria-label="全屏" title="全屏">⛶</button>
+</div>
 </body>
 </html>
