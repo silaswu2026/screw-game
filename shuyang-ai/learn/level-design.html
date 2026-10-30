@@ -249,18 +249,46 @@ function scene0(PT){cancelAnimationFrame(a0);const cv=$('cv0'),g=cv.getContext('
    L.forEach(([w,im],i)=>{const a=i*Math.PI/2-Math.PI/2,x=ox+Math.cos(a)*R,y=oy+10+Math.sin(a)*R;g.fillStyle=i===k?'#4ea85c':'#3b4590';g.beginPath();g.arc(x,y,34,0,7);g.fill();if(im&&im.complete!==false)g.drawImage(im,x-26,y-30,52,52);g.fillStyle='#fff';g.font='bold 15px sans-serif';g.fillText(w,x-w.length*7.5,y+50>H-4?y+30:y+50);});
    g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText('🔁 上瘾圈',ox-46,oy+16);}
   if(t<DUR+8)a0=requestAnimationFrame(f);})(performance.now());}
-const SL=['先简单，再变难','⏱️ 频率：多久来一次','📍 摆放：分开还是挤','🎮 任天堂四步：教→练→变→考'];let sl=0;
+function reward(PT){cancelAnimationFrame(a0);const cv=$('cv0'),g=cv.getContext('2d'),W=cv.width,H=cv.height,A=LDART.ART,DUR=12,start=performance.now()-(PT||0)*1000;
+ const exc=t=>{let v=20;const sp=(t0,pk)=>{if(t<t0)return 0;const d=t-t0;return d<.4?pk*d/.4:pk*Math.exp(-(d-.4)*.9);};return Math.min(100,v+sp(3,70)+sp(8,85));};
+ function chest(x,y,open,big){const s=big?1.3:1;g.save();g.translate(x,y);g.scale(s,s);g.fillStyle='#8b5a2b';g.fillRect(-30,-36,60,36);g.fillStyle='#ffd166';g.fillRect(-30,-22,60,5);g.fillRect(-4,-26,8,12);
+  g.save();g.translate(-30,-36);g.rotate(open?-1.1:0);g.fillStyle='#a86b34';g.fillRect(0,-16,60,16);g.fillStyle='#ffd166';g.fillRect(0,-3,60,3);g.restore();
+  if(open){const gl=g.createRadialGradient(0,-40,4,0,-40,50);gl.addColorStop(0,'#fff6b0');gl.addColorStop(1,'#fff6b000');g.fillStyle=gl;g.fillRect(-60,-100,120,80);}
+  if(big&&!open){g.fillStyle='#fff';g.font='bold 22px sans-serif';g.fillText('?',-6,-42);}g.restore();}
+ (function f(now){const t=(now-start)/1000,tt=Math.min(t,DUR);g.clearRect(0,0,W,H);
+  // 场景
+  const sky=g.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#3a5fb0');sky.addColorStop(1,'#9fd0ff');g.fillStyle=sky;g.fillRect(0,0,560,H);
+  const gy=250;g.fillStyle='#6b4f2f';g.fillRect(0,gy,560,50);g.fillStyle='#4ea85c';g.fillRect(0,gy,560,8);
+  const c1=220,c2=440,nx=tt<3?40+tt/3*(c1-80):tt<6?c1-40:tt<8?c1-40+(tt-6)/2*(c2-c1):c2-40;
+  chest(c1,gy,tt>=3,false);chest(c2,gy,tt>=8,true);
+  const burst=(cx,t0,n,big)=>{const d=tt-t0;if(d<0||d>2.5)return;for(let i=0;i<n;i++){const a=-Math.PI/2+(i/(n-1)-.5)*2.2,v=(big?190:140)*(0.6+(i%3)*.2),x=cx+Math.cos(a)*v*d,y=gy-40+Math.sin(a)*v*d+160*d*d;g.globalAlpha=Math.max(0,1-d/2.5);g.drawImage(i%4===3?A.star:A.coin,x-12,y-12,24,24);}g.globalAlpha=1;
+   g.fillStyle=big?'#ff6bd6':'#ffe14a';g.font='bold '+(big?44:34)+'px sans-serif';g.globalAlpha=Math.max(0,1-d/2.5);g.fillText(big?'+500!':'+100',cx-40,gy-110-d*40);g.globalAlpha=1;};
+  burst(c1,3,10,false);burst(c2,8,18,true);
+  if(tt>=7.2&&tt<8){g.fillStyle='#fff';g.font='bold 18px sans-serif';g.fillText('随机惊喜？',c2-46,gy-120);}
+  const im=tt>=3&&tt<4.2||tt>=8&&tt<9.5?LDART.JUMP:(tt>=6&&tt<8||tt<3)?LDART.ninjaImg():LDART.IDLE;if(im&&im.complete!==false)g.drawImage(im,nx-45,gy-90-(im===LDART.JUMP?30:0),90,90);
+  // 刺激值
+  const X0=590,X1=940,Y0=30,Y1=170,X=s=>X0+s/DUR*(X1-X0),Y=v=>Y1-v/100*(Y1-Y0);g.fillStyle='#0f1230';g.fillRect(570,0,390,H);
+  g.fillStyle='#ffe7a0';g.font='bold 18px sans-serif';g.fillText('⚡ 刺激值',X0,22);g.strokeStyle='#ffffff22';g.strokeRect(X0,Y0,X1-X0,Y1-Y0);
+  g.beginPath();for(let s=0;s<=tt;s+=.05)g.lineTo(X(s),Y(exc(s)));g.strokeStyle='#ff6b6b';g.lineWidth=4;g.stroke();
+  const v=Math.round(exc(tt));g.fillStyle=v>80?'#ff6bd6':v>50?'#ffb06b':'#9ff0a8';g.font='bold 34px sans-serif';g.fillText(v,X1-62,Y0+34);
+  if(tt>3.4){g.fillStyle='#ffe14a';g.font='bold 14px sans-serif';g.fillText('20→90 宝箱!',X(3)-6,Y(92));}if(tt>8.4){g.fillStyle='#ff6bd6';g.fillText('惊喜 更高!',X(8)-8,Y(102)+12);}
+  // 有奖励 vs 没奖励
+  if(tt>5){g.fillStyle='#ffffff14';g.fillRect(X0,186,170,96);g.fillRect(X0+180,186,170,96);g.fillStyle='#fff';g.font='40px sans-serif';g.fillText('😐',X0+60,240);g.fillText('🤩',X0+240,240);
+   g.fillStyle='#fff';g.font='bold 16px sans-serif';g.fillText('没奖励',X0+58,272);g.fillText('有奖励',X0+238,272);}
+  if(t>DUR){g.fillStyle='#0f1230dd';g.fillRect(40,20,480,60);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText('奖励让人还想玩 → ⏰ 适度玩，到点就停',58,58);}
+  if(t<DUR+2)a0=requestAnimationFrame(f);})(performance.now());}
+const SL=['先简单，再变难','🎁 奖励：让人超兴奋','⏱️ 频率：多久来一次','📍 摆放：分开还是挤','🎮 任天堂四步：教→练→变→考'];let sl=0;
 function slide(n){sl=(n+SL.length)%SL.length;$('slt').textContent=SL[sl];$('sld').textContent=SL.map((_,i)=>i===sl?'●':'○').join('');play0(0);}
 $('slp').onclick=()=>slide(sl-1);$('sln').onclick=()=>slide(sl+1);
-const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);if(sl===0)return scene0(PT);const cv=$('cv0'),g=cv.getContext('2d'),W=cv.width,H=cv.height,start=performance.now()-(PT||0)*1000;
+const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);if(sl===0)return scene0(PT);if(sl===1)return reward(PT);const cv=$('cv0'),g=cv.getContext('2d'),W=cv.width,H=cv.height,start=performance.now()-(PT||0)*1000;
  (function f(now){const t=(now-start)/1000;g.clearRect(0,0,W,H);g.font='bold 22px sans-serif';
-  if(sl===1||sl===2){const lanes=sl===1?[['落石 每3秒',[3,7,11],3,'掉 0❤','#9ff0a8'],['落石 每1秒',[3,7,11],1,'掉 2❤','#ff6b6b']]:[['分开 · 有喘气',[2,6,10],2,'掉 1❤','#9ff0a8'],['挤在一起',[6,7,8],2,'掉 3❤','#ff6b6b']];
+  if(sl===2||sl===3){const lanes=sl===2?[['落石 每3秒',[3,7,11],3,'掉 0❤','#9ff0a8'],['落石 每1秒',[3,7,11],1,'掉 2❤','#ff6b6b']]:[['分开 · 有喘气',[2,6,10],2,'掉 1❤','#9ff0a8'],['挤在一起',[6,7,8],2,'掉 3❤','#ff6b6b']];
    lanes.forEach(([lab,xs,iv,res,col],li)=>{const y0=20+li*140,gy=y0+110,cw=(W-200)/13,T=Math.min(t,8),nx=60+T/8*13*cw;
     g.fillStyle='#ffffff10';g.fillRect(10,y0,W-20,128);g.fillStyle='#6b4f2f';g.fillRect(60,gy,13*cw,14);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText(lab,16,y0+24);
-    g.font='34px sans-serif';xs.forEach(x=>{const ph=sl===1?((t%iv)/iv):1;g.fillText(sl===1?'🪨':'🔥',60+x*cw,sl===1?y0+30+ph*72:gy-4);});
+    g.font='34px sans-serif';xs.forEach(x=>{const ph=sl===2?((t%iv)/iv):1;g.fillText(sl===2?'🪨':'🔥',60+x*cw,sl===2?y0+30+ph*72:gy-4);});
     const near=xs.find(x=>T*13/8>x-.5&&T*13/8<x+.8);g.fillText('🥷',nx-10,gy-4-(near!=null?40:0));
     if(t>8){g.fillStyle=col;g.font='bold 30px sans-serif';g.fillText(res,W-170,y0+80);}});}
-  if(sl===3){const A=LDART.ART,cw=(W-40)/4,ST=[['① 教','安全地方先见到',['rock']],['② 练','再来几次',['rock','rock']],['③ 变','加新花样',['rock','fire']],['④ 考','全用上，过关！',['rock','fire','sand','flag']]];
+  if(sl===4){const A=LDART.ART,cw=(W-40)/4,ST=[['① 教','安全地方先见到',['rock']],['② 练','再来几次',['rock','rock']],['③ 变','加新花样',['rock','fire']],['④ 考','全用上，过关！',['rock','fire','sand','flag']]];
    ST.forEach(([a,b,its],i)=>{const x=20+i*cw,on=t>i*1.5,cur=Math.min(3,Math.floor(t/1.5))===i;g.fillStyle=on?'#2f7a4588':'#ffffff10';g.fillRect(x+6,10,cw-12,215);if(cur){g.strokeStyle='#ffe7a0';g.lineWidth=4;g.strokeRect(x+6,10,cw-12,215);}
     g.fillStyle='#ffe7a0';g.font='bold 28px sans-serif';g.fillText(a,x+20,46);g.fillStyle='#6b4f2f';g.fillRect(x+14,170,cw-28,12);g.fillStyle='#4ea85c';g.fillRect(x+14,166,cw-28,5);
     its.forEach((k,j)=>g.drawImage(A[k],x+80+j*(cw-110)/Math.max(1,its.length),124,44,44));
@@ -300,7 +328,7 @@ function crisp(cv){if(!cv.clientWidth)return;if(!cv._lw){cv._lw=CWD.get.call(cv)
  CWD.set.call(cv,Math.round(cv._lw*k));CHD.set.call(cv,Math.round(cv._lh*k));const g=cv.getContext('2d');g.setTransform(k,0,0,k,0,0);g.imageSmoothingQuality='high';}
 function crispAll(){document.querySelectorAll('.stage.on canvas').forEach(crisp);}addEventListener('resize',()=>setTimeout(crispAll,50));
 // 频率块：只有一种陷阱（落石）
-let aF=null,fLast=null,fStep=1,fHits=null;const fCnt=I=>Math.floor(12/I),fHit=I=>Math.floor(fCnt(I)/4);
+let aF=null,fLast=null,fStep=1,fHits=null;const fCnt=I=>Math.floor(12/I),fHit=I=>5-I;
 {const v=+new URLSearchParams(location.search).get('fi');if(v)$('fI').value=v,$('fIv').textContent=v;}
 $('fI').oninput=e=>{$('fIv').textContent=e.target.value;};
 function freqView(prev){cancelAnimationFrame(aF);$('fSl').style.display=prev?'none':'block';$('fBt').style.display=prev?'block':'none';
@@ -315,14 +343,14 @@ function freqView(prev){cancelAnimationFrame(aF);$('fSl').style.display=prev?'no
   // 地面 + 忍者
   const gy=H-30,nx=Math.min(W-240,L+tt/DUR*12*cw);g.fillStyle='#6b4f2f';g.fillRect(0,gy,W-180,30);g.fillStyle='#4ea85c';g.fillRect(0,gy,W-180,6);
   let hits=0,hurt=false,jump=0;
-  drops.forEach((s,i)=>{const x=L+(s-.5)*cw,hit=(i+1)%4===0,dt=tt-(s-1);
+  drops.forEach((s,i)=>{const x=L+(s-.5)*cw,hit=Math.floor((i+1)*fHit(I)/n)>Math.floor(i*fHit(I)/n),dt=tt-(s-1);
    if(dt>0&&dt<.6){g.drawImage(A.rock,x-22,90+dt/.6*(gy-130),44,44);}
    else if(dt>=.6){if(!hit)g.drawImage(A.rock,x-18,gy-34,36,36);}
    if(dt>=.6){if(hit){hits++;if(dt<1.4)hurt=true;}}
    const nd=tt-(s-1.3);if(!hit&&nd>0&&nd<.9)jump=Math.sin(nd/.9*Math.PI)*70;});
   const im=tt>=DUR&&!hurt?LDART.IDLE:hurt?LDART.NF[0]:jump>4?LDART.JUMP:LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,nx-50,gy-96-jump,100,100);
   if(hurt){g.font='38px sans-serif';g.fillText('💔',nx-10,gy-120-jump);}
-  g.fillStyle='#ff6b6b';g.font='bold 44px sans-serif';g.fillText('-'+hits+'❤',W-160,gy-20);g.fillStyle='#c9c3ef';g.font='bold 15px sans-serif';g.fillText('第4块躲不开',W-164,gy+20);
+  g.fillStyle='#ff6b6b';g.font='bold 44px sans-serif';g.fillText('-'+hits+'❤',W-160,gy-20);g.fillStyle='#c9c3ef';g.font='bold 15px sans-serif';g.fillText('越密越躲不开',W-164,gy+20);
   fHits=fHit(I);if(typeof updHP==='function')updHP();
   if(!prev){$('fRes').innerHTML=`每 <b>${I}</b> 秒 → <b>${n}</b> 块 → 掉 <b class="bad">${fHit(I)}❤</b>`;aF=requestAnimationFrame(f);return;}
   if(t<DUR+.3){aF=requestAnimationFrame(f);return;}
