@@ -68,7 +68,38 @@ body.teach #hp{visibility:hidden}
 .pathhint{display:none;text-align:center;font-size:13px;font-weight:800;color:#ffe7a0;padding:2px 10px 0;letter-spacing:.02em}
 body.tonight .pathhint{display:block}
 body.tonight .st.full-only{display:none!important}
-</style><script src="ld-art.js?v=ld30"></script></head><body>
+
+.reflect{display:none;flex-direction:column;align-items:center;gap:8px;padding:8px 6px 4px;background:#12183acc;border:2px solid #ffe7a066;border-radius:16px;margin:2px 0}
+.reflect.on{display:flex}
+.reflect .rq{margin:0;font-size:20px;font-weight:900;color:#ffe7a0;text-align:center;line-height:1.25}
+.reflect .rbtns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%}
+.reflect .rbtns button{border:0;border-radius:999px;padding:12px 18px;font-size:17px;font-weight:900;color:#fff;background:linear-gradient(180deg,#7ab0ff,#3b6fd4);box-shadow:0 3px 0 #274a8a;cursor:pointer;min-height:48px}
+.reflect .rbtns button.on{outline:3px solid #ffe7a0;outline-offset:2px;background:linear-gradient(180deg,#ffe7a0,#f0c45a);color:#1a2040;box-shadow:0 3px 0 #b88920}
+.reflect .rok{font-size:15px;font-weight:800;color:#9ff0a8;min-height:1.2em}
+body.tonight .n4{display:none!important}
+body.tonight .kidsub{font-size:15px}
+body.tonight .go.sm{font-size:17px!important;padding:10px 18px!important;min-height:44px}
+body.tonight .st{font-size:14px;padding:8px 4px}
+body.tonight #fBt{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+body.tonight #fBt .go{flex:1 1 140px;max-width:220px}
+body.tonight #mPal button{font-size:18px;padding:10px 14px;min-height:44px}
+body.tonight #mCt .go.sm{font-size:18px!important;padding:10px 14px!important;min-height:44px}
+body.tonight .pathhint{font-size:14px;padding:4px 8px}
+@media (max-width:900px){
+  body.tonight .reflect .rq{font-size:18px}
+  body.tonight .reflect .rbtns button{flex:1 1 40%;font-size:16px;padding:14px 10px}
+  body.tonight .st{font-size:12px;padding:6px 2px}
+  body.tonight .bar img{width:28px;height:28px}
+  body.tonight .pp{font-size:8px}
+  body.tonight .pathhint{font-size:12px}
+}
+@media (max-height:430px){
+  body.tonight .pathhint{display:none}
+  body.tonight .reflect{padding:4px;gap:4px}
+  body.tonight .reflect .rq{font-size:15px}
+  body.tonight .reflect .rbtns button{min-height:40px;padding:8px 10px;font-size:14px}
+}
+</style><script src="ld-art.js?v=ld31"></script></head><body>
 <div class="bar"><figure class="pp"><img src="../avatars/xiaoyu.jpg" alt="小雨" style="object-position:32% 34%"><figcaption>小雨</figcaption></figure>
 <div class="st full-only" data-s="0">⓪ 上节课回顾</div><div class="st" data-s="1">① 看图学习</div><div class="st" data-s="2">② 关卡频率 <i class="sd" data-s="2">●</i><i class="sd" data-s="3">●</i></div><div class="st full-only" data-s="4">③ 关卡位置 <i class="sd" data-s="4">●</i><i class="sd" data-s="5">●</i></div><div class="st full-only" data-s="6">④ 关卡难度 <i class="sd" data-s="6">●</i><i class="sd" data-s="7">●</i></div><div class="st" data-s="8">⑤ 设计关卡</div><div class="st" data-s="9">⑥ 单机玩</div>
 <figure class="pp"><img src="../avatars/dad-wuxin.jpg" alt="爸爸"><figcaption>爸爸</figcaption></figure><figure class="pp"><img src="../avatars/mom-chunyan.jpg" alt="妈妈"><figcaption>妈妈</figcaption></figure></div>
@@ -78,7 +109,7 @@ body.tonight .st.full-only{display:none!important}
 <div class="msg" style="font-size:15px">同一个小雨，换姿势 → 脸、衣服、颜色都不变（这样才能认出他）</div></section>
 <section class="stage" id="s0"><h2 class="keep"><button class="back sl" id="slp" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-size:16px;padding:3px 12px">◀</button> <span id="slt">好关卡：先简单，再变难</span> <span id="sld" style="font-size:13px"></span> <button class="sl" id="sln" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-size:16px;padding:3px 12px">▶</button> <button class="go" id="play0" style="font-size:15px;padding:4px 14px">▶ 播放</button></h2>
 <div class="cvwrap"><canvas id="cv0" width="960" height="380" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas></div>
-<div class="msg" style="font-size:14px">🎣 进游戏＝上钩 · ⏰ 自己决定停</div></section>
+<div class="msg" id="s0msg" style="font-size:14px">🎣 进游戏＝上钩 · ⏰ 自己决定停</div></section>
 
 <section class="stage" id="s1"><h2 class="s1h" id="s1t">点陷阱，拉数字</h2><div class="n4" id="n4a"></div>
 <canvas id="strip" width="960" height="150" style="width:100%;flex:none;background:#0006;border-radius:12px;cursor:pointer"></canvas>
@@ -88,7 +119,16 @@ body.tonight .st.full-only{display:none!important}
 <div id="fSl" style="text-align:center;font-size:24px;font-weight:800">每 <input type="range" id="fI" min="1" max="5" value="3" style="width:240px;height:28px;vertical-align:middle"> <b id="fIv" style="font-size:40px;color:#ffe7a0">3</b> 秒冒一次刺</div>
 <div class="cvwrap"><canvas id="cvF" width="960" height="360" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas></div>
 <div class="msg" id="fRes" style="font-size:22px;font-weight:800"></div>
-<div id="fBt" style="text-align:center"><button class="go sm" id="fRun">🏃 练：跑一次</button> <button class="go sm" id="fTw" style="background:linear-gradient(180deg,#ffb06b,#e2793b)">🔀 变：每1秒！</button> <button class="go sm" id="fEx" style="background:linear-gradient(180deg,#ff8a8a,#e23b3b)">🏁 考：最后一跑</button></div></section>
+<div id="fBt" style="text-align:center"><button class="go sm" id="fRun">🏃 练：跑一次</button> <button class="go sm" id="fTw" style="background:linear-gradient(180deg,#ffb06b,#e2793b)">🔀 变：每1秒！</button> <button class="go sm" id="fEx" style="background:linear-gradient(180deg,#ff8a8a,#e23b3b)">🏁 考：最后一跑</button></div>
+<div id="hookAsk" class="reflect" aria-live="polite">
+  <p class="rq">🎣 你发现哪一点在钓你？</p>
+  <div class="rbtns" id="hookBtns">
+    <button type="button" data-h="节奏变快">节奏变快</button>
+    <button type="button" data-h="掉血变多">掉血变多</button>
+    <button type="button" data-h="还想再跑">还想再跑</button>
+  </div>
+  <div class="rok" id="hookOk"></div>
+</div></section>
 <section class="stage" id="sQ"><h2 class="s1h" id="sQt">📍 位置：把地刺拖到别的地方</h2><div class="kidsub">位置=摆哪 · 难完要喘气（空地/金币）</div><div class="n4" id="n4q"></div>
 <div class="cvwrap"><canvas id="cvQ" width="960" height="400" style="width:100%;min-height:0;background:#0006;border-radius:12px;touch-action:none;cursor:grab"></canvas></div>
 <div class="msg" id="qRes" style="font-size:22px;font-weight:800"></div></section>
@@ -110,9 +150,24 @@ body.tonight .st.full-only{display:none!important}
 <div id="mPal" style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"></div>
 <div class="cvwrap"><canvas id="cvM" width="960" height="360" style="width:100%;min-height:0;background:#0006;border-radius:12px;cursor:pointer"></canvas></div>
 <div id="mCt" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:15px;font-weight:800;min-height:34px"></div></section>
-<section class="stage" id="s3"><h2>🧪 实验：玩我设计的关卡</h2>
+<section class="stage" id="s3"><h2 id="s3t">🧪 玩完觉察</h2>
 <div class="row"><div class="card"><div class="msg" id="sumt"></div><div id="sumseg" style="display:flex;gap:4px;width:100%"></div><div class="msg" id="sumtot"></div></div>
-<div class="card"><a class="go" id="play" href="../../xy-go/?custom=1">🎮 单机玩「我的关卡」</a><div class="msg" id="saved" style="color:#9ff0a8"></div><div class="msg" style="font-size:13px">玩完说：和预计一样吗？</div></div></div></section>
+<div class="card"><a class="go" id="play" href="../../xy-go/?custom=1">🎮 去玩这一关</a><div class="msg" id="saved" style="color:#9ff0a8"></div></div></div>
+<div id="expectAsk" class="reflect on" aria-live="polite">
+  <p class="rq">🎯 和预计一样吗？</p>
+  <div class="rbtns" id="expectBtns">
+    <button type="button" data-e="一样">一样</button>
+    <button type="button" data-e="更难">更难</button>
+    <button type="button" data-e="更简单">更简单</button>
+  </div>
+  <p class="rq" style="font-size:16px;margin-top:4px">再选一句（可选）</p>
+  <div class="rbtns" id="extraBtns">
+    <button type="button" data-k="best_fun" data-v="摆刺最好玩">摆刺最好玩</button>
+    <button type="button" data-k="hardest" data-v="频率最难调">频率最难调</button>
+    <button type="button" data-k="add_one" data-v="下次加金币">下次加金币</button>
+  </div>
+  <div class="rok" id="expectOk"></div>
+</div></section>
 </main>
 <div class="foot"><button class="back" id="back">上一步</button><div id="hp" style="align-self:center;font-weight:800;font-size:16px;text-align:center"></div><button id="next">下一步 ▶</button></div>
 <script>
@@ -438,7 +493,7 @@ const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);const cv=$('cv0'),g=
   }
   if(t<14)a0=requestAnimationFrame(f);})(performance.now());};
 $('play0').onclick=()=>play0(0);
-$('cv0').onclick=()=>{if(cur===1){if(sl<SL.length-1)slide(sl+1);else go(cur+1);}};
+$('cv0').onclick=()=>{if(TONIGHT&&cur===0){if(sl!==5)slide(sl+1);else go(1);return;}if(!TONIGHT&&cur===1){if(sl<SL.length-1)slide(sl+1);else go(cur+1);}};
 function updHP(){try{const h=(MODE==='freq'&&$('sF').classList.contains('on')&&fHits!=null)?fHits:($('sQ').classList.contains('on')&&qHits!=null)?qHits:($('sD').classList.contains('on')&&dHits!=null)?dHits:(($('sM').classList.contains('on')||$('s3').classList.contains('on'))&&mHits!=null)?mHits:totalHits(),M=6,left=Math.max(0,M-h);$('hp').innerHTML=`${'❤'.repeat(left)}${'🤍'.repeat(M-left)} <span style="font-size:12px;color:#c9c3ef">${$('sF').classList.contains('on')?'频率 → 掉':$('sQ').classList.contains('on')?'位置 → 掉':$('sD').classList.contains('on')?'难度 → 掉':($('sM').classList.contains('on')||$('s3').classList.contains('on'))?'我的关卡 → 掉':'难度=频率×摆放 → 掉'}${h}❤</span>`;}catch(e){}}setInterval(updHP,300);setTimeout(updHP,0);
 let aR=null;const IMN=new Image();IMN.src='img/ninjas.png';const IMC=new Image();IMC.src='img/critters.png';
 const WK=[0,1,2,3,4,5].map(n=>{const i=new Image();i.src='img/walk/w'+n+'.png';return i;});
@@ -492,9 +547,10 @@ const SAFE0=2; /* cells 0..SAFE0-1 = spawn pad (Cocos/Tiled safe start) */
 function mEst(){let sh=0;return mMap.map((k,x)=>{if(k==='shield'){sh++;return 0;}if(!isTrap(k))return 0;const p=MP[k];
  let n=k==='fire'?{1:0,3:1,5:2}[p.dur]:k==='spike'?(Math.min(1,p.up/p.interval)>=0.34?1:0):{1:2,3:1,5:0}[p.interval];const nb=k!=='spike'&&(isTrap(mMap[x-1])||mMap[x-1]==='spring'||isTrap(mMap[x+1]));if(nb)n++;
  let h=n*p.damage;if(h>0&&sh){sh--;h=Math.max(0,h-p.damage);}return h;});}
-function mPal(){const modes=[['run','▶ 跑一次'],['tw','🔀 变一变'],['ex','🏁 考：≤3❤']];
- $('mPal').innerHTML=Object.entries(MT).map(([k,[e,n]])=>`<button class="go sm" data-k="${k}" style="padding:3px 10px;font-size:16px;${mTool===k?'background:linear-gradient(180deg,#ffe07a,#f0b400);color:#222':'background:#3b4590'}">${e} ${n}</button>`).join('')
-  +` <button class="go sm" data-act="rhythm" style="padding:3px 10px;font-size:15px;background:linear-gradient(180deg,#9ff0a8,#4ea85c);color:#122">📐 好节奏</button>`
+function mPal(){const modes=TONIGHT?[['run','▶ 跑一次']]:[['run','▶ 跑一次'],['tw','🔀 变一变'],['ex','🏁 考：≤3❤']];
+ const tools=TONIGHT?Object.entries(MT).filter(([k])=>['spike','fire','coin','del'].includes(k)):Object.entries(MT);
+ $('mPal').innerHTML=tools.map(([k,[e,n]])=>`<button class="go sm" data-k="${k}" style="padding:3px 10px;font-size:16px;${mTool===k?'background:linear-gradient(180deg,#ffe07a,#f0b400);color:#222':'background:#3b4590'}">${e} ${n}</button>`).join('')
+  +(TONIGHT?'':` <button class="go sm" data-act="rhythm" style="padding:3px 10px;font-size:15px;background:linear-gradient(180deg,#9ff0a8,#4ea85c);color:#122">📐 好节奏</button>`)
   +` <button class="go sm" data-act="undo" style="padding:3px 10px;font-size:15px;background:#3b4590">↩</button> `
   +modes.map(([m,lab])=>`<button class="go sm" data-m="${m}" style="padding:3px 12px;font-size:16px;${mMode===m?'background:linear-gradient(180deg,#78d484,#4ea85c)':'background:#3b4590'}">${lab}</button>`).join('');
  document.querySelectorAll('#mPal button[data-k]').forEach(b=>b.onclick=()=>{mTool=b.dataset.k;if(isTrap(mTool)||isReward(mTool)){mSel=mTool;mSelX=mMap.findIndex(x=>x===mTool);}mPal();mCtl();});
@@ -506,14 +562,19 @@ function mCtl(){if(!isTrap(mSel)&&!isReward(mSel)){$('mCt').innerHTML='<span sty
  if(isReward(k)){$('mCt').innerHTML=`<span style="align-self:center;color:#9ff0a8">${e} 奖励格 · 不掉血 · 喘气</span>`;return;}
  const p=MP[k];const seg=(lab,key,vs,fmt)=>`<span style="background:#ffffff14;border-radius:12px;padding:2px 6px">${lab} `+vs.map(v=>`<button class="go sm" data-p="${key}" data-v="${v}" style="padding:2px 8px;font-size:15px;${p[key]===v?'background:linear-gradient(180deg,#ffe07a,#f0b400);color:#222':'background:#3b4590'}">${fmt(v)}</button>`).join('')+'</span>';
  const tip=(k==='fire'?`停${p.dur}秒`:`每${p.interval}秒`)+` · ${p.damage}❤`;
- $('mCt').innerHTML=`<span style="align-self:center">${e} 位置已定 · 调频率/难度 <small style="color:#ffe7a0">${tip}</small></span>`+(k==='fire'?seg('⏳ 停','dur',[1,3,5],v=>v+'秒'):seg('⏱️ 每','interval',[1,3,5],v=>v+'秒'+(v===1?'⚡':v===3?'!':'')))+(k==='spike'?seg('⏳ 停','up',[0.6,1,2],v=>({0.6:'短',1:'中',2:'久'})[v]):'')+seg('💔','damage',[1,2,3],v=>v+'❤');
+ if(TONIGHT){
+   if(k==='fire'){$('mCt').innerHTML=`<span style="align-self:center;font-size:18px">${e} · 停多久</span>`+seg('⏳','dur',[1,3,5],v=>v+'秒');}
+   else{$('mCt').innerHTML=`<span style="align-self:center;font-size:18px">${e} · 每几秒冒一次</span>`+seg('⏱️','interval',[1,3,5],v=>v+'秒');}
+ }else{
+   $('mCt').innerHTML=`<span style="align-self:center">${e} 位置已定 · 调频率/难度 <small style="color:#ffe7a0">${tip}</small></span>`+(k==='fire'?seg('⏳ 停','dur',[1,3,5],v=>v+'秒'):seg('⏱️ 每','interval',[1,3,5],v=>v+'秒'+(v===1?'⚡':v===3?'!':'')))+(k==='spike'?seg('⏳ 停','up',[0.6,1,2],v=>({0.6:'短',1:'中',2:'久'})[v]):'')+seg('💔','damage',[1,2,3],v=>v+'❤');
+ }
  document.querySelectorAll('#mCt button').forEach(b=>b.onclick=()=>{mSnap();MP[mSel][b.dataset.p]=+b.dataset.v;mCtl();mSave();});}
 function mSave(final){const tiles=[];for(let x=0;x<MC;x++)tiles.push({x,y:ROWS-1,type:'g'});mMap.forEach((k,x)=>{if(k)tiles.push({x,y:ROWS-2,type:k});});
  const tr={},used=new Set(mMap);if(used.has('spike'))tr.spike={interval:MP.spike.interval,up:MP.spike.up,damage:MP.spike.damage};if(used.has('fire'))tr.fire={damage:MP.fire.damage,dur:MP.fire.dur,burn:MP.fire.dur};if(used.has('rock'))tr.rock={interval:MP.rock.interval,speed:3,damage:MP.rock.damage};if(used.has('mist'))tr.mist={interval:MP.mist.interval,damage:MP.mist.damage};
- localStorage.setItem(KEY,JSON.stringify({theme:'swamp',cols:MC,rows:ROWS,tiles,traps:tr,savedAt:new Date().toISOString(),by:'伍澍暘',mine:{map:mMap,mp:MP}}));
- if(final){const h=mEst(),tot=h.reduce((a,b)=>a+b,0);$('sumt').textContent='我的关卡 · 12格 · 预计掉血';
+ persistLevel({theme:'swamp',cols:MC,rows:ROWS,tiles,traps:tr,mine:{map:mMap,mp:MP}});
+ if(final){const h=mEst(),tot=h.reduce((a,b)=>a+b,0);$('sumt').textContent=(TONIGHT?'我摆的一小关':'我的关卡')+' · 12格 · 预计掉血';
   $('sumseg').innerHTML=mMap.map((k,x)=>k&&k!=='del'?`<div style="flex:1;text-align:center;background:#ffffff12;border-radius:8px;padding:4px"><div style="font-size:20px">${MT[k][0]}</div><div style="font-size:16px;color:${h[x]?'#ff6b6b':'#9ff0a8'}">${isTrap(k)?(h[x]?'-'+h[x]+'❤':'✓'):''}</div></div>`:'').join('');
-  $('sumtot').innerHTML='一共掉 <b style="font-size:24px">'+tot+'❤</b>'+(mPreviewDone?'':' <span style="color:#ffe7a0;font-size:14px">（先▶跑一次看看）</span>');$('saved').textContent=mPreviewDone?'已保存 ✅ 游戏里就是这一关':'先在上面▶跑一次，再来玩';}}
+  $('sumtot').innerHTML='一共掉 <b style="font-size:24px">'+tot+'❤</b>'+(mPreviewDone?'':' <span style="color:#ffe7a0;font-size:14px">（先▶跑一次看看）</span>');$('saved').textContent=mPreviewDone?'已保存 ✅ 去玩吧':'先▶跑一次，再玩';}}
 function mCheck(){const traps=mMap.map((k,i)=>isTrap(k)?i:-1).filter(i=>i>=0);const types=new Set(traps.map(i=>mMap[i]));
  const safeStart=!traps.some(i=>i<SAFE0);const easy=traps.length?traps[0]<=3:true;let breath=true;for(let i=1;i<traps.length;i++)if(traps[i]-traps[i-1]<=1){const mid=mMap.slice(traps[i-1],traps[i]+1);if(!mid.some(isReward))breath=false;}
  return [['开头空着',safeStart],['先易后难',easy],['有喘气',breath],['花样≤3',types.size<=3]];}
@@ -653,15 +714,42 @@ function freqView(prev){cancelAnimationFrame(aF);$('fSl').style.display=prev?'no
   if(!prev){$('fRes').innerHTML=`每 <b>${I}</b> 秒 → <b>${n}</b> 次刺 → 掉 <b class="bad">${fHit(I)}❤</b>`;aF=requestAnimationFrame(f);return;}
   if(t<DUR+.3){aF=requestAnimationFrame(f);return;}
   if(done===1){done=2;}
-  if(!done){done=1;setTimeout(()=>aF=requestAnimationFrame(f),400);const pv=fLast;fLast={I,h:fHit(I)};$('fRes').innerHTML=`${['','🏃 练','🔀 变','🏁 考'][fStep]}：每 <b>${I}</b> 秒 → <b>${n}</b> 次刺 → 掉 <b class="bad">${fHit(I)}❤</b>`+(fStep===3?(fHit(I)<=1?' ✅ 过关':' 😵 太难，回去调慢'):'')+(pv?` <span style="font-size:15px;color:#c9c3ef">（上次 每${pv.I}秒 掉${pv.h}❤ → 这次 ${fHit(I)}❤）</span>`:'');}})(performance.now());}
+  if(!done){done=1;setTimeout(()=>aF=requestAnimationFrame(f),400);const pv=fLast;fLast={I,h:fHit(I)};$('fRes').innerHTML=`${['','🏃 练','🔀 变','🏁 考'][fStep]}：每 <b>${I}</b> 秒 → <b>${n}</b> 次刺 → 掉 <b class="bad">${fHit(I)}❤</b>`+(fStep===3?(fHit(I)<=1?' ✅ 过关':' 😵 太难，回去调慢'):'')+(pv?` <span style="font-size:15px;color:#c9c3ef">（上次 每${pv.I}秒 掉${pv.h}❤ → 这次 ${fHit(I)}❤）</span>`:'');if(TONIGHT&&(fStep>=2||fStep===3))showHookAsk(true);}})(performance.now());}
 $('fRun').onclick=()=>{fStep=1;freqView(true);};$('fTw').onclick=()=>{$('fI').value=1;$('fIv').textContent=1;fStep=2;freqView(true);};$('fEx').onclick=()=>{fStep=3;freqView(true);};
 let cur=0;
 const TONIGHT=new URLSearchParams(location.search).get('path')==='tonight';
 const SCR=TONIGHT
-  ?[['s0'],['sF','freq'],['sF','freq'],['sM'],['s3']]
+  ?[['s0'],['sF','freq'],['sM'],['s3']]
   :[['sR'],['s0'],['sF','freq'],['sF','freq'],['sQ','pos'],['sQ','pos'],['sD','diff'],['sD','diff'],['sM'],['s3']];
-const BLK=TONIGHT?[0,1,1,2,3]:[0,1,2,2,3,3,4,4,5,6];
+const BLK=TONIGHT?[0,1,2,3]:[0,1,2,2,3,3,4,4,5,6];
 const MAX=SCR.length-1;
+
+const REFLECT={hook_seen:'',vs_expect:'',best_fun:'',hardest:'',add_one:'',who:'小雨'};
+try{const _r=JSON.parse(localStorage.getItem(KEY)||'null');if(_r){if(_r.hook_seen||_r.reflectHook)REFLECT.hook_seen=_r.hook_seen||_r.reflectHook||'';if(_r.vs_expect||_r.reflectExpect)REFLECT.vs_expect=_r.vs_expect||_r.reflectExpect||'';['best_fun','hardest','add_one','who'].forEach(k=>{if(_r[k])REFLECT[k]=_r[k];});}}catch(_e){}
+function persistLevel(extra){
+  let d={};
+  try{d=JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){d={};}
+  Object.assign(d,extra||{});
+  d.version='1.1';
+  d.reflectHook=REFLECT.hook_seen;d.hook_seen=REFLECT.hook_seen;
+  d.reflectExpect=REFLECT.vs_expect;d.vs_expect=REFLECT.vs_expect;
+  d.best_fun=REFLECT.best_fun;d.hardest=REFLECT.hardest;d.add_one=REFLECT.add_one;d.who=REFLECT.who||'小雨';
+  d.savedAt=new Date().toISOString();d.by=d.by||'伍澍暘';
+  localStorage.setItem(KEY,JSON.stringify(d));
+  return d;
+}
+function showHookAsk(force){
+  const el=$('hookAsk');if(!el)return;
+  if(!TONIGHT){el.classList.remove('on');return;}
+  el.classList.add('on');
+  if(REFLECT.hook_seen){$('hookOk').textContent='记下了：'+REFLECT.hook_seen;document.querySelectorAll('#hookBtns button').forEach(b=>b.classList.toggle('on',b.dataset.h===REFLECT.hook_seen));}
+}
+function showExpectAsk(){
+  const el=$('expectAsk');if(!el)return;
+  if(TONIGHT)el.classList.add('on');
+  if(REFLECT.vs_expect){$('expectOk').textContent='记下了：'+REFLECT.vs_expect+(REFLECT.best_fun||REFLECT.hardest||REFLECT.add_one?' · 还有补充':'');}
+  document.querySelectorAll('#expectBtns button').forEach(b=>b.classList.toggle('on',b.dataset.e===REFLECT.vs_expect));
+}
 const TIT={freq:'⏱️ 频率：多久来一次',pos:'📍 位置：分开还是挤',diff:'💥 难度：速度·伤害·持续'};const taught={};
 if(TONIGHT){
   document.body.classList.add('tonight');
@@ -671,9 +759,9 @@ if(TONIGHT){
   [...bar.querySelectorAll('.st')].forEach(el=>el.remove());
   const tabs=[
     ['0','① 看图一句'],
-    ['1','② 频率 <i class="sd" data-s="1">●</i><i class="sd" data-s="2">●</i>'],
-    ['3','③ 设计一小关'],
-    ['4','④ 玩完觉察']
+    ['1','② 频率'],
+    ['2','③ 设计一小关'],
+    ['3','④ 玩完']
   ];
   const insertAt=figs[0]?figs[0].nextSibling:bar.firstChild;
   tabs.forEach(([s,html])=>{
@@ -682,7 +770,7 @@ if(TONIGHT){
   });
   const hint=document.createElement('div');
   hint.className='pathhint';
-  hint.textContent='今晚主路径：看图一句 → 频率 → 设计一小关 → 玩完觉察';
+  hint.textContent='今晚：看图一句 → 调频率 → 摆一小关 → 玩完问一句';
   document.querySelector('main').before(hint);
 }
 
@@ -692,8 +780,9 @@ function teach(m){if(taught[m])return;taught[m]=1;const tt=trapTiles();
 function n4(id,i){const e=$(id);if(e)e.innerHTML=['教','练','变','考'].map((w,j)=>`<span class="${j===i?'on':j<i?'done':''}">${['①','②','③','④'][j]} ${w}</span>`).join('');}
 let pstep=1;
 function footLabel(){
-  if(cur===1){$('next').textContent=sl<SL.length-1?'下一页 ▶':'下一步 ▶';$('back').textContent=sl>0?'◀ 上一页':'上一步';}
-  else{$('next').textContent='下一步 ▶';$('back').textContent='上一步';}
+  if(TONIGHT&&cur===0){$('next').textContent=sl===5?'去调频率 ▶':'下一句 ▶';$('back').textContent=sl===2?'':'◀ 上一句';$('back').style.visibility=sl===2?'hidden':'visible';}
+  else if(!TONIGHT&&cur===1){$('next').textContent=sl<SL.length-1?'下一页 ▶':'下一步 ▶';$('back').textContent=sl>0?'◀ 上一页':'上一步';}
+  else{$('next').textContent=TONIGHT?(cur===1?'去摆关 ▶':cur===2?'去玩 ▶':'下一步 ▶'):'下一步 ▶';$('back').textContent='上一步';}
 }
 function go(n){cur=Math.max(0,Math.min(MAX,n));const [id,m]=SCR[cur];if(m)MODE=m;
  ['sR','s0','sF','s1','sP','s2','s3','sQ','sD','sM'].forEach(x=>$(x).classList.toggle('on',x===id));crispAll();
@@ -702,15 +791,15 @@ function go(n){cur=Math.max(0,Math.min(MAX,n));const [id,m]=SCR[cur];if(m)MODE=m
  document.querySelectorAll('.sd').forEach(d=>d.classList.toggle('on',+d.dataset.s===cur));
  cancelAnimationFrame(stripAnim);
  if(id==='sR')review();else cancelAnimationFrame(aR);
- if(id==='s0'){const qsl=new URLSearchParams(location.search).get('sl');slide(qsl!=null?+qsl:sl||0);play0(+(new URLSearchParams(location.search).get('pt0'))||0);}
- if(id==='sF')freqView(cur===3);else cancelAnimationFrame(aF);
+ if(id==='s0'){if(TONIGHT){sl=TONIGHT_SL&&TONIGHT_SL.includes(sl)?sl:2;slide(sl);}else{const qsl=new URLSearchParams(location.search).get('sl');slide(qsl!=null?+qsl:sl||0);}play0(+(new URLSearchParams(location.search).get('pt0'))||0);}
+ if(id==='sF'){freqView(false);if(TONIGHT){const ks=$('sF').querySelector('.kidsub');if(ks)ks.textContent='拖滑条 · 点按钮跑 · 看哪一点在钓你';showHookAsk();}else{const ha=$('hookAsk');if(ha)ha.classList.remove('on');}}else cancelAnimationFrame(aF);
  if(id==='sQ')qView(cur===5);else cancelAnimationFrame(aQ);
  if(id==='sD')dView(cur===7);else cancelAnimationFrame(aD);
  if(id==='s1'){teach(m);$('s1t').textContent=TIT[m]+' · 教：先安全，再拉数字';n4('n4a',0);traps();}
  if(id==='s2'){n4('n4c',0);design();}
  if(id==='sP'){$('sPt').textContent=TIT[m]+' · 忍者匀速跑';pstep=1;n4('n4b',1);preview();}
  if(id==='sM'){mView();if(TONIGHT){const h=$('sM').querySelector('h2');if(h)h.textContent='🛠️ 设计一小关：摆几个刺 · 调一下频率';}}else cancelAnimationFrame(aM);
- if(cur===MAX&&id==='s3'){mSave(true);if(!mPreviewDone&&$('saved'))$('saved').textContent=TONIGHT?'提示：先回③ ▶跑一次，再单机玩':'提示：先回⑤ ▶跑一次，再单机玩';}
+ if(id==='s3'){mSave(true);if(TONIGHT)showExpectAsk();if(!mPreviewDone&&$('saved'))$('saved').textContent=TONIGHT?'提示：先回③ ▶跑一次，再玩':'提示：先回⑤ ▶跑一次，再单机玩';}
  $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<MAX?'visible':'hidden';footLabel();if(typeof updHP==='function')updHP();}
 function twist(){const tt=trapTiles();if(!tt.length)return;const t=tt[tt.length-1];
  if(MODE==='freq')st.traps[t.type].interval=1;
@@ -719,11 +808,41 @@ function twist(){const tt=trapTiles();if(!tt.length)return;const t=tt[tt.length-
 $('twist').onclick=()=>{twist();pstep=2;n4('n4b',2);preview();updHP();};
 $('exam').onclick=()=>{pstep=3;n4('n4b',3);preview();};
 $('run').onclick=()=>{pstep=1;n4('n4b',1);preview();};
-$('next').onclick=()=>{if(cur===1&&sl<SL.length-1){slide(sl+1);footLabel();return;}go(cur+1);};
-$('back').onclick=()=>{if(cur===1&&sl>0){slide(sl-1);footLabel();return;}go(cur-1);};
+$('next').onclick=()=>{if(TONIGHT&&cur===0){if(sl!==5){slide(sl+1);footLabel();return;}go(1);return;}if(!TONIGHT&&cur===1&&sl<SL.length-1){slide(sl+1);footLabel();return;}go(cur+1);};
+$('back').onclick=()=>{if(TONIGHT&&cur===0){if(sl!==2){slide(sl-1);footLabel();return;}return;}if(!TONIGHT&&cur===1&&sl>0){slide(sl-1);footLabel();return;}go(cur-1);};
 document.querySelector('.bar').onclick=e=>{const d=e.target.closest('[data-s]');if(d)go(+d.dataset.s);};
 {const q=new URLSearchParams(location.search);if(q.get('bump')||q.get('move')){preview();cancelAnimationFrame(anim);
  const tt=trapTiles();if(q.get('bump')){taught.freq=1;const k=tt[tt.length-1].type;st.traps[k].interval=1;}
  if(q.get('move')){tt[1].x=Math.max(0,tt[2].x-1);}}}
+
+/* tonight: 看图只走「上钩 → 自己决定停」一对 */
+const TONIGHT_SL=TONIGHT?[2,5]:null;
+if(TONIGHT){const smt=$('sMt');if(smt)smt.textContent='🛠️ 摆一小关';const sms=$('sMsub');if(sms)sms.textContent='放刺/火 · 调每几秒 · ▶跑一次';}
+if(TONIGHT){sl=2;const m=$('s0msg');if(m)m.textContent='🎣 上钩 → ⏰ 自己决定停';const s3t=$('s3t');if(s3t)s3t.textContent='🎮 玩完觉察';}
+const _slide=slide;slide=function(n){
+  if(TONIGHT_SL){
+    let i=TONIGHT_SL.indexOf(sl);if(i<0)i=0;
+    if(typeof n==='number'&&TONIGHT_SL.includes(n)){sl=n;}
+    else if(n===sl-1||(typeof n==='number'&&n<sl)){i=Math.max(0,i-1);sl=TONIGHT_SL[i];}
+    else{i=Math.min(TONIGHT_SL.length-1,i+1);sl=TONIGHT_SL[i];}
+    $('slt').textContent=SL[sl];$('sld').textContent=TONIGHT_SL.map((x)=>x===sl?'●':'○').join('');play0(0);if(typeof footLabel==='function')footLabel();return;
+  }
+  return _slide(n);
+};
+$('hookBtns')&&$('hookBtns').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-h]');if(!b)return;
+  REFLECT.hook_seen=b.dataset.h;persistLevel({});showHookAsk(true);
+});
+$('expectBtns')&&$('expectBtns').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-e]');if(!b)return;
+  REFLECT.vs_expect=b.dataset.e;persistLevel({});showExpectAsk();
+});
+$('extraBtns')&&$('extraBtns').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-k]');if(!b)return;
+  REFLECT[b.dataset.k]=b.dataset.v;persistLevel({});
+  document.querySelectorAll('#extraBtns button').forEach(x=>x.classList.toggle('on',x===b));
+  showExpectAsk();
+});
+
 go(+(new URLSearchParams(location.search).get("s"))||0);})();
 </script></body></html>
