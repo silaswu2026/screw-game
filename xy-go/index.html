@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#1d4e38">
+<meta name="theme-color" content="#0b1f2a">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>小宇 / Xiao Yu</title>
-<link rel="stylesheet" href="style.css?v=3040">
+<title>小雨闯关 · 联网大厅</title>
+<link rel="stylesheet" href="style.css?v=3059">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -15,8 +15,8 @@
     <div id="lvlName">第1关</div>
     <div id="lvlEn">Level 1</div>
     <div id="bars">
-      <div class="bar"><span>P1</span><div class="track"><i id="hp1"></i></div></div>
-      <div class="bar" id="bar2"><span>P2</span><div class="track"><i id="hp2"></i></div></div>
+      <div class="bar"><span>A</span><div class="track"><i id="hp1"></i></div></div>
+      <div class="bar" id="bar2"><span>B</span><div class="track"><i id="hp2"></i></div></div>
       <div class="bar hidden" id="bar3"><span>C</span><div class="track"><i id="hp3"></i></div></div>
     </div>
   </div>
@@ -24,67 +24,94 @@
   <div id="netBanner" class="netBanner hidden" aria-live="polite"></div>
   <div class="hudBtns">
     <button id="mute" type="button" aria-label="静音 Mute">音</button>
-    <button id="retry" type="button">重来 Retry</button>
+    <button id="retry" type="button">重来</button>
   </div>
 </div>
 <div id="hint" class="hidden"></div>
 <div id="toast"></div>
+
 <div id="menu">
-  <h1>小宇 <span>Xiao Yu</span></h1>
-  <p class="lead">闯关 · A+B双人 · C可跟班AI</p>
-  <a id="backClassroom" class="backClassroom" href="../shuyang-ai/classroom/">← 返回教室</a>
-  <div class="castRow" id="castRow">
-    <button type="button" class="cast on" data-color="green" aria-label="绿色忍者">
-      <img src="ninjas/ninja-green.jpg" alt="绿忍者">
-      <span>绿 · 玩家A 芃芃</span>
-    </button>
-    <button type="button" class="cast" data-color="blue" aria-label="蓝色忍者">
-      <img src="ninjas/ninja-blue.jpg" alt="蓝忍者">
-      <span>蓝 · 玩家B 爸爸</span>
-    </button>
-    <button type="button" class="cast" data-color="red" id="castC" aria-label="红色忍者跟班">
-      <img src="ninjas/ninja-red.jpg" alt="红忍者">
-      <span>红 · C小宇 AI跟班</span>
-    </button>
+  <div class="lobby">
+    <div class="lobbyTop">
+      <a id="backClassroom" class="backClassroom" href="../shuyang-ai/classroom/">← 教室</a>
+      <span class="onlinePill" title="在线">ONLINE</span>
+    </div>
+    <h1>小雨闯关 <span>ONLINE LOBBY</span></h1>
+    <p class="lead">忍者公园 · 单人 / 开房 / 加入</p>
+
+    <div class="modes" id="modes" role="tablist" aria-label="对战模式">
+      <button id="mode1" class="on" type="button">单人闯关</button>
+      <button id="mode2" type="button">创建房间</button>
+    </div>
+
+    <section class="party" aria-label="队伍席位">
+      <header class="partyHead">
+        <b>队伍席位</b>
+        <small>点头像选角色 · 点「玩家B」加入房间</small>
+      </header>
+      <div class="castRow" id="castRow">
+        <button type="button" class="cast on" data-color="green" aria-label="绿色忍者">
+          <img src="ninjas/ninja-green.jpg" alt="绿忍者">
+          <span class="slotTag host">房主</span>
+          <span class="slotName">芃芃 · 绿</span>
+          <span class="slotState" data-state="ready">已选</span>
+        </button>
+        <button type="button" class="cast" data-color="blue" aria-label="蓝色忍者">
+          <img src="ninjas/ninja-blue.jpg" alt="蓝忍者">
+          <span class="slotTag join">加入</span>
+          <span class="slotName">爸爸 · 蓝</span>
+          <span class="slotState" data-state="empty">点我加入</span>
+        </button>
+        <button type="button" class="cast" data-color="red" id="castC" aria-label="红色忍者跟班">
+          <img src="ninjas/ninja-red.jpg" alt="红忍者">
+          <span class="slotTag ai">AI</span>
+          <span class="slotName">小宇 · 红</span>
+          <span class="slotState" data-state="empty">跟班关</span>
+        </button>
+      </div>
+      <div class="netRow netCast" id="netRow">
+        <button id="netHost" type="button" class="netCastBtn" aria-label="玩家A 绿色忍者">
+          <img src="ninjas/ninja-green.jpg" alt="绿忍者">
+          <span>开房 · 玩家A</span>
+          <small>芃芃主机</small>
+        </button>
+        <button id="netJoin" type="button" class="netCastBtn" aria-label="玩家B 蓝色忍者">
+          <img src="ninjas/ninja-blue.jpg" alt="蓝忍者">
+          <span>加入 · 玩家B</span>
+          <small>爸爸进房</small>
+        </button>
+        <button id="netJoinC" type="button" class="netCastBtn" aria-label="玩家C 小宇跟班AI" aria-pressed="false">
+          <img src="ninjas/ninja-red.jpg" alt="红忍者">
+          <span>跟班 · 玩家C</span>
+          <small>小宇 AI</small>
+        </button>
+      </div>
+    </section>
+
+    <button id="play" type="button">开始游戏</button>
+
+    <section class="levelPick" aria-label="选关">
+      <header class="partyHead"><b>选关</b><small>房主可选起始关卡</small></header>
+      <div class="picks">
+        <button type="button" data-lv="0">第1关</button>
+        <button type="button" data-lv="1">第2关</button>
+        <button type="button" data-lv="2">第3关</button>
+        <button type="button" data-lv="3">第4关</button>
+        <button type="button" data-lv="4">第5关</button>
+        <button type="button" data-lv="5">第6关</button>
+        <button type="button" data-lv="6">第7关</button>
+        <button type="button" data-lv="7">第8关</button>
+      </div>
+    </section>
+
+    <p class="keys">方向键 / AD 移动 · 空格跳 · F / J 投掷</p>
+    <p class="netHint">联网：主机选「创建房间」再点「开始游戏」开房；另一台点「加入·玩家B」或蓝忍者进房。点「跟班」开关小宇 AI。</p>
   </div>
-  <div class="modes" id="modes">
-    <button id="mode1" class="on" type="button">单人</button>
-    <button id="mode2" type="button">同机双人</button>
-  </div>
-  <button id="play" type="button">开始 Start</button>
-  <div class="netRow netCast" id="netRow">
-    <button id="netHost" type="button" class="netCastBtn" aria-label="玩家A 绿色忍者">
-      <img src="ninjas/ninja-green.jpg" alt="绿忍者">
-      <span>玩家A</span>
-      <small>芃芃 · 绿</small>
-    </button>
-    <button id="netJoin" type="button" class="netCastBtn" aria-label="玩家B 蓝色忍者">
-      <img src="ninjas/ninja-blue.jpg" alt="蓝忍者">
-      <span>玩家B</span>
-      <small>爸爸 · 蓝</small>
-    </button>
-    <button id="netJoinC" type="button" class="netCastBtn" aria-label="玩家C 小宇跟班AI" aria-pressed="false">
-      <img src="ninjas/ninja-red.jpg" alt="红忍者">
-      <span>玩家C</span>
-      <small>小宇 · AI跟班</small>
-    </button>
-  </div>
-  <div class="picks">
-    <button type="button" data-lv="0">第1关</button>
-    <button type="button" data-lv="1">第2关</button>
-    <button type="button" data-lv="2">第3关</button>
-    <button type="button" data-lv="3">第4关</button>
-    <button type="button" data-lv="4">第5关</button>
-    <button type="button" data-lv="5">第6关</button>
-    <button type="button" data-lv="6">第7关</button>
-    <button type="button" data-lv="7">第8关</button>
-  </div>
-  <p class="keys">方向键 / AD 移动 · W / 空格跳 · F / J 投掷（默认站立，不自动跑）</p>
-  <p class="netHint">双人：主机点「同机双人→开始」开房；另一台点「玩家B」或蓝忍者加入（?room=名字可换房）。点玩家C开关小宇AI跟班。微信用浏览器打开。</p>
 </div>
 
 <div id="roomPanel" class="hidden" aria-hidden="true">
-  <div class="roomCard">
+  <div class="roomCard lobbyRoom">
+    <div class="onlinePill roomPill">ROOM</div>
     <h2 id="roomTitle">联网配对</h2>
     <p id="roomSub">自动寻找搭档</p>
     <p class="roomWait" id="roomWait">请稍等…</p>
@@ -107,14 +134,14 @@
       <button type="button" data-nlv="6">第7关</button>
       <button type="button" data-nlv="7">第8关</button>
     </div>
-    <button id="roomClose" class="roomClose" type="button">取消</button>
+    <button id="roomClose" class="roomClose" type="button">返回大厅</button>
   </div>
 </div>
 <div id="panel" class="hidden">
   <div class="card">
     <h2 id="panelTitle">过关了!</h2>
     <p id="panelSub">Level clear!</p>
-    <button id="panelBtn" type="button">下一关 Next</button>
+    <button id="panelBtn" type="button">下一关</button>
   </div>
 </div>
 <div id="touch" class="hidden">
@@ -144,6 +171,6 @@
   </div>
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="game.js?v=3058"></script>
+<script src="game.js?v=3059"></script>
 </body>
 </html>

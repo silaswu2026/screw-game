@@ -130,3 +130,139 @@ button{font:inherit;font-weight:900;border:0;cursor:pointer}
 .netBanner.hidden{display:none}
 .netBanner.ok{background:#1d4e38}
 .netBanner.warn{background:#9a3412}
+
+
+/* ===== ONLINE LOBBY (v3059) ===== */
+body{background:#0b1f2a}
+#menu{
+  top:0;left:0;right:0;bottom:0;
+  padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 12px);
+  display:flex;align-items:flex-start;justify-content:center;
+  overflow:auto;-webkit-overflow-scrolling:touch;
+  background:radial-gradient(120% 80% at 50% -10%,#1a5c4a 0%,#0b1f2a 55%,#07141c 100%);
+  pointer-events:auto;
+}
+#menu .lobby{
+  pointer-events:auto;
+  width:min(96vw,440px);
+  margin:0 auto;
+  background:linear-gradient(180deg,#14283aee,#0e1c28f2);
+  border:2px solid #2a6b7a;
+  border-radius:22px;
+  box-shadow:0 0 0 1px #ffffff14 inset,0 18px 40px #0008;
+  padding:14px 14px 16px;
+  text-align:center;
+  color:#e8f4ff;
+}
+.lobbyTop{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.onlinePill{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:900;letter-spacing:.12em;
+  color:#7dffb3;background:#0d3b28;border:1px solid #2f9e6a;
+  border-radius:999px;padding:5px 10px;
+}
+.onlinePill::before{content:"";width:7px;height:7px;border-radius:50%;background:#3ecf6e;box-shadow:0 0 8px #3ecf6e}
+.roomPill{margin:0 auto 8px}
+#menu h1{margin:4px 0 0;font-size:clamp(26px,7vw,40px);color:#fff;text-shadow:0 3px 0 #0a3d2e,0 8px 20px #0006;line-height:1.1}
+#menu h1 span{display:block;font-size:.42em;letter-spacing:.18em;color:#7ec8ff;text-shadow:none;margin-top:4px;font-weight:800}
+#menu .lead{margin:6px 0 12px;color:#a8c4d8;font-weight:800;font-size:13px;text-shadow:none}
+.backClassroom{
+  margin:0;padding:7px 12px;border-radius:999px;
+  background:#ffffff14;color:#d6e8f5;font-weight:900;font-size:13px;
+  text-decoration:none;border:1px solid #ffffff22;box-shadow:none
+}
+.backClassroom:active{transform:translateY(1px)}
+
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
+.modes button{
+  background:#0f2230;color:#9eb6c8;border-radius:14px;padding:12px 10px;font-size:15px;
+  min-width:0;box-shadow:none;border:2px solid #243c4e
+}
+.modes button.on{
+  background:linear-gradient(180deg,#3ecf6e,#1f9d49);color:#042814;
+  border-color:#7dffb3;box-shadow:0 4px 0 #0d5c30
+}
+#mode2.on{
+  background:linear-gradient(180deg,#4fc3ff,#1a7fd4);color:#031828;
+  border-color:#9be7ff;box-shadow:0 4px 0 #0d4f8a
+}
+
+.party{
+  background:#0a1822aa;border:1px solid #2a4a5c;border-radius:16px;
+  padding:10px 8px 12px;margin-bottom:12px;text-align:left
+}
+.partyHead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 4px 8px}
+.partyHead b{font-size:14px;color:#fff}
+.partyHead small{font-size:11px;color:#7f9bb0;font-weight:800}
+
+.castRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 10px;max-width:none}
+.cast{
+  width:auto;padding:8px 6px 10px;border-radius:14px;
+  background:#122636;border:2px solid #2a4a5c;box-shadow:none;
+  color:#dceaf5;font-size:11px;position:relative
+}
+.cast img{height:72px;border-radius:10px;margin-bottom:6px;border:1px solid #ffffff18}
+.cast .slotTag{
+  position:absolute;top:10px;left:10px;font-size:10px;font-weight:900;
+  padding:2px 6px;border-radius:6px;background:#0008;color:#fff
+}
+.cast .slotTag.host{background:#1f9d49}
+.cast .slotTag.join{background:#1a7fd4}
+.cast .slotTag.ai{background:#c62828}
+.cast .slotName{display:block;font-weight:900;font-size:12px;margin-bottom:2px}
+.cast .slotState{display:block;font-size:10px;font-weight:800;color:#7f9bb0}
+.cast .slotState[data-state="ready"]{color:#7dffb3}
+.cast .slotState[data-state="empty"]{color:#7f9bb0}
+.cast.on{border-color:#3ecf6e;background:#143528;box-shadow:0 0 0 1px #3ecf6e55}
+.cast[data-color="blue"].on{border-color:#3aa6ff;background:#123048;box-shadow:0 0 0 1px #3aa6ff55}
+.cast[data-color="red"].on{border-color:#ff5a5a;background:#3a1515;box-shadow:0 0 0 1px #ff5a5a55}
+
+.netCast{gap:8px;margin-top:0}
+.netCastBtn{
+  flex:1;min-width:0!important;padding:8px 6px 10px!important;border-radius:14px!important;
+  font-size:13px!important;border:2px solid transparent
+}
+.netCastBtn img{width:56px;height:56px}
+#netHost.netCastBtn{background:linear-gradient(180deg,#3ecf6e,#1f9d49);color:#042814;box-shadow:0 4px 0 #0d5c30;border-color:#7dffb3}
+#netJoin.netCastBtn{background:linear-gradient(180deg,#4fc3ff,#1a7fd4);color:#031828;box-shadow:0 4px 0 #0d4f8a;border-color:#9be7ff}
+#netJoinC.netCastBtn{background:linear-gradient(180deg,#ff8a80,#e53935);color:#3b0000;box-shadow:0 4px 0 #8e1c1c;border-color:#ffcdd2}
+#netJoinC.on{outline:2px solid #fff;filter:brightness(1.08)}
+
+#play{
+  width:100%;margin:0 0 12px;padding:16px 18px;font-size:20px;border-radius:16px;
+  background:linear-gradient(180deg,#ffe14a,#ff9f1a);color:#4a2a00;
+  border:2px solid #ffe9a0;box-shadow:0 6px 0 #c46a00,0 10px 24px #0005
+}
+#play:active{transform:translateY(4px);box-shadow:0 2px 0 #c46a00}
+
+.levelPick{margin:0 0 8px;text-align:left}
+.picks{margin-top:0;gap:6px}
+.picks button{
+  background:#122636;color:#d6e8f5;border-radius:12px;padding:9px 10px;min-width:58px;
+  box-shadow:none;border:1px solid #2a4a5c;font-size:13px
+}
+.picks button:active{transform:translateY(1px)}
+.keys,.netHint{color:#7f9bb0;text-shadow:none;font-size:12px;margin:6px 0 0;line-height:1.4}
+.netHint{opacity:.95}
+
+.lobbyRoom{
+  background:linear-gradient(180deg,#163044,#0e1c28)!important;
+  border:2px solid #2a6b7a!important;color:#e8f4ff;
+  box-shadow:0 18px 40px #0008!important
+}
+.lobbyRoom h2{color:#7dffb3!important}
+#roomSub,.roomWait{color:#a8c4d8!important}
+.roomClose{background:#1a2f3e!important;color:#d6e8f5!important;border:1px solid #2a4a5c;box-shadow:none!important}
+
+.netBanner{background:#0e1c28;border:1px solid #2a6b7a;font-size:12px;letter-spacing:.02em}
+.netBanner.ok{background:#0d3b28;border-color:#2f9e6a}
+.netBanner.warn{background:#4a1c0a;border-color:#c45c2a}
+
+@media (orientation:landscape) and (max-height:460px){
+  #menu{width:100%;align-items:stretch;padding-top:8px}
+  #menu .lobby{width:min(92vw,640px)}
+  #menu h1{font-size:28px}
+  .cast img{height:56px}
+  .netCastBtn img{width:44px;height:44px}
+  #play{padding:12px;font-size:17px}
+}

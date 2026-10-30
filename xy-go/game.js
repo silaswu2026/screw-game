@@ -4661,7 +4661,7 @@
     mode2.classList.add('on');
     mode1.classList.remove('on');
     syncCompanionUi();
-    toast('同机=一屏双人+红AI（联网请点玩家A/B）');
+    toast('创建房间=主机开房；对方点「加入·玩家B」');
   });
   document.getElementById('play').addEventListener('click', () => {
     requestLocalOrSoloStart(0);
