@@ -288,32 +288,72 @@ function reward(PT){cancelAnimationFrame(a0);const cv=$('cv0'),g=cv.getContext('
    g.fillStyle='#fff';g.font='bold 16px sans-serif';g.fillText('没奖励',X0+58,272);g.fillText('有奖励',X0+238,272);}
   if(t>DUR){g.fillStyle='#0f1230dd';g.fillRect(40,20,480,60);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText('奖励让人还想玩 → ⏰ 适度玩，到点就停',58,58);}
   if(t<DUR+2)a0=requestAnimationFrame(f);})(performance.now());}
-const SL=['先简单，再变难','🎁 奖励：让人超兴奋','🏆 最难的关 = 最大的奖','🛒 生活里也一样','🤫 秘密','⏱️ 频率：多久来一次','📍 摆放：分开还是挤','🎮 任天堂四步：教→练→变→考'];let sl=0;
+const SL=['先简单，再变难','🎁 奖励：让人超兴奋','🏆 最难的关 = 最大的奖','🛒 生活里也一样','🎣 阶梯刺激 + 钩子','🤫 秘密','🛠️ 我们做设计钩子的人','⏱️ 频率：多久来一次','📍 摆放：分开还是挤','🎮 任天堂四步：教→练→变→考'];let sl=0;
 function slide(n){sl=(n+SL.length)%SL.length;$('slt').textContent=SL[sl];$('sld').textContent=SL.map((_,i)=>i===sl?'●':'○').join('');play0(0);}
 $('slp').onclick=()=>slide(sl-1);$('sln').onclick=()=>slide(sl+1);
 const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);if(sl===0)return scene0(PT);if(sl===1)return reward(PT);const cv=$('cv0'),g=cv.getContext('2d'),W=cv.width,H=cv.height,start=performance.now()-(PT||0)*1000;
  (function f(now){const t=(now-start)/1000;g.clearRect(0,0,W,H);g.font='bold 22px sans-serif';
-  if(sl===5||sl===6){const lanes=sl===5?[['地刺 每3秒',[3,7,11],3,'掉 0❤','#9ff0a8'],['地刺 每1秒',[3,7,11],1,'掉 2❤','#ff6b6b']]:[['分开 · 有喘气',[2,6,10],2,'掉 1❤','#9ff0a8'],['挤在一起',[6,7,8],2,'掉 3❤','#ff6b6b']];
+  if(sl===7||sl===8){const lanes=sl===7?[['地刺 每3秒',[3,7,11],3,'掉 0❤','#9ff0a8'],['地刺 每1秒',[3,7,11],1,'掉 2❤','#ff6b6b']]:[['分开 · 有喘气',[2,6,10],2,'掉 1❤','#9ff0a8'],['挤在一起',[6,7,8],2,'掉 3❤','#ff6b6b']];
    lanes.forEach(([lab,xs,iv,res,col],li)=>{const y0=20+li*140,gy=y0+110,cw=(W-200)/13,T=Math.min(t,8),nx=60+T/8*13*cw;
     g.fillStyle='#ffffff10';g.fillRect(10,y0,W-20,128);g.fillStyle='#6b4f2f';g.fillRect(60,gy,13*cw,14);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText(lab,16,y0+24);
-    g.font='34px sans-serif';xs.forEach(x=>{if(sl===5){if((t%iv)<.6){const a=60+x*cw;for(let k=0;k<3;k++){g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(a+k*12,gy);g.lineTo(a+k*12+6,gy-26);g.lineTo(a+k*12+12,gy);g.closePath();g.fill();}}else{g.fillStyle='#3a3a42';g.fillRect(60+x*cw,gy-4,36,5);}}else g.fillText('🔥',60+x*cw,gy-4);});
+    g.font='34px sans-serif';xs.forEach(x=>{if(sl===7){if((t%iv)<.6){const a=60+x*cw;for(let k=0;k<3;k++){g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(a+k*12,gy);g.lineTo(a+k*12+6,gy-26);g.lineTo(a+k*12+12,gy);g.closePath();g.fill();}}else{g.fillStyle='#3a3a42';g.fillRect(60+x*cw,gy-4,36,5);}}else g.fillText('🔥',60+x*cw,gy-4);});
     const near=xs.find(x=>T*13/8>x-.5&&T*13/8<x+.8);g.fillText('🥷',nx-10,gy-4-(near!=null?40:0));
     if(t>8){g.fillStyle=col;g.font='bold 30px sans-serif';g.fillText(res,W-170,y0+80);}});}
-  if(sl===2){const A=LDART.ART,lv=[['第1关',1],['第2关',2],['第3关',3],['大BOSS',6]];
-   lv.forEach(([n,d],i)=>{const x=40+i*225,on=t>i*1.2,h=Math.min(1,Math.max(0,(t-i*1.2)/1))*d*24;g.fillStyle='#ffffff14';g.fillRect(x,20,190,230);
-    if(on){const big=i===3;if(big){const gr=g.createRadialGradient(x+95,140,10,x+95,140,140);gr.addColorStop(0,'#ffe14acc');gr.addColorStop(1,'#ffe14a00');g.fillStyle=gr;g.fillRect(x-40,0,270,280);}
-     g.fillStyle=big?'#ffd23f':'#9ff0a8';g.fillRect(x+70,230-h,50,h);
-     for(let k=0;k<d;k++)if(A.star)g.drawImage(A.star,x+95-d*14+k*28+(big?Math.sin(t*6+k)*6:0),200-h-30-(big?Math.abs(Math.sin(t*3+k))*20:0),28,28);}
-    g.fillStyle='#fff';g.font='bold 22px sans-serif';g.fillText(n,x+60,270);});
-   g.fillStyle='#ffe7a0';g.font='bold 22px sans-serif';g.fillText('越难 → 奖越大 → 越想打到最后',260,296);}
+  if(sl===2){const A=LDART.ART,lv=[['第1关',1],['第2关',2],['第3关',3],['大BOSS',5]];
+   const fin=t>5.2,ct=t-5.2;
+   if(!fin){lv.forEach(([n,d],i)=>{const x=40+i*225,on=t>i*1.1,h=Math.min(1,Math.max(0,(t-i*1.1)/.9))*d*28;g.fillStyle='#ffffff14';g.fillRect(x+30*i*0,20+(3-i)*0,190,230);
+     g.fillStyle=i===3?'#ff5a5a':'#9ff0a8';g.fillRect(x+70,230-h,50,h);if(on){g.fillStyle='#fff';g.font='bold 18px sans-serif';g.fillText('难度 '+'▲'.repeat(d),x+40,40);}
+     if(i===3&&on){const im=LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,x+20,230-h-90,90,90);}
+     g.fillStyle='#fff';g.font='bold 22px sans-serif';g.fillText(n,x+60,272);});
+    if(t>4.3){g.fillStyle='#ffe07a';g.font='bold 40px sans-serif';g.fillText('打败大BOSS！',330,140);}}
+   else{// 全屏大奖
+    const gr=g.createRadialGradient(W/2,170,10,W/2,170,520);gr.addColorStop(0,'#fff3b0');gr.addColorStop(.35,'#ffc53d');gr.addColorStop(1,'#6b2c00');g.fillStyle=gr;g.fillRect(0,0,W,H);
+    g.save();g.translate(W/2,170);g.rotate(ct*.4);for(let k=0;k<16;k++){g.rotate(Math.PI/8);g.fillStyle='#ffffff30';g.beginPath();g.moveTo(0,0);g.lineTo(600,-40);g.lineTo(600,40);g.closePath();g.fill();}g.restore();
+    // 烟花
+    for(let k=0;k<6;k++){const fx=120+k*150,fy=60+(k%2)*40,p=((ct+k*.37)%1.6)/1.6,rr=p*80;for(let j=0;j<12;j++){const a=j/12*Math.PI*2;g.fillStyle=['#ff5a5a','#4ec96b','#5ab0ff','#ffe14a','#ff8af0','#fff'][k];g.globalAlpha=1-p;g.beginPath();g.arc(fx+Math.cos(a)*rr,fy+Math.sin(a)*rr,4,0,7);g.fill();}g.globalAlpha=1;}
+    // 大宝箱
+    const op=Math.min(1,ct/.6),cx=W/2,cy=205,sc=1+Math.min(.25,ct*.5);g.save();g.translate(cx,cy);g.scale(sc,sc);
+    g.fillStyle='#8b5a2b';g.fillRect(-110,-70,220,70);g.fillStyle='#ffd166';g.fillRect(-110,-44,220,10);g.fillRect(-14,-70,28,70);
+    g.save();g.translate(0,-70);g.rotate(-op*1.1);g.fillStyle='#a0692f';g.fillRect(-110,-40,220,40);g.fillStyle='#ffd166';g.fillRect(-14,-40,28,40);g.restore();
+    g.restore();
+    // 金币喷发
+    for(let k=0;k<30;k++){const a=-Math.PI/2+(k/30-.5)*2.2,v=200+(k*37%90),tt=((ct+k*.07)%1.8),x=cx+Math.cos(a)*v*tt,y=cy-80+Math.sin(a)*v*tt+260*tt*tt;if(A.coin&&y<H)g.drawImage(A.coin,x-14,y-14,28,28);}
+    if(ct>.6){g.fillStyle='#fff';g.font='120px sans-serif';g.fillText('🏆',cx-62,cy-110-Math.min(30,ct*20));}
+    if(A.star)for(let k=0;k<8;k++)g.drawImage(A.star,cx-260+k*70,cy-30+Math.sin(ct*5+k)*12,36,36);
+    if(ct>1){g.fillStyle='#7a2a00';g.font='bold 46px sans-serif';g.fillText('超级大奖！！',cx-140,H-10);}
+    const im=LDART.JUMP;if(im&&im.complete)g.drawImage(im,cx+170,cy-150-Math.abs(Math.sin(ct*4))*40,130,130);}}
   if(sl===3){const IT=[['🃏','零食抽卡','隐藏款！'],['🎰','游乐场','积分换大奖'],['🛍️','商场集章','集满送礼'],['📱','短视频','下一个…']];
    IT.forEach(([e,a,b],i)=>{const x=20+i*235,on=t>i*.8,bob=on?Math.sin(t*4+i)*6:0;g.fillStyle=on?'#ffffff1c':'#ffffff08';g.fillRect(x,20,215,250);
     g.globalAlpha=on?1:.3;g.fillStyle='#fff';g.font='86px sans-serif';g.fillText(e,x+60,150+bob);g.font='bold 26px sans-serif';g.fillText(a,x+108-a.length*13,205);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText(b,x+108-b.length*10,245);g.globalAlpha=1;});}
-  if(sl===4){g.fillStyle='#fff';g.font='64px sans-serif';g.fillText('🧠✨',60,120);g.fillStyle='#ffe7a0';g.font='bold 34px sans-serif';g.fillText('多巴胺：「还想再来一次！」',200,110);
+  if(sl===4){// 阶梯刺激 + 钩子
+   const st=[0,1,2,3];st.forEach(i=>{const x=30+i*90,y=250-i*45;g.fillStyle='#3b4590';g.fillRect(x,y,90,260-y);g.fillStyle='#ffe07a';g.font=(18+i*8)+'px sans-serif';if(t>i*.6)g.fillText(['🪙','🪙','⭐','🏆'][i],x+30-i*4,y-8);});
+   const ni=Math.min(3,Math.floor(t/.8)),im=LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,30+ni*90+10,250-ni*45-74,70,70);
+   g.fillStyle='#fff';g.font='bold 20px sans-serif';g.fillText('每一步：难一点 · 奖大一点',30,290);
+   // 钓鱼：看见鱼饵 → 咬 → 被钩住
+   const ox=470,ph=t<2.5?0:t<4?1:2,hy=ph<2?150:150-Math.min(80,(t-4)*70);
+   g.strokeStyle='#ddd';g.lineWidth=2;g.beginPath();g.moveTo(ox+250,0);g.lineTo(ox+250,hy);g.stroke();
+   g.strokeStyle='#c0c8d0';g.lineWidth=7;g.beginPath();g.arc(ox+236,hy,18,0,Math.PI);g.stroke();
+   if(ph<1){g.fillStyle='#fff';g.font='48px sans-serif';g.fillText('🪱',ox+222,hy+50);}
+   const fx=ph===0?ox+40+t/2.5*150:ox+200,fy=ph<2?hy+24:hy+24;g.save();g.translate(fx,fy);if(ph===2)g.rotate(Math.sin(t*20)*.4);g.font='100px sans-serif';g.fillStyle='#fff';g.fillText('🐟',-50,36);g.restore();
+   g.fillStyle='#ffe7a0';g.font='bold 24px sans-serif';g.fillText(['① 看见鱼饵','② 咬一口','③ 被钩住！'][ph],ox+20,40);
+   if(ph===2){g.fillStyle='#ff5a5a';g.font='bold 30px sans-serif';g.fillText('受伤的是自己',ox+40,290);}
+   if(t>6.5){g.fillStyle='#000e';g.fillRect(0,0,W,H);g.fillStyle='#fff';g.font='48px sans-serif';g.fillText('🃏 📱 🎰 🛍️  =  🪝',250,140);g.fillStyle='#ffe07a';g.font='bold 30px sans-serif';g.fillText('抽卡、刷视频……都是钩子',300,210);g.fillStyle='#ff8a8a';g.font='bold 26px sans-serif';g.fillText('咬太多，伤的是自己',340,260);}}
+  if(sl===6){// 我们做设计钩子的人：关卡地图
+   const A=LDART.ART,ST=[['鱼饵','超简单',['coin'],0],['难一点','',['spike','coin'],1],['再难点','小奖',['fire','star'],2],['大BOSS','大奖！',['boss','chest'],3]];
+   ST.forEach(([a,b,its,i])=>{const x=20+i*232,y=230-i*40,on=t>i*1.2;g.fillStyle=on?'#2f7a45':'#ffffff14';g.fillRect(x,y,220,270-y);g.fillStyle='#4ea85c';g.fillRect(x,y,220,6);
+    if(!on)return;g.fillStyle='#ffe07a';g.font='bold 24px sans-serif';g.fillText(['①','②','③','④'][i]+' '+a,x+10,y+36);g.fillStyle='#fff';g.font='bold 18px sans-serif';if(b)g.fillText(b,x+10,y+62);
+    its.forEach((k,j)=>{const ix=x+70+j*70,iy=y-56;if(k==='spike'){for(let q=0;q<3;q++){g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(ix+q*16,y);g.lineTo(ix+q*16+8,y-28);g.lineTo(ix+q*16+16,y);g.closePath();g.fill();}}
+     else if(k==='boss'){g.font='54px sans-serif';g.fillStyle='#fff';g.fillText('🐊',ix-10,y-6);}else if(k==='chest'){g.font=(48+Math.sin(t*6)*6)+'px sans-serif';g.fillStyle='#fff';g.fillText('🎁',ix,y-8);}
+     else if(A[k])g.drawImage(A[k],ix,iy+8,i===0?44:40,i===0?44:40);});});
+   const p=Math.min(3.99,t/1.3),k=Math.floor(p),im=LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,20+k*232+(p-k)*150,230-k*40-90,80,80);
+   if(t>5.5){g.fillStyle='#000d';g.fillRect(0,0,W,H);g.fillStyle='#9ff0a8';g.font='bold 40px sans-serif';g.fillText('我们做设计钩子的人 🛠️',230,110);
+    g.fillStyle='#fff';g.font='bold 26px sans-serif';g.fillText('鱼饵 → 阶梯变难 → 小奖 → 大奖',270,170);
+    g.fillStyle='#ffd23f';g.font='bold 26px sans-serif';g.fillText('不做被设计的人 · ⏰ 什么时候停，我自己决定',170,240);}}
+  if(sl===5){g.fillStyle='#fff';g.font='64px sans-serif';g.fillText('🧠✨',60,120);g.fillStyle='#ffe7a0';g.font='bold 34px sans-serif';g.fillText('多巴胺：「还想再来一次！」',200,110);
    if(t>1.5){g.fillStyle='#fff';g.font='bold 26px sans-serif';g.fillText('这些都是设计的人故意做的',200,160);}
    if(t>3){g.fillStyle='#9ff0a8';g.font='bold 36px sans-serif';g.fillText('做看懂设计的人，',60,230);g.fillText('不做被设计的人 💪',380,230);}
    if(t>4.5){g.fillStyle='#ffd23f';g.font='bold 24px sans-serif';g.fillText('⏰ 什么时候停，我自己决定',300,280);}}
-  if(sl===7){const A=LDART.ART,cw=(W-40)/4,ST=[['① 教','安全地方先见到',['rock']],['② 练','再来几次',['rock','rock']],['③ 变','加新花样',['rock','fire']],['④ 考','全用上，过关！',['rock','fire','sand','flag']]];
+  if(sl===9){const A=LDART.ART,cw=(W-40)/4,ST=[['① 教','安全地方先见到',['rock']],['② 练','再来几次',['rock','rock']],['③ 变','加新花样',['rock','fire']],['④ 考','全用上，过关！',['rock','fire','sand','flag']]];
    ST.forEach(([a,b,its],i)=>{const x=20+i*cw,on=t>i*1.5,cur=Math.min(3,Math.floor(t/1.5))===i;g.fillStyle=on?'#2f7a4588':'#ffffff10';g.fillRect(x+6,10,cw-12,215);if(cur){g.strokeStyle='#ffe7a0';g.lineWidth=4;g.strokeRect(x+6,10,cw-12,215);}
     g.fillStyle='#ffe7a0';g.font='bold 28px sans-serif';g.fillText(a,x+20,46);g.fillStyle='#6b4f2f';g.fillRect(x+14,170,cw-28,12);g.fillStyle='#4ea85c';g.fillRect(x+14,166,cw-28,5);
     its.forEach((k,j)=>g.drawImage(A[k],x+80+j*(cw-110)/Math.max(1,its.length),124,44,44));
