@@ -7,7 +7,7 @@
     SP + 'walk_0.png', SP + 'walk_1.png', SP + 'walk_2.png', SP + 'walk_3.png',
     SP + 'idle.png', SP + 'knock_0.png', SP + 'jump_0.png'
   ];
-  var W = 960, H = 360, DUR = 12, PAD = [2, 4, 6, 9];
+  var W = 960, H = 300, DUR = 12, PAD = [2, 4, 6, 9];
   var fStep = 1, fLast = null, sceneRef = null;
   var spikeTex = null, spikeSmTex = null, cloudTex = null, hillTex = null, platTex = null;
   var audioCtx = null, lastRaised = false, thudAt = {};
@@ -228,48 +228,43 @@
       skyMid.setPosition(0, H - 220);
       this.addChild(skyMid, 0);
 
-      /* sun */
-      var sun = mkColor(36, 36, 255, 214, 120, 230);
-      sun.setPosition(W - 210, H - 70);
-      this.addChild(sun, 1);
-
       /* hills */
       var h1 = new cc.Sprite(hillTex);
       h1.setAnchorPoint(0, 0);
-      h1.setPosition(0, 64);
+      h1.setPosition(0, 90);
       h1.setOpacity(200);
       this.addChild(h1, 1);
       var h2 = new cc.Sprite(hillTex);
       h2.setAnchorPoint(0, 0);
       h2.setScaleX(-1);
-      h2.setPosition(W - 40, 56);
+      h2.setPosition(W - 40, 82);
       h2.setOpacity(170);
       this.addChild(h2, 1);
 
       /* clouds */
       for (var ci = 0; ci < 3; ci++) {
         var cl = new cc.Sprite(cloudTex);
-        cl.setPosition(80 + ci * 260, H - 50 - (ci % 2) * 18);
+        cl.setPosition(80 + ci * 260, H - 90 - (ci % 2) * 22);
         cl.setOpacity(160);
         cl.setScale(0.85 + ci * 0.1);
         this.addChild(cl, 2);
       }
 
       /* ground strip */
-      /* tall ground so the stage fills the old empty top void */
-      var ground = mkColor(W, 70, 107, 79, 47);
+      /* fill canvas: thick ground + grass so stage is not an empty navy box */
+      var ground = mkColor(W, 100, 107, 79, 47);
       ground.setPosition(0, 0);
       this.addChild(ground, 3);
-      var grass = mkColor(W, 12, 78, 168, 92);
-      grass.setPosition(0, 62);
+      var grass = mkColor(W, 14, 78, 168, 92);
+      grass.setPosition(0, 92);
       this.addChild(grass, 4);
-      var dirtLine = mkColor(W, 3, 80, 55, 35, 140);
-      dirtLine.setPosition(0, 28);
+      var dirtLine = mkColor(W, 4, 80, 55, 35, 140);
+      dirtLine.setPosition(0, 40);
       this.addChild(dirtLine, 4);
 
       /* full-width ground math — no top timeline strip, no side black card */
       var L = 24, cw = (W - 48) / 12;
-      this.L = L; this.cw = cw; this.gy = 70;
+      this.L = L; this.cw = cw; this.gy = 100;
       this.cells = [];
       this.marks = [];
 
