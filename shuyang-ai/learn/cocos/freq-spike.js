@@ -236,13 +236,13 @@
       /* hills */
       var h1 = new cc.Sprite(hillTex);
       h1.setAnchorPoint(0, 0);
-      h1.setPosition(0, 28);
+      h1.setPosition(0, 64);
       h1.setOpacity(200);
       this.addChild(h1, 1);
       var h2 = new cc.Sprite(hillTex);
       h2.setAnchorPoint(0, 0);
       h2.setScaleX(-1);
-      h2.setPosition(W - 40, 20);
+      h2.setPosition(W - 40, 56);
       h2.setOpacity(170);
       this.addChild(h2, 1);
 
@@ -256,19 +256,20 @@
       }
 
       /* ground strip */
-      var ground = mkColor(W, 34, 107, 79, 47);
+      /* tall ground so the stage fills the old empty top void */
+      var ground = mkColor(W, 70, 107, 79, 47);
       ground.setPosition(0, 0);
       this.addChild(ground, 3);
-      var grass = mkColor(W, 10, 78, 168, 92);
-      grass.setPosition(0, 26);
+      var grass = mkColor(W, 12, 78, 168, 92);
+      grass.setPosition(0, 62);
       this.addChild(grass, 4);
       var dirtLine = mkColor(W, 3, 80, 55, 35, 140);
-      dirtLine.setPosition(0, 12);
+      dirtLine.setPosition(0, 28);
       this.addChild(dirtLine, 4);
 
       /* full-width ground math — no top timeline strip, no side black card */
       var L = 24, cw = (W - 48) / 12;
-      this.L = L; this.cw = cw; this.gy = 34;
+      this.L = L; this.cw = cw; this.gy = 70;
       this.cells = [];
       this.marks = [];
 
@@ -382,23 +383,8 @@
           var pulse = 1 + 0.08 * Math.sin(tt * 18);
           spk.setScale(Math.max(0.85, (cw * 0.9) / 72) * pulse);
         }
-        if (tt >= p && up(p)) {
-          if (tt - p < 1) {
-            hurt = true;
-            this.hitLabs[pi].setString('-1❤');
-            this.hitLabs[pi].setFontFillColor(cc.color(255, 107, 107));
-          } else {
-            this.hitLabs[pi].setString('✓');
-            this.hitLabs[pi].setFontFillColor(cc.color(159, 240, 168));
-          }
-        } else if (tt >= p + 0.3) {
-          this.hitLabs[pi].setString(up(p) ? '' : '✓');
-          this.hitLabs[pi].setFontFillColor(cc.color(159, 240, 168));
-          if (!up(p) && tt >= p) this.hitLabs[pi].setString('✓');
-          else if (!(tt >= p && up(p))) this.hitLabs[pi].setString('');
-        } else {
-          this.hitLabs[pi].setString('');
-        }
+        if (this.hitLabs[pi]) this.hitLabs[pi].setString('');
+        if (tt >= p && up(p) && (tt - p < 1)) hurt = true;
       }
 
       var nx = Math.min(W - 80, L + tt / DUR * 12 * cw);
