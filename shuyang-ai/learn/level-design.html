@@ -56,8 +56,12 @@ svg{width:100%;height:100%;min-height:0}
 <div class="msg" id="fRes" style="font-size:22px;font-weight:800"></div>
 <div id="fBt" style="text-align:center"><button class="go sm" id="fRun">🏃 练：跑一次</button> <button class="go sm" id="fTw" style="background:linear-gradient(180deg,#ffb06b,#e2793b)">🔀 变：每1秒！</button> <button class="go sm" id="fEx" style="background:linear-gradient(180deg,#ff8a8a,#e23b3b)">🏁 考：最后一跑</button></div></section>
 <section class="stage" id="sQ"><h2 class="s1h" id="sQt">📍 位置：把地刺拖到别的地方</h2><div class="n4" id="n4q"></div>
-<canvas id="cvQ" width="960" height="280" style="width:100%;flex:1;min-height:0;background:#0006;border-radius:12px;touch-action:none;cursor:grab"></canvas>
+<canvas id="cvQ" width="960" height="340" style="width:100%;flex:1;min-height:0;background:#0006;border-radius:12px;touch-action:none;cursor:grab"></canvas>
 <div class="msg" id="qRes" style="font-size:22px;font-weight:800"></div></section>
+<section class="stage" id="sD"><h2 class="s1h" id="sDt">💥 难度 = 被扎几次 × 每次掉几❤</h2><div class="n4" id="n4d"></div>
+<div id="dCt" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:15px;font-weight:800"></div>
+<canvas id="cvD" width="960" height="230" style="width:100%;flex:1;min-height:0;background:#0006;border-radius:12px"></canvas>
+<div class="msg" id="dRes" style="font-size:22px;font-weight:800"></div></section>
 <section class="stage" id="sP"><h2 id="sPt">👀 忍者自动闯关</h2><div class="n4" id="n4b"></div>
 <canvas id="cv" width="960" height="220" style="width:100%;flex:1;min-height:0;background:#0006;border-radius:12px"></canvas>
 <div class="msg" id="res" style="min-height:24px"></div>
@@ -314,7 +318,7 @@ const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);if(sl===0)return sce
    g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText('② 频率   ③ 位置   ④ 难度  —— 每一块都走这 4 步：动手=教，预览=练→变→考',24,262);}
   if(t<12)a0=requestAnimationFrame(f);})(performance.now());};
 $('play0').onclick=()=>play0(0);
-function updHP(){try{const h=(MODE==='freq'&&$('sF').classList.contains('on')&&fHits!=null)?fHits:($('sQ').classList.contains('on')&&qHits!=null)?qHits:totalHits(),M=6,left=Math.max(0,M-h);$('hp').innerHTML=`${'❤'.repeat(left)}${'🤍'.repeat(M-left)} <span style="font-size:12px;color:#c9c3ef">${$('sF').classList.contains('on')?'频率 → 掉':$('sQ').classList.contains('on')?'位置 → 掉':'难度=频率×摆放 → 掉'}${h}❤</span>`;}catch(e){}}setInterval(updHP,300);setTimeout(updHP,0);
+function updHP(){try{const h=(MODE==='freq'&&$('sF').classList.contains('on')&&fHits!=null)?fHits:($('sQ').classList.contains('on')&&qHits!=null)?qHits:($('sD').classList.contains('on')&&dHits!=null)?dHits:totalHits(),M=6,left=Math.max(0,M-h);$('hp').innerHTML=`${'❤'.repeat(left)}${'🤍'.repeat(M-left)} <span style="font-size:12px;color:#c9c3ef">${$('sF').classList.contains('on')?'频率 → 掉':$('sQ').classList.contains('on')?'位置 → 掉':$('sD').classList.contains('on')?'难度 → 掉':'难度=频率×摆放 → 掉'}${h}❤</span>`;}catch(e){}}setInterval(updHP,300);setTimeout(updHP,0);
 let aR=null;const IMN=new Image();IMN.src='img/ninjas.png';const IMC=new Image();IMC.src='img/critters.png';
 const WK=[0,1,2,3,4,5].map(n=>{const i=new Image();i.src='img/walk/w'+n+'.png';return i;});
 const SPX=n=>{const i=new Image();i.src='../../xy-go/sprites/green/'+n+'.png';return i;};const RX=[...WK,SPX('idle'),SPX('jump_0'),SPX('knock_0')];
@@ -346,6 +350,35 @@ function crisp(cv){if(!cv.clientWidth)return;if(!cv._lw){cv._lw=CWD.get.call(cv)
  CWD.set.call(cv,Math.round(cv._lw*k));CHD.set.call(cv,Math.round(cv._lh*k));const g=cv.getContext('2d');g.setTransform(k,0,0,k,0,0);g.imageSmoothingQuality='high';}
 function crispAll(){document.querySelectorAll('.stage.on canvas').forEach(crisp);}addEventListener('resize',()=>setTimeout(crispAll,50));
 
+
+// 难度块：伤害 × 冒得快 × 停留久
+let aD=null,dHits=null;const DS={dmg:1,fast:0,stay:0};
+const DOPT=[['dmg','💔',['1❤','2❤','3❤'],[1,2,3]],['fast','冒刺',['🐢 慢','🐇 快'],[0,1]],['stay','⏳ 停',['短','中','久'],[0,1,2]]];
+function dCalc(){const n=1+DS.stay+DS.fast;return {n,h:n*DS.dmg};}
+function dCtl(){$('dCt').innerHTML=DOPT.map(([k,lab,ns,vs])=>`<span style="background:#ffffff14;border-radius:12px;padding:2px 6px">${lab} `+ns.map((n,i)=>`<button class="go sm" data-k="${k}" data-v="${vs[i]}" style="padding:2px 8px;font-size:15px;${DS[k]===vs[i]?'background:linear-gradient(180deg,#ffe07a,#f0b400);color:#222':'background:#3b4590'}">${n}</button>`).join('')+'</span>').join('');
+ document.querySelectorAll('#dCt button').forEach(b=>b.onclick=()=>{DS[b.dataset.k]=+b.dataset.v;dCtl();dT0=performance.now();});}
+let dT0=0;
+function dView(quiz){cancelAnimationFrame(aD);const cv=$('cvD');dCtl();crisp(cv);const g=cv.getContext('2d'),W=cv.width,H=cv.height;dT0=performance.now();
+ $('sDt').textContent=quiz?'🏁 考：做一关，刚好掉 4❤':'💥 难度 = 被扎几次 × 每次掉几❤';n4('n4d',quiz?3:0);
+ const PD=[150,320,490,660],spk=(x,y,w,h)=>{for(let k=0;k<4;k++){const a=x+k*w/4;g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(a,y);g.lineTo(a+w/8,y-h);g.lineTo(a+w/4,y);g.closePath();g.fill();g.strokeStyle='#7a8794';g.lineWidth=1;g.stroke();}};
+ (function f(now){const t=(now-dT0)/1000,P=6,tt=Math.min(t,P),{n,h}=dCalc();dHits=h;g.clearRect(0,0,W,H);
+  const gy=H-36,nx=30+tt/P*740;g.fillStyle='#6b4f2f';g.fillRect(0,gy,860,40);g.fillStyle='#4ea85c';g.fillRect(0,gy,860,6);
+  // 哪些刺会扎到：停留越久，扎到越多；一下就冒 → 最后一个来不及看
+  const hitSet=new Set();for(let i=0;i<1+DS.stay;i++)hitSet.add(i);if(DS.fast)hitSet.add(3);
+  let jump=0,hurt=false,got=0;
+  PD.forEach((x,i)=>{const d=(x-nx)/740*P;let upH;// d=忍者到达前的秒数
+   if(hitSet.has(i)){upH=i===3&&DS.fast?(d<.15?40:0):(d<1.2+DS.stay*.6?40:0);}else{upH=i===3?(d<1.2&&d>-.4?40*Math.min(1,(1.2-d)/1):0):(d>.6&&d<1.4?40:0);if(i===3&&d<.8&&d>-.6)jump=Math.max(jump,Math.sin((.8-d)/1.4*Math.PI)*80);}
+   g.fillStyle='#3a3a42';g.fillRect(x-30,gy-4,60,8);if(upH>0)spk(x-28,gy-2,56,upH);
+   if(i===3&&!DS.fast&&upH>0&&d>0){g.fillStyle='#ffe07a';g.font='bold 30px sans-serif';g.fillText('!',x-6,gy-60);}
+   if(hitSet.has(i)&&nx>=x){got++;if(nx-x<70)hurt=true;g.fillStyle='#ff5a5a';g.font='bold 26px sans-serif';g.fillText('-'+DS.dmg+'❤',x-24,gy-110);}
+   else if(!hitSet.has(i)&&nx>x+30){g.fillStyle='#9ff0a8';g.font='bold 26px sans-serif';g.fillText('✓',x-8,gy-110);}});
+  const im=hurt?LDART.HURT:jump>4?LDART.JUMP:tt>=P?LDART.IDLE:LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,nx-50,gy-100-jump,100,100);
+  // 右侧大卡：次数 × 每次 = 总
+  const col=h<=1?'#4ec96b':h<=3?'#ffd23f':'#ff5a5a';g.fillStyle=col;g.beginPath();g.roundRect(W-150,10,140,H-20,16);g.fill();g.fillStyle='#1b1b2a';
+  g.font='bold 28px sans-serif';g.fillText(n+' 次',W-120,46);g.fillText('× '+DS.dmg+'❤',W-126,84);g.fillRect(W-135,96,110,4);g.font='bold 60px sans-serif';g.fillText(h+'❤',W-138,160);
+  g.font='bold 18px sans-serif';g.fillText(h<=1?'简单':h<=3?'中等':'很难',W-102,200);
+  $('dRes').innerHTML=quiz?(h===4?'✅ 刚好 4❤！你会调难度了':'现在 <b>'+h+'❤</b>，要 4❤'):'停得久→多扎 · 冒得快→躲不开 · 伤害大→翻倍';
+  if(t>P+1.5)dT0=now;aD=requestAnimationFrame(f);})(dT0);}
 // 位置块：拖一个地刺，看❤
 let qHits=null,aQ=null,qX=150,qDrag=false,qPick=null;
 const QZ=[[60,230,0,'空地 · 看得见','#4ec96b'],[230,330,1,'跳坑前','#ffd23f'],[330,450,3,'刚落地！','#ff5a5a'],[450,520,0,'空地','#4ec96b'],[520,620,3,'挨着火','#ff5a5a'],[620,760,0,'空地','#4ec96b'],[760,900,2,'跑很久才到','#ffd23f']];
@@ -354,12 +387,12 @@ function qTrack(g,y,sc,spX,t,show){const A=LDART.ART,gy=y+sc*90;
  g.fillStyle='#6b4f2f';g.fillRect(20,gy,940*sc,22*sc);g.fillStyle='#4ea85c';g.fillRect(20,gy,940*sc,5*sc);
  g.fillStyle='#111';g.fillRect(260*sc+20,gy,60*sc,22*sc);// 坑
  g.fillStyle='#fff';g.font=`${Math.round(70*sc)}px sans-serif`;g.fillText('🔥',10+545*sc,gy-2*sc);if(A.flag)g.drawImage(A.flag,20+880*sc,gy-56*sc,52*sc,52*sc);
- const sx=20+spX*sc,n=4,w=40*sc;for(let k=0;k<n;k++){const a=sx-w/2+k*w/n;g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(a,gy);g.lineTo(a+w/n/2,gy-26*sc);g.lineTo(a+w/n,gy);g.closePath();g.fill();g.strokeStyle='#7a8794';g.lineWidth=1;g.stroke();}
+ const sx=20+spX*sc,n=4,w=(sc<1?40:56)*sc;for(let k=0;k<n;k++){const a=sx-w/2+k*w/n;g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(a,gy);g.lineTo(a+w/n/2,gy-(sc<1?26:38)*sc);g.lineTo(a+w/n,gy);g.closePath();g.fill();g.strokeStyle='#7a8794';g.lineWidth=1;g.stroke();}
  // 忍者：匀速跑，坑和火要跳；容易的刺也跳过，难的刺被扎
  const z=qZone(spX),P=4.5,tt=t%(P+1),nx=Math.min(900,40+tt/P*860);let j=0;
  const arc=(c,r)=>Math.abs(nx-c)<r?Math.sin((nx-c+r)/(2*r)*Math.PI)*70:0;j=Math.max(arc(290,70),arc(567,50));if(z[2]===0)j=Math.max(j,arc(spX,45));
  const hit=z[2]>0&&nx>spX-10;const hurtNow=hit&&nx<spX+60;
- const im=hurtNow?(LDART.HURT||LDART.IDLE):j>4?LDART.JUMP:LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,20+(nx-45)*sc,gy-(90+j)*sc,90*sc,90*sc);
+ const im=hurtNow?(LDART.HURT||LDART.IDLE):j>4?LDART.JUMP:LDART.ninjaImg(),NS=sc<1?90:130;if(im&&im.complete)g.drawImage(im,20+(nx-NS/2)*sc,gy-(NS+j)*sc,NS*sc,NS*sc);
  if(hit&&show){g.fillStyle='#ff5a5a';g.font=`bold ${Math.round(30*sc)}px sans-serif`;g.fillText('-'+z[2]+'❤',sx-26*sc,gy-110*sc);}
  return z;}
 function qView(quiz){cancelAnimationFrame(aQ);const cv=$('cvQ');crisp(cv);const g=cv.getContext('2d'),W=cv.width,H=cv.height,t0=performance.now();
@@ -372,11 +405,11 @@ function qView(quiz){cancelAnimationFrame(aQ);const cv=$('cvQ');crisp(cv);const 
  cv.onpointerup=()=>qDrag=false;
  (function f(now){const t=(now-t0)/1000;g.clearRect(0,0,W,H);
   if(quiz){QS.forEach((x,i)=>{const y=i*H/3;g.fillStyle=qPick===i?(i===1?'#2f7a4588':'#7a2f2f88'):'#ffffff10';g.fillRect(4,y+3,W-8,H/3-6);g.fillStyle='#ffe7a0';g.font='bold 26px sans-serif';g.fillText('ABC'[i],8,y+34);qTrack(g,y-4,.95,x,t,qPick!=null);});}
-  else{const z=qTrack(g,90,1,qX,t,true);qHits=z[2];
+  else{const z=qTrack(g,140,1,qX,t,true);qHits=z[2];
    g.fillStyle=z[4];g.beginPath();g.roundRect(W-210,8,200,92,16);g.fill();g.fillStyle='#1b1b2a';g.font='bold 54px sans-serif';g.fillText(z[2]+'❤',W-196,68);g.font='bold 18px sans-serif';g.fillText(z[3],W-196,92);
-   g.fillStyle='#fff';g.font='bold 18px sans-serif';g.fillText('👆 拖地刺',20+qX-40,250);
+   g.fillStyle='#fff';g.font='bold 18px sans-serif';g.fillText('👆 拖地刺',20+qX-40,300);
    // 色带
-   QZ.forEach(z=>{g.fillStyle=z[4]+'99';g.fillRect(20+z[0],262,z[1]-z[0],12);});}
+   QZ.forEach(z=>{g.fillStyle=z[4]+'99';g.fillRect(20+z[0],314,z[1]-z[0],14);});}
   aQ=requestAnimationFrame(f);})(t0);}
 // 频率块：只有一种陷阱（地刺）
 let aF=null,fLast=null,fStep=1,fHits=null;const fCnt=I=>Math.floor(12/I),fHit=I=>5-I;
@@ -406,7 +439,7 @@ function freqView(prev){cancelAnimationFrame(aF);$('fSl').style.display=prev?'no
   if(done===1){done=2;}
   if(!done){done=1;setTimeout(()=>aF=requestAnimationFrame(f),400);const pv=fLast;fLast={I,h:fHit(I)};$('fRes').innerHTML=`${['','🏃 练','🔀 变','🏁 考'][fStep]}：每 <b>${I}</b> 秒 → <b>${n}</b> 次刺 → 掉 <b class="bad">${fHit(I)}❤</b>`+(fStep===3?(fHit(I)<=1?' ✅ 过关':' 😵 太难，回去调慢'):'')+(pv?` <span style="font-size:15px;color:#c9c3ef">（上次 每${pv.I}秒 掉${pv.h}❤ → 这次 ${fHit(I)}❤）</span>`:'');}})(performance.now());}
 $('fRun').onclick=()=>{fStep=1;freqView(true);};$('fTw').onclick=()=>{$('fI').value=1;$('fIv').textContent=1;fStep=2;freqView(true);};$('fEx').onclick=()=>{fStep=3;freqView(true);};
-let cur=0;const SCR=[['sR'],['s0'],['sF','freq'],['sF','freq'],['sQ','pos'],['sQ','pos'],['s1','diff'],['sP','diff'],['s3']],BLK=[0,1,2,2,3,3,4,4,5];
+let cur=0;const SCR=[['sR'],['s0'],['sF','freq'],['sF','freq'],['sQ','pos'],['sQ','pos'],['sD','diff'],['sD','diff'],['s3']],BLK=[0,1,2,2,3,3,4,4,5];
 const TIT={freq:'⏱️ 频率：多久来一次',pos:'📍 位置：分开还是挤',diff:'💥 难度：速度·伤害·持续'};const taught={};
 function teach(m){if(taught[m])return;taught[m]=1;const tt=trapTiles();
  if(m==='freq')tt.forEach(t=>st.traps[t.type].interval=3);
@@ -414,7 +447,7 @@ function teach(m){if(taught[m])return;taught[m]=1;const tt=trapTiles();
 function n4(id,i){const e=$(id);if(e)e.innerHTML=['教','练','变','考'].map((w,j)=>`<span class="${j===i?'on':j<i?'done':''}">${['①','②','③','④'][j]} ${w}</span>`).join('');}
 let pstep=1;
 function go(n){cur=Math.max(0,Math.min(8,n));const [id,m]=SCR[cur];if(m)MODE=m;
- ['sR','s0','sF','s1','sP','s2','s3','sQ'].forEach(x=>$(x).classList.toggle('on',x===id));crispAll();
+ ['sR','s0','sF','s1','sP','s2','s3','sQ','sD'].forEach(x=>$(x).classList.toggle('on',x===id));crispAll();
  document.querySelectorAll('.st').forEach((s,i)=>{s.classList.toggle('on',i===BLK[cur]);s.classList.toggle('done',i<BLK[cur]);});
  document.querySelectorAll('.sd').forEach(d=>d.classList.toggle('on',+d.dataset.s===cur));
  cancelAnimationFrame(stripAnim);
@@ -422,6 +455,7 @@ function go(n){cur=Math.max(0,Math.min(8,n));const [id,m]=SCR[cur];if(m)MODE=m;
  if(id==='s0')slide(+(new URLSearchParams(location.search).get('sl'))||0),play0(+(new URLSearchParams(location.search).get('pt0'))||0);
  if(id==='sF')freqView(cur===3);else cancelAnimationFrame(aF);
  if(id==='sQ')qView(cur===5);else cancelAnimationFrame(aQ);
+ if(id==='sD')dView(cur===7);else cancelAnimationFrame(aD);
  if(id==='s1'){teach(m);$('s1t').textContent=TIT[m]+' · 教：先安全，再拉数字';n4('n4a',0);traps();}
  if(id==='s2'){n4('n4c',0);design();}
  if(id==='sP'){$('sPt').textContent=TIT[m]+' · 忍者匀速跑';pstep=1;n4('n4b',1);preview();}
