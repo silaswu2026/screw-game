@@ -11,7 +11,7 @@ body{font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;color:#f7
 .bar a{color:#fff;font-weight:800;text-decoration:none;background:#3b4590;border-radius:999px;padding:6px 12px;font-size:14px}
 h1{margin:0;font-size:20px;color:#ffe7a0;flex:1;text-align:center;font-weight:900}
 main{flex:1;display:flex;flex-direction:column;gap:6px;padding:0 12px 10px;max-width:960px;width:100%;margin:0 auto;min-height:0}
-.cvwrap{flex:1 1 auto;min-height:200px;display:flex;align-items:center;justify-content:center;background:#0006;border-radius:16px;border:2px solid #ffffff22;overflow:hidden}
+.cvwrap{position:relative;flex:1 1 auto;min-height:200px;display:flex;align-items:center;justify-content:center;background:#0006;border-radius:16px;border:2px solid #ffffff22;overflow:hidden}
 #gameCanvas{width:100%!important;height:auto!important;max-height:min(58vh,420px);background:#1a2040;display:block;border-radius:14px}
 .ctl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;font-weight:800}
 .ctl input[type=range]{width:min(280px,58vw);height:32px;vertical-align:middle;accent-color:#7ab0ff}
@@ -29,11 +29,21 @@ main{flex:1;display:flex;flex-direction:column;gap:6px;padding:0 12px 10px;max-w
 #boot{display:none;text-align:center;font-size:12px;color:#ffb4b4}
 #boot.err{display:block}
 .kidsub{text-align:center;font-size:15px;font-weight:800;color:#c9c3ef;margin:0}
+#result{display:none;position:absolute;inset:0;z-index:20;align-items:center;justify-content:center;background:rgba(8,10,28,.72);backdrop-filter:blur(2px);border-radius:14px}
+#result.show{display:flex}
+#result .card{background:linear-gradient(180deg,#2a3360,#1a2048);border:2px solid #ffe7a066;border-radius:20px;padding:22px 28px;text-align:center;box-shadow:0 12px 40px #0008;max-width:90%}
+#result .big{font-size:42px;font-weight:900;line-height:1.2;margin:0 0 8px}
+#result.win .big{color:#9ff0a8}
+#result.fail .big{color:#ffb4b4}
+#result .sub{font-size:16px;font-weight:800;color:#c9c3ef;margin:0 0 16px}
+#result button{border:0;border-radius:999px;padding:14px 28px;font-size:20px;font-weight:900;color:#1a2040;background:linear-gradient(180deg,#ffe7a0,#f0c45a);box-shadow:0 4px 0 #b88920;cursor:pointer}
+#result button:active{transform:translateY(2px);box-shadow:none}
 @media (max-height:560px){
   .bar{padding:4px 8px}.bar a{padding:4px 10px;font-size:12px}h1{font-size:15px}
   .kidsub{font-size:12px}.ctl b#fIv{font-size:26px}
   .go{padding:8px 14px;font-size:14px;box-shadow:none}
   #gameCanvas{max-height:42vh}
+  #result .big{font-size:32px}#result button{padding:10px 22px;font-size:17px}
 }
 </style>
 <script>
@@ -57,7 +67,16 @@ document.ccConfig = {
   <p class="kidsub">拖滑条看刺变密 · 再点下面三个按钮玩</p>
   <div class="n4" id="n4"></div>
   <div class="ctl">每 <input type="range" id="fI" min="1" max="5" value="3"> <b id="fIv">3</b> 秒冒一次刺</div>
-  <div class="cvwrap"><canvas id="gameCanvas" width="960" height="360"></canvas></div>
+  <div class="cvwrap">
+    <canvas id="gameCanvas" width="960" height="360"></canvas>
+    <div id="result" aria-live="polite">
+      <div class="card">
+        <p class="big" id="resultBig"></p>
+        <p class="sub" id="resultSub"></p>
+        <button type="button" id="resultBtn">再试一次</button>
+      </div>
+    </div>
+  </div>
   <div id="boot"></div>
   <div id="hp">❤❤❤❤❤❤</div>
   <div id="msg">每 <b style="color:#ffe7a0">3</b> 秒 → 变密就更疼</div>
@@ -67,6 +86,6 @@ document.ccConfig = {
     <button class="go ex" id="fEx" type="button">🏁 考：最后一跑</button>
   </div>
 </main>
-<script src="freq-spike.js?v=p0b"></script>
+<script src="freq-spike.js?v=p1"></script>
 </body>
 </html>
