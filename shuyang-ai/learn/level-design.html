@@ -33,7 +33,7 @@ svg{width:100%;height:100%;min-height:0}
 @media (max-height:500px){.cell{aspect-ratio:2.4}.bar img{width:28px;height:28px}h2{font-size:17px}}
 </style></head><body>
 <div class="bar"><img src="../avatars/xiaoyu.jpg" alt="小雨">
-<div class="st" data-s="0">① 看图</div><div class="st" data-s="1">② 动手</div><div class="st" data-s="2">③ 预览</div><div class="st" data-s="3">④ 设计</div><div class="st" data-s="4">⑤ 联网玩</div>
+<div class="st" data-s="0">① 看图</div><div class="st" data-s="1">② 动手</div><div class="st" data-s="2">③ 预览</div><div class="st" data-s="3">④ 设计·摆位置</div><div class="st" data-s="4">⑤ 联网玩</div>
 <img src="../avatars/pengpeng.jpg" alt="伍澍暘"></div>
 <main>
 <section class="stage" id="s0"><h2>好关卡：先简单，再变难</h2>
@@ -62,7 +62,7 @@ svg{width:100%;height:100%;min-height:0}
 <div class="th" style="text-align:center"><span id="th"></span> <span id="len"></span></div>
 <div class="pal" id="pal" style="text-align:center"></div>
 <div class="grid" id="grid"></div><div id="scene" style="display:none"><svg id="sv"></svg><div class="chk" style="text-align:center"><button class="pal" id="ov" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-weight:800;padding:4px 12px">🔲 格子 开/关</button> 1格 = 40像素 · 🥷 1格宽 2格高 · 跳 3格远</div></div>
-<div class="chk" id="chk" style="text-align:center"></div><div style="text-align:center"><button class="go" id="prev2" style="font-size:16px;padding:5px 18px">👀 预览我的关</button></div></section>
+<div class="chk" id="chk" style="text-align:center"></div><div style="text-align:center"><button class="go" id="prev2" style="font-size:16px;padding:5px 18px">👀 再预览</button></div></section>
 
 <section class="stage" id="s3"><h2>保存，去小雨闯关玩！</h2>
 <div class="row"><div class="card"><div class="big" id="sum"></div><div class="msg" id="sumt"></div>
@@ -145,26 +145,33 @@ $('play').onclick=save;
 
 
 let anim=null;
+let last=null;
+function simulate(){const tr=trapTiles();let shield=0;const out=[];
+ const props=st.tiles.filter(t=>t.type==='shield').map(t=>t.x);
+ tr.forEach((t,i)=>{let h=Math.max(0,Math.round(RISK[t.type](st.traps[t.type])*3));const why=[];
+  const prev=tr[i-1];if(prev&&t.x-prev.x<=2){h+=1;why.push('挤');}
+  if(props.some(x=>x<t.x&&(!prev||x>prev.x))){if(h>0){h-=1;why.push('🛡️');}}
+  out.push({x:t.x,type:t.type,h,why});});return out;}
 function preview(){cancelAnimationFrame(anim);const cv=$('cv'),g=cv.getContext('2d'),W=cv.width,H=cv.height,cw=W/COLS;
- const col=x=>st.tiles.filter(t=>t.x===x&&t.y===ROWS-2);
- const plan=[];let danger=0,shield=0,T=0;const segH=[0,0,0,0,0,0];
- for(let x=0;x<COLS;x++){let r=0,hit=false,tr=null;
-  for(const t of col(x)){if(t.type==='shield')shield++;if(RISK[t.type]){tr=t.type;r=RISK[t.type](st.traps[t.type]);}}
-  if(tr){danger+=r;if(danger>=1){danger-=1;if(shield)shield--;else{hit=true;segH[SEG(x)]++;}}}
-  const dt=1+r*1.5+(hit?1:0);plan.push({x,tr,r,hit,t0:T,dt});T+=dt;}
- const total=T,hits=segH.reduce((a,b)=>a+b,0);let mx=Math.max(...segH),hard=segH.lastIndexOf(mx);
- $('res').textContent='';const SP=0.45,PT=+(new URLSearchParams(location.search).get('pt'))||0,start=performance.now()-PT*SP*1000;let hp=0;
+ const res=simulate(),hits=res.reduce((a,b)=>a+b.h,0),segH=[0,0,0,0,0,0];res.forEach(r=>segH[SEG(r.x)]+=r.h);
+ const pj=JSON.stringify(Object.fromEntries(res.map(r=>[r.type,st.traps[r.type]]))),xj=JSON.stringify(res.map(r=>r.type+r.x));
+ const prev=last;last={res,pj,xj};
+ const total=COLS,SP=0.7,PT=+(new URLSearchParams(location.search).get('pt'))||0,start=performance.now()-PT*SP*1000;$('res').textContent='';
  (function frame(now){const t=(now-start)/1000/SP;g.clearRect(0,0,W,H);
-  for(let s=0;s<6;s++){g.fillStyle=s%2?'#ffffff08':'#ffffff12';g.fillRect(s*SW()*cw,0,SW()*cw,H);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText('第'+(s+1)+'段 难'+CURVE[s],s*SW()*cw+8,24);
-   g.fillStyle='#ffb4b4';g.fillText(segH[s]&&t>plan[Math.ceil((s+1)*SW())-1].t0+plan[Math.ceil((s+1)*SW())-1].dt?('-'+segH[s]+'❤'):'',s*SW()*cw+8,50);}
+  for(let s=0;s<6;s++){g.fillStyle=s%2?'#ffffff08':'#ffffff12';g.fillRect(s*SW()*cw,0,SW()*cw,H);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText('第'+(s+1)+'段 难'+CURVE[s],s*SW()*cw+8,24);}
   g.fillStyle='#6b4f2f';g.fillRect(0,H-40,W,40);g.font=Math.min(40,cw*.8)+'px sans-serif';
-  for(let x=0;x<COLS;x++)for(const it of col(x))g.fillText(E[it.type]||'',x*cw+cw*.1,H-52);
-  const cur=plan.find(p=>t<p.t0+p.dt)||plan[COLS-1];const f=Math.min(1,(t-cur.t0)/cur.dt);
-  const nx=Math.min(cur.x+f,COLS-.6)*cw,jump=cur.tr?Math.sin(f*Math.PI)*90:0;
+  for(const it of st.tiles.filter(t=>t.y===ROWS-2))g.fillText(E[it.type]||'',it.x*cw+cw*.1,H-52);
+  const nx=Math.min(t,COLS-.6)*cw;
+  for(const r of res){const passed=t>r.x+.5;g.fillStyle=r.h?'#ff6b6b':'#9ff0a8';g.font='bold 24px sans-serif';
+   if(passed)g.fillText(r.h?'-'+r.h+'❤':'✓',r.x*cw+cw*.1,H-100);
+   const f=t-r.x;if(f>-.3&&f<1){/*jump*/}}
+  const near=res.find(r=>t>r.x-.4&&t<r.x+.8),jump=near?Math.sin(Math.max(0,Math.min(1,(t-near.x+.4)/1.2))*Math.PI)*80:0;
   g.font='46px sans-serif';g.fillText('🥷',nx-10,H-44-jump);
-  if(cur.hit&&f>.4&&f<.9){g.fillStyle='#ff6b6b';g.font='bold 34px sans-serif';g.fillText('-1 ❤',nx,H-120-jump);}
   if(t<total)anim=requestAnimationFrame(frame);
-  else $('res').innerHTML=`被打 <b>${hits}</b> 次 · 用时 <b>${Math.round(total)}</b> 秒 · ${hits?`最难：第 <b>${hard+1}</b> 段 ${hard===5?'✅ 和 4 对上了':'🤔 计划最难是第 6 段'}`:'😎 太简单 → 去②把数字调大'}`;})(performance.now());}
+  else{let cmp='';if(prev){const tag=[prev.pj!==pj?'🔢 参数变了':'',prev.xj!==xj?'📍 位置变了':''].filter(Boolean).join(' + ')||'没变';
+    const ph=prev.res.reduce((a,b)=>a+b.h,0);cmp=`<br>上次 <b>${ph}</b> → 这次 <b>${hits}</b> · ${tag} · `+res.map((r,i)=>`${E[r.type]}${prev.res[i]&&prev.res[i].type===r.type?prev.res[i].h+'→':''}${r.h}`).join(' ');}
+   const mx=Math.max(...segH),hard=segH.lastIndexOf(mx);
+   $('res').innerHTML=`被打 <b>${hits}</b> 次 · 用时 <b>${total}</b> 秒 · ${hits?`最难：第 <b>${hard+1}</b> 段 ${hard===5?'✅':'🤔'}`:'😎 太简单'}`+cmp;}})(performance.now());}
 $('run').onclick=preview;$('prev2').onclick=()=>go(2);
 let cur=0;const ORDER=['s0','s1','sP','s2','s3'];function go(n){cur=Math.max(0,Math.min(4,n));ORDER.forEach((id,i)=>$(id).classList.toggle('on',i===cur));document.querySelectorAll('.nostage').forEach((s,i)=>s.classList.toggle('on',i===cur));
  document.querySelectorAll('.st').forEach((s,i)=>{s.classList.toggle('on',i===cur);s.classList.toggle('done',i<cur);});
@@ -172,5 +179,8 @@ let cur=0;const ORDER=['s0','s1','sP','s2','s3'];function go(n){cur=Math.max(0,M
  $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<4?'visible':'hidden';}
 $('next').onclick=()=>go(cur+1);$('back').onclick=()=>go(cur-1);
 document.querySelector('.bar').onclick=e=>{const s=e.target.dataset.s;if(s!=null)go(+s);};
+{const q=new URLSearchParams(location.search);if(q.get('bump')||q.get('move')){preview();cancelAnimationFrame(anim);
+ const tt=trapTiles();if(q.get('bump')){const k=tt[tt.length-1].type,f=Object.keys(NUM[k][1])[0];st.traps[k][f]=NUM[k][1][f][2];}
+ if(q.get('move')){tt[1].x=Math.max(0,tt[2].x-1);}}}
 go(+(new URLSearchParams(location.search).get("s"))||0);})();
 </script></body></html>
