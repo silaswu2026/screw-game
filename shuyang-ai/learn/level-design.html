@@ -357,21 +357,21 @@ function crispAll(){document.querySelectorAll('.stage.on canvas').forEach(crisp)
 
 
 // ⑤ 设计我的关卡：组合 位置 + 频率 + 难度
-let aM=null,mHits=null,mTool='fire',mSel='fire',mRun=-1;const MC=12;
-const MT={fire:['🔥','火'],rock:['🪨','落石'],mist:['☠️','毒雾'],coin:['🪙','金币'],shield:['⭐','无敌星'],spring:['🌀','弹簧'],del:['🧽','擦掉']};
-const MP={fire:{dur:3,damage:1},rock:{interval:3,damage:1},mist:{interval:3,damage:1}};
+let aM=null,mHits=null,mTool='spike',mSel='spike',mRun=-1;const MC=12;
+const MT={spike:['🔺','地刺'],fire:['🔥','火'],rock:['🪨','落石'],mist:['☠️','毒雾'],coin:['🪙','金币'],shield:['⭐','无敌星'],spring:['🌀','弹簧'],del:['🧽','擦掉']};
+const MP={spike:{interval:3,up:1,damage:1},fire:{dur:3,damage:1},rock:{interval:3,damage:1},mist:{interval:3,damage:1}};
 let mMap=(()=>{try{const d=JSON.parse(localStorage.getItem(KEY)||'null');if(d&&d.mine&&Array.isArray(d.mine.map)){Object.assign(MP,d.mine.mp||{});return d.mine.map;}}catch(e){}const m=Array(MC).fill(null);m[3]='fire';m[6]='coin';m[9]='rock';return m;})();
-const isTrap=k=>k==='fire'||k==='rock'||k==='mist';
+const isTrap=k=>k==='spike'||k==='fire'||k==='rock'||k==='mist';
 function mEst(){let sh=0;return mMap.map((k,x)=>{if(k==='shield'){sh++;return 0;}if(!isTrap(k))return 0;const p=MP[k];
- let n=k==='fire'?{1:0,3:1,5:2}[p.dur]:{1:2,3:1,5:0}[p.interval];const nb=isTrap(mMap[x-1])||mMap[x-1]==='spring'||isTrap(mMap[x+1]);if(nb)n++;
+ let n=k==='fire'?{1:0,3:1,5:2}[p.dur]:k==='spike'?(Math.min(1,p.up/p.interval)>=0.34?1:0):{1:2,3:1,5:0}[p.interval];const nb=k!=='spike'&&isTrap(mMap[x-1])||mMap[x-1]==='spring'||isTrap(mMap[x+1]);if(nb)n++;
  let h=n*p.damage;if(h>0&&sh){sh--;h=Math.max(0,h-p.damage);}return h;});}
 function mPal(){$('mPal').innerHTML=Object.entries(MT).map(([k,[e,n]])=>`<button class="go sm" data-k="${k}" style="padding:3px 10px;font-size:16px;${mTool===k?'background:linear-gradient(180deg,#ffe07a,#f0b400);color:#222':'background:#3b4590'}">${e} ${n}</button>`).join('')+` <button class="go sm" id="mGo" style="padding:3px 12px;font-size:16px">▶ 跑一次</button>`;
  document.querySelectorAll('#mPal button[data-k]').forEach(b=>b.onclick=()=>{mTool=b.dataset.k;if(isTrap(mTool))mSel=mTool;mPal();mCtl();});$('mGo').onclick=()=>{mRun=performance.now();};}
 function mCtl(){const k=mSel,p=MP[k],[e,n]=MT[k];const seg=(lab,key,vs,fmt)=>`<span style="background:#ffffff14;border-radius:12px;padding:2px 6px">${lab} `+vs.map(v=>`<button class="go sm" data-p="${key}" data-v="${v}" style="padding:2px 8px;font-size:15px;${p[key]===v?'background:linear-gradient(180deg,#ffe07a,#f0b400);color:#222':'background:#3b4590'}">${fmt(v)}</button>`).join('')+'</span>';
- $('mCt').innerHTML=`<span style="align-self:center">${e} 所有${n}：</span>`+(k==='fire'?seg('⏳ 停','dur',[1,3,5],v=>v+'秒'):seg('⏱️ 每','interval',[1,3,5],v=>v+'秒'))+seg('💔','damage',[1,2,3],v=>v+'❤');
+ $('mCt').innerHTML=`<span style="align-self:center">${e} 所有${n}：</span>`+(k==='fire'?seg('⏳ 停','dur',[1,3,5],v=>v+'秒'):seg('⏱️ 每','interval',[1,3,5],v=>v+'秒'))+(k==='spike'?seg('⏳ 停','up',[0.6,1,2],v=>({0.6:'短',1:'中',2:'久'})[v]):'')+seg('💔','damage',[1,2,3],v=>v+'❤');
  document.querySelectorAll('#mCt button').forEach(b=>b.onclick=()=>{MP[mSel][b.dataset.p]=+b.dataset.v;mCtl();mSave();});}
 function mSave(final){const tiles=[];for(let x=0;x<MC;x++)tiles.push({x,y:ROWS-1,type:'g'});mMap.forEach((k,x)=>{if(k)tiles.push({x,y:ROWS-2,type:k});});
- const tr={},used=new Set(mMap);if(used.has('fire'))tr.fire={damage:MP.fire.damage,dur:MP.fire.dur,burn:MP.fire.dur};if(used.has('rock'))tr.rock={interval:MP.rock.interval,speed:3,damage:MP.rock.damage};if(used.has('mist'))tr.mist={interval:MP.mist.interval,damage:MP.mist.damage};
+ const tr={},used=new Set(mMap);if(used.has('spike'))tr.spike={interval:MP.spike.interval,up:MP.spike.up,damage:MP.spike.damage};if(used.has('fire'))tr.fire={damage:MP.fire.damage,dur:MP.fire.dur,burn:MP.fire.dur};if(used.has('rock'))tr.rock={interval:MP.rock.interval,speed:3,damage:MP.rock.damage};if(used.has('mist'))tr.mist={interval:MP.mist.interval,damage:MP.mist.damage};
  localStorage.setItem(KEY,JSON.stringify({theme:'swamp',cols:MC,rows:ROWS,tiles,traps:tr,savedAt:new Date().toISOString(),by:'伍澍暘',mine:{map:mMap,mp:MP}}));
  if(final){const h=mEst(),tot=h.reduce((a,b)=>a+b,0);$('sumt').textContent='我的关卡 · 12格 · 预计掉血';
   $('sumseg').innerHTML=mMap.map((k,x)=>k&&k!=='del'?`<div style="flex:1;text-align:center;background:#ffffff12;border-radius:8px;padding:4px"><div style="font-size:20px">${MT[k][0]}</div><div style="font-size:16px;color:${h[x]?'#ff6b6b':'#9ff0a8'}">${isTrap(k)?(h[x]?'-'+h[x]+'❤':'✓'):''}</div></div>`:'').join('');
@@ -382,7 +382,7 @@ function mView(){cancelAnimationFrame(aM);mPal();mCtl();const cv=$('cvM');crisp(
  (function f(now){g.clearRect(0,0,W,H);const h=mEst(),tot=h.reduce((a,b)=>a+b,0);mHits=tot;
   g.fillStyle='#6b4f2f';g.fillRect(L,gy,MC*cw,30);g.fillStyle='#4ea85c';g.fillRect(L,gy,MC*cw,6);
   for(let x=0;x<MC;x++){g.strokeStyle='#ffffff22';g.lineWidth=1;g.strokeRect(L+x*cw+2,gy-80,cw-4,78);g.fillStyle='#c9c3ef';g.font='bold 13px sans-serif';g.fillText(x+1,L+x*cw+cw/2-5,gy+48);
-   const k=mMap[x];if(k){g.fillStyle='#fff';g.font='44px sans-serif';g.fillText(MT[k][0],L+x*cw+cw/2-24,gy-22);
+   const k=mMap[x];if(k==='spike'){const up=Math.floor(now/1000/MP.spike.interval*2)%2===0;g.fillStyle='#3a3a42';g.fillRect(L+x*cw+6,gy-4,cw-12,6);if(up)for(let q=0;q<4;q++){const a=L+x*cw+8+q*(cw-16)/4;g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(a,gy);g.lineTo(a+(cw-16)/8,gy-34);g.lineTo(a+(cw-16)/4,gy);g.closePath();g.fill();g.strokeStyle='#7a8794';g.stroke();}}if(k){g.fillStyle='#fff';g.font='44px sans-serif';if(k!=='spike')g.fillText(MT[k][0],L+x*cw+cw/2-24,gy-22);
     if(isTrap(k)){const p=MP[k];g.font='bold 13px sans-serif';g.fillStyle='#ffe7a0';g.fillText((k==='fire'?'停'+p.dur:'每'+p.interval)+'秒 '+p.damage+'❤',L+x*cw+4,gy-84);}}}
   if(A0().flag)g.drawImage(A0().flag,L+MC*cw-10,gy-60,50,56);
   // 预览：匀速跑

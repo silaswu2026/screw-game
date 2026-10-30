@@ -1343,6 +1343,14 @@
         }
         case 'rock': case 'meteor': def.rocks.push([c, r]); def.rockKinds[c] = t.type; break;
         case 'fire': def.fires.push([c, r]); break;
+        case 'spike': {
+          const p = tp('spike');
+          def.spikes.push([c - 1, c + 2, r, {
+            pop: true, every: Math.max(0.5, Math.min(10, +p.interval || 3)),
+            up: Math.max(0.2, Math.min(5, +p.up || 1)), dmg: Math.max(1, Math.min(5, +p.damage || 1)),
+          }]);
+          break;
+        }
         case 'mist': case 'bubble': def.mists.push([c, r]); def.mistKinds[c] = t.type; break;
         case 'shark': def.slimes.push([c, r]); def.slimeKinds[c] = 'shark'; break;
         case 'wave': {
@@ -1431,7 +1439,9 @@
     springs = (def.springs || []).map(([c, r]) => Object.assign({ squish: 0 }, feet(c, r)));
     spikes = (def.spikes || []).map((s) => {
       const c0 = s[0], c1 = s[1], row = s.length > 2 ? s[2] : ground;
-      return { c0, c1, x0: c0 * T, x1: (c1 + 1) * T, y: row * T, lethal: false };
+      const o = s[3] && s[3].pop ? s[3] : null;
+      return { c0, c1, x0: c0 * T, x1: (c1 + 1) * T, y: row * T, lethal: false,
+        pop: !!o, every: o ? o.every : 0, up: o ? o.up : 0, dmg: o ? o.dmg : 1, popT: 0, hidden: !!o };
     });
     bombs = (def.bombs || []).map(([c, r]) => {
       const p = feet(c, r);
@@ -1869,16 +1879,18 @@
       downOrOver(n);
     }
   }
-  function hurtSpike(n) {
+  function hurtSpike(n, sp) {
     // Green immune; blue/red: shake + color glow + flash + skeleton + HP
+    // Popping 地刺 from 课程页自制关卡 hurt everyone, damage = sp.dmg
     if (!n || n.down || mode !== 'play') return;
-    if (n.palette === 'green') {
+    const popDmg = sp && sp.pop ? sp.dmg : 0;
+    if (!popDmg && n.palette === 'green') {
       if ((n.spikeMsgCd || 0) <= 0) { toast('绿忍者免疫尖刺'); n.spikeMsgCd = 1.2; }
       return;
     }
     if (n.invuln > 0 || n.knockPhase) return;
-    n.hp -= 1;
-    n.invuln = 0.7;
+    n.hp -= popDmg || 1;
+    n.invuln = popDmg ? 1.2 : 0.7;
     n.shake = 0.35;
     n.flash = 0.22;
     n.glow = 0.45;
@@ -1887,7 +1899,7 @@
     n.grounded = false;
     sfx.bump();
     buzz(18);
-    toast((n.palette === 'blue' ? '蓝' : '红') + '忍者踩尖刺 -1');
+    toast(popDmg ? '踩到地刺 -' + popDmg : (n.palette === 'blue' ? '蓝' : '红') + '忍者踩尖刺 -1');
     puff(n.x, n.y - 10, n.palette === 'blue' ? '#8fd4ff' : '#ff8a80', 8);
     if (n.hp <= 0) { n.hp = 0; downOrOver(n); }
   }
@@ -1898,7 +1910,7 @@
       if (s.hidden) continue;
       if (n.x >= s.x0 - 4 && n.x <= s.x1 + 4 && n.y > s.y - 6 && n.y < s.y + 18) {
         if (s.lethal) { killAllHpGrassTrap(n); return; }
-        hurtSpike(n);
+        hurtSpike(n, s);
         return;
       }
     }
@@ -2845,6 +2857,12 @@
     updateWaves(dt);
     touchBombs(player);
     touchGrasslandTraps(player);
+    for (let i = 0; i < spikes.length; i++) {
+      const sp = spikes[i];
+      if (!sp.pop) continue;
+      sp.popT = (sp.popT + dt) % sp.every;
+      sp.hidden = sp.popT >= sp.up;
+    }
     touchSpikes(player);
     touchFires(player);
     touchRockets(player);
@@ -3890,6 +3908,16 @@
     // spikes on grass
     for (let i = 0; i < spikes.length; i++) {
       const s = spikes[i];
+      if (s.pop) {
+        ctx.fillStyle = '#3a3a42';
+        ctx.fillRect(s.x0 + 2, s.y - 3, s.x1 - s.x0 - 4, 5);
+        if (s.hidden) {
+          const warn = s.every - s.popT;
+          if (warn < 0.5) { ctx.fillStyle = '#ffe07a'; ctx.font = 'bold 22px sans-serif'; ctx.fillText('!', (s.x0 + s.x1) / 2 - 4, s.y - 18); }
+          continue;
+        }
+      }
+      const hk = s.pop ? Math.min(1, s.popT / 0.12) : 1;
       for (let c = s.c0; c <= s.c1; c++) {
         for (let k = 0; k < 3; k++) {
           const x = c * T + 6 + k * 12;
@@ -3897,7 +3925,7 @@
           ctx.fillStyle = s.lethal ? '#8b0000' : '#c5d0dc';
           ctx.beginPath();
           ctx.moveTo(x, y);
-          ctx.lineTo(x + 5, y - 14);
+          ctx.lineTo(x + 5, y - 14 * hk * (s.pop ? 1.6 : 1));
           ctx.lineTo(x + 10, y);
           ctx.closePath();
           ctx.fill();
@@ -5521,7 +5549,7 @@
         coop, companion, hp: player.hp, p2x: p2.x, p2y: p2.y, p2hp: p2.hp,
         p3x: p3.x, p3y: p3.y, p3hp: p3.hp, p3anim: p3.anim,
         bossHp: boss ? boss.hp : 0, bossAlive: !!(boss && boss.alive),
-        levels: LEVELS.length, customIndex, levelName: LEVELS[levelIndex] && LEVELS[levelIndex].name, rocksN: rocks.length, sandsN: sands.length, firesN: fires.length, bombsN: bombs.length, mistsN: mists.length, wavesN: waves.length, lowgsN: lowgs.length, dmg: LEVELS[levelIndex] && LEVELS[levelIndex].dmg, fireBurn: LEVELS[levelIndex] && LEVELS[levelIndex].fireBurn, rockXs: rocks.map((r) => [r.kind, Math.round(r.x), r.coolBase, Math.round(r.grav)]), waveXs: waves.map((w) => [Math.round(w.x0), w.h, w.every]), lowgXs: lowgs.map((z) => [z.x0, z.g]), slimeXs: slimes.map((m) => [m.kind, m.spd]), sandXs: sands.map((q) => [q.kind, q.keep, q.rate]), mistXs: mists.map((q) => [q.kind, q.every]),
+        levels: LEVELS.length, customIndex, levelName: LEVELS[levelIndex] && LEVELS[levelIndex].name, rocksN: rocks.length, sandsN: sands.length, firesN: fires.length, bombsN: bombs.length, mistsN: mists.length, wavesN: waves.length, lowgsN: lowgs.length, dmg: LEVELS[levelIndex] && LEVELS[levelIndex].dmg, fireBurn: LEVELS[levelIndex] && LEVELS[levelIndex].fireBurn, spikeXs: spikes.filter((q) => q.pop).map((q) => [q.c0, q.c1, q.every, q.up, q.dmg, q.hidden ? 0 : 1]), rockXs: rocks.map((r) => [r.kind, Math.round(r.x), r.coolBase, Math.round(r.grav)]), waveXs: waves.map((w) => [Math.round(w.x0), w.h, w.every]), lowgXs: lowgs.map((z) => [z.x0, z.g]), slimeXs: slimes.map((m) => [m.kind, m.spd]), sandXs: sands.map((q) => [q.kind, q.keep, q.rate]), mistXs: mists.map((q) => [q.kind, q.every]),
         netRole, netCode, netLinked,
       };
     },
