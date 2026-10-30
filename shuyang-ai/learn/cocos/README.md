@@ -1,8 +1,8 @@
-# Cocos teaching stages (parallel to ld27)
+# Cocos2d-JS Lite · 课程试玩
 
-- `freq-spike.html` — ② 频率刺 on **Cocos2d-JS Lite v3.13**
-- Does not replace `../level-design.html` (ld27 canvas remains default)
-- Engine: `../../../vendor/cocos2d-html5/cocos2d-js-v3.13-lite.js`
-- Art: `../../../xy-go/sprites/green/`
+- `freq-spike.html` — 频率刺教学（de-shelled）
+- `custom-play.html` — 读 `localStorage.xygo-custom-level`（JSON v1.1）跑孩子摆的关
+  - 标签：**同玩法 · 引擎下一刀**
+  - 备用：`xy-go/?custom=1`
 
-Serve repo root over HTTP (file:// breaks texture load).
+引擎：`vendor/cocos2d-html5/cocos2d-js-v3.13-lite.js` · renderMode 1

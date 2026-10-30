@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>玩我的关 · Cocos · 伍澍暘</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;color:#f7f4ff;background:linear-gradient(180deg,#0f1230,#24305f);display:flex;flex-direction:column;min-height:100dvh}
+.bar{display:flex;gap:8px;padding:8px 12px 2px;align-items:center;flex-wrap:wrap}
+.bar a{color:#fff;font-weight:800;text-decoration:none;background:#3b4590;border-radius:999px;padding:6px 12px;font-size:14px}
+h1{margin:0;font-size:18px;color:#ffe7a0;flex:1;text-align:center;font-weight:900}
+.badge{font-size:11px;font-weight:800;color:#1a2040;background:linear-gradient(180deg,#ffe7a0,#f0c45a);border-radius:999px;padding:4px 10px;white-space:nowrap}
+main{flex:1;display:flex;flex-direction:column;gap:8px;padding:0 12px 12px;max-width:960px;width:100%;margin:0 auto;min-height:0}
+.cvwrap{position:relative;flex:0 0 auto;width:100%;display:block;background:transparent;border-radius:16px;border:2px solid #ffffff33;overflow:hidden;line-height:0}
+#gameCanvas{width:100%!important;height:auto!important;aspect-ratio:960/360;background:#3a5c96;display:block;vertical-align:top;border-radius:14px}
+.kidsub{text-align:center;font-size:16px;font-weight:800;color:#c9c3ef;margin:0}
+.go{border:0;border-radius:999px;padding:14px 22px;font-size:18px;font-weight:900;color:#fff;background:linear-gradient(180deg,#78d484,#4ea85c);box-shadow:0 3px 0 #2f6d3a;cursor:pointer;min-height:48px}
+.go:active{transform:translateY(2px);box-shadow:none}
+.go.sec{background:linear-gradient(180deg,#7ab0ff,#3b6fd4);box-shadow:0 3px 0 #274a8a;font-size:14px;padding:10px 14px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center}
+#hp{text-align:center;font-weight:800;font-size:22px}
+#msg{text-align:center;font-weight:800;font-size:16px;color:#c9c3ef;min-height:1.3em}
+#boot{display:none;text-align:center;font-size:13px;color:#ffb4b4;font-weight:800}
+#boot.err{display:block}
+#result{display:none;position:absolute;inset:0;z-index:20;align-items:center;justify-content:center;background:rgba(8,10,28,.72);border-radius:14px}
+#result.show{display:flex}
+#result .card{background:linear-gradient(180deg,#2a3360,#1a2048);border:2px solid #ffe7a066;border-radius:20px;padding:20px 24px;text-align:center;max-width:92%}
+#result .big{font-size:36px;font-weight:900;margin:0 0 8px;color:#9ff0a8}
+#result .sub{font-size:15px;font-weight:800;color:#c9c3ef;margin:0 0 14px}
+.note{text-align:center;font-size:12px;font-weight:800;color:#ffe7a099;margin:0}
+@media (max-width:900px) and (orientation:portrait){
+  h1{font-size:15px}.go{flex:1 1 40%;font-size:16px}
+  .kidsub{font-size:14px}
+}
+@media (max-height:430px){
+  .bar{padding:4px 8px}h1{font-size:13px}.badge{display:none}
+  .kidsub,.note{font-size:11px}.go{padding:8px 12px;font-size:14px;min-height:40px}
+}
+</style>
+<script>
+document.ccConfig={debugMode:0,frameRate:60,id:"gameCanvas",renderMode:1,showFPS:false};
+</script>
+<script src="../../../vendor/cocos2d-html5/cocos2d-js-v3.13-lite.js"></script>
+</head>
+<body>
+<div class="bar">
+  <a href="../level-design.html?path=tonight&s=3">← 回玩完</a>
+  <h1>🎮 玩我的关</h1>
+  <span class="badge">同玩法 · 引擎下一刀</span>
+</div>
+<main>
+  <p class="kidsub" id="kidsub">点开始 · 忍者自动跑 · 刺会按你设的秒数冒</p>
+  <div class="cvwrap">
+    <canvas id="gameCanvas" width="960" height="360"></canvas>
+    <div id="result" aria-live="polite">
+      <div class="card">
+        <p class="big" id="resultBig">跑完了！</p>
+        <p class="sub" id="resultSub"></p>
+        <div class="ctl">
+          <button type="button" class="go" id="resultBtn">再跑一次</button>
+          <a class="go sec" id="backAsk" href="../level-design.html?path=tonight&s=3">去答「和预计一样吗」</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="boot"></div>
+  <div id="hp">❤❤❤❤❤❤</div>
+  <div id="msg">读取你的关卡中…</div>
+  <div class="ctl">
+    <button class="go" id="start" type="button">🏃 开始跑</button>
+    <a class="go sec" href="../../xy-go/?custom=1" id="fallback">旧版 xy-go（备用）</a>
+  </div>
+  <p class="note">Cocos2d-JS Lite 试玩 · 读同一份 xygo-custom-level（JSON v1.1）· 完整手感仍在迁移</p>
+</main>
+<script src="custom-play.js?v=c1"></script>
+</body>
+</html>
