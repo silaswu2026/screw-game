@@ -21,8 +21,8 @@ svg{width:100%;height:100%;min-height:0}
 .trap{flex-direction:row;gap:8px;justify-content:flex-start}
 .trap .e{font-size:34px}.trap label{display:flex;flex-direction:column;font-size:13px;flex:1}
 .trap input{width:100%}.trap b{color:#ffe7a0;font-size:18px}
-.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:2px;width:100%}
-.cell{aspect-ratio:1.6;border-radius:3px;background:#ffffff0d;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer}
+.grid{display:grid;gap:2px;width:100%}
+.cell{min-width:0;overflow:hidden;aspect-ratio:1.6;border-radius:3px;background:#ffffff0d;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer}
 .cell.g{background:#6b4f2f}.cell.p{background:#8a6a40}
 .pal button,.th button{border:0;border-radius:999px;padding:5px 10px;font-size:16px;font-weight:800;background:#3b4590;color:#fff;margin:2px}
 .pal button.on,.th button.on{background:#4ea85c}
@@ -58,9 +58,9 @@ svg{width:100%;height:100%;min-height:0}
 <div class="msg" id="res" style="min-height:24px"></div>
 <div style="text-align:center"><button class="go" id="run" style="font-size:18px;padding:6px 22px">👀 预览</button></div></section>
 <section class="stage" id="s2"><h2>选主题，点格子放东西</h2>
-<div class="th" id="th" style="text-align:center"></div>
+<div class="th" style="text-align:center"><span id="th"></span> <span id="len"></span></div>
 <div class="pal" id="pal" style="text-align:center"></div>
-<div class="grid" id="grid"></div>
+<div class="grid" id="grid"></div><div id="scene" style="display:none"><svg id="sv"></svg><div class="chk" style="text-align:center"><button class="pal" id="ov" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-weight:800;padding:4px 12px">🔲 格子 开/关</button> 1格 = 40像素 · 🥷 1格宽 2格高 · 跳 3格远</div></div>
 <div class="chk" id="chk" style="text-align:center"></div><div style="text-align:center"><button class="go" id="prev2" style="font-size:16px;padding:5px 18px">👀 预览我的关</button></div></section>
 
 <section class="stage" id="s3"><h2>保存，去小雨闯关玩！</h2>
@@ -71,7 +71,7 @@ svg{width:100%;height:100%;min-height:0}
 <div class="foot"><button class="back" id="back">上一步</button><button id="next">下一步 ▶</button></div>
 <script>
 (function(){
-const KEY='xygo-custom-level',COLS=12,ROWS=4,$=id=>document.getElementById(id);
+let COLS=12;const SW=()=>COLS/6,SEG=x=>Math.min(5,Math.floor(x/SW()));const KEY='xygo-custom-level',ROWS=4,$=id=>document.getElementById(id);
 const CURVE=[1,2,1,3,2,4];
 $('steps').innerHTML=CURVE.map(v=>`<div style="height:${v*24}%">${v}</div>`).join('');
 const E={mud:'🟫',bubble:'🫧',sand:'⏳',mist:'☠️',wave:'🌊',shark:'🦈',rock:'🪨',meteor:'☄️',fire:'🔥',lowg:'🌙',spring:'🌀',shield:'🛡️',coin:'⭐',flag:'🚩'};
@@ -82,9 +82,10 @@ const NUM={rock:['落石',{speed:[3,1,6,'速度'],interval:[2,1,5,'间隔秒']}]
 let st={theme:'swamp',tiles:[],traps:{},curve:CURVE.slice()};
 for(const k in NUM){st.traps[k]={};for(const f in NUM[k][1])st.traps[k][f]=NUM[k][1][f][0];}
 function preset(th){const [a,b,c]=TH[th][1],t=[];for(let x=0;x<COLS;x++)t.push({x,y:ROWS-1,type:'g'});
- [[1,'coin'],[2,a],[3,'flag'],[4,'spring'],[5,'coin'],[6,a],[7,b],[8,'shield'],[9,b],[10,c],[11,a]].forEach(([x,ty])=>t.push({x,y:ROWS-2,type:ty}));
- t.push({x:7,y:0,type:'p'},{x:11,y:0,type:'coin'});return t;}
-st.tiles=preset('swamp');
+ const at=f=>Math.min(COLS-1,Math.round(f*COLS));
+ // 4 traps easy→hard, rest gap in the middle with 2 props
+ [[.2,a],[.4,b],[.55,'flag'],[.65,'shield'],[.8,c],[.93,c]].forEach(([f,ty])=>t.push({x:at(f),y:ROWS-2,type:ty}));return t;}
+{const q=new URLSearchParams(location.search);if([8,12,16].includes(+q.get('len')))COLS=+q.get('len');}st.tiles=preset('swamp');
 // stage 2 trap cards (show current theme + rock/fire)
 function traps(){const ks=[...new Set(['rock','fire','sand',...TH[st.theme][1]])].slice(0,4);
  $('traps').innerHTML=ks.map(k=>`<div class="card trap" style="flex:1 1 45%"><span class="e">${E[k]}</span><div style="flex:1">${Object.entries(NUM[k][1]).map(([f,d])=>`<label>${NUM[k][0]} · ${d[3]} <b id="v-${k}-${f}">${st.traps[k][f]}</b><input type="range" min="${d[1]}" max="${d[2]}" value="${st.traps[k][f]}" data-k="${k}" data-f="${f}"></label>`).join('')}</div></div>`).join('');}
@@ -94,13 +95,23 @@ function design(){
  $('th').innerHTML=Object.entries(TH).map(([k,v])=>`<button data-t="${k}" class="${k===st.theme?'on':''}">${v[0]}</button>`).join('');
  const pl=['g',...TH[st.theme][1],'shield','coin','flag','x'];
  $('pal').innerHTML=pl.map(k=>`<button data-b="${k}" class="${k===brush?'on':''}">${k==='g'?'🟤地':k==='x'?'🧽':E[k]}</button>`).join('');
+ $('grid').style.gridTemplateColumns=`repeat(${COLS},minmax(0,1fr))`;$('len').innerHTML=[[8,'短'],[12,'中'],[16,'长']].map(([n,l])=>`<button data-n="${n}" class="${n===COLS?'on':''}">${l} ${n}格</button>`).join('')+`<button data-v="1" class="${scene?'on':''}">🖼️ 格子↔画面</button>`;$('grid').style.display=scene?'none':'grid';$('scene').style.display=scene?'block':'none';$('pal').style.display=scene?'none':'block';$('chk').style.display=scene?'none':'block';if(scene)drawScene();
  let h='';for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){const ts=st.tiles.filter(t=>t.x===x&&t.y===y);const base=ts.find(t=>t.type==='g'||t.type==='p');const it=ts.find(t=>t!==base);
   h+=`<div class="cell ${base?base.type:''}" data-x="${x}" data-y="${y}">${it?E[it.type]:''}</div>`;}
  $('grid').innerHTML=h;
  const isT=t=>TH[st.theme][1].includes(t.type)||NUM[t.type];
- const seg=[0,1,2,3,4,5].map(s=>st.tiles.filter(t=>isT(t)&&Math.floor(t.x/2)===s).length);
+ const seg=[0,1,2,3,4,5].map(s=>st.tiles.filter(t=>isT(t)&&SEG(t.x)===s).length);
  const a=seg[0]<=1&&seg[5]>=Math.max(...seg),b=seg.some((v,i)=>i&&v<seg[i-1]);
  $('chk').innerHTML=`陷阱数 ${seg.join('-')} &nbsp; <span class="${a?'ok':'bad'}">${a?'✅':'🤔'}先易后难</span> &nbsp; <span class="${b?'ok':'bad'}">${b?'✅':'🤔'}有喘气</span>`;}
+let scene=new URLSearchParams(location.search).get('scene')==='1',ov=true;
+function drawScene(){const C=40,W=COLS*C,H=(ROWS+1)*C;let h=`<rect width="${W}" height="${H}" fill="#3a4a8a"/>`;
+ for(const t of st.tiles){const X=t.x*C,Y=(t.y+1)*C;if(t.type==='g')h+=`<rect x="${X}" y="${Y}" width="${C}" height="${C}" fill="#6b4f2f"/><rect x="${X}" y="${Y}" width="${C}" height="6" fill="#4ea85c"/>`;else h+=`<text x="${X+4}" y="${Y+32}" font-size="30">${E[t.type]||''}</text>`;}
+ h+=`<text x="2" y="${ROWS*C-4}" font-size="38">🥷</text><rect x="0" y="${(ROWS-1)*C}" width="${C}" height="${2*C}" fill="none" stroke="#ffe7a0" stroke-width="3" transform="translate(0,-${C})"/>`;
+ h+=`<path d="M${C/2},${(ROWS-1)*C} Q${C*2},${C*.3} ${C*3.5},${(ROWS-1)*C}" fill="none" stroke="#ffe7a0" stroke-width="3" stroke-dasharray="6 4"/><text x="${C*1.4}" y="${C*.9}" fill="#ffe7a0" font-size="16" font-weight="800">跳 3格</text>`;
+ if(ov){for(let x=0;x<=COLS;x++)h+=`<line x1="${x*C}" x2="${x*C}" y1="0" y2="${H}" stroke="#fff6" />${x<COLS?`<text x="${x*C+3}" y="12" fill="#fff" font-size="10">${x*C}</text>`:''}`;for(let y=0;y<=ROWS+1;y++)h+=`<line y1="${y*C}" y2="${y*C}" x1="0" x2="${W}" stroke="#fff6"/>`;}
+ const sv=$('sv');sv.setAttribute('viewBox',`0 0 ${W} ${H}`);sv.style.maxHeight=(innerHeight<500?'115px':'220px');sv.style.width='100%';sv.innerHTML=h;}
+$('ov').onclick=()=>{ov=!ov;drawScene();};
+$('len').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.v){scene=!scene;}else{COLS=+b.dataset.n;st.tiles=preset(st.theme);}design();};
 $('th').onclick=e=>{const t=e.target.dataset.t;if(t){st.theme=t;st.tiles=preset(t);design();}};
 $('pal').onclick=e=>{const b=e.target.dataset.b;if(b){brush=b;design();}};
 $('grid').onclick=e=>{const c=e.target.closest('.cell');if(!c)return;const x=+c.dataset.x,y=+c.dataset.y,terr=brush==='g';
@@ -119,21 +130,21 @@ function preview(){cancelAnimationFrame(anim);const cv=$('cv'),g=cv.getContext('
  const plan=[];let danger=0,shield=0,T=0;const segH=[0,0,0,0,0,0];
  for(let x=0;x<COLS;x++){let r=0,hit=false,tr=null;
   for(const t of col(x)){if(t.type==='shield')shield++;if(RISK[t.type]){tr=t.type;r=RISK[t.type](st.traps[t.type]);}}
-  if(tr){danger+=r;if(danger>=1){danger-=1;if(shield)shield--;else{hit=true;segH[Math.floor(x/2)]++;}}}
+  if(tr){danger+=r;if(danger>=1){danger-=1;if(shield)shield--;else{hit=true;segH[SEG(x)]++;}}}
   const dt=1+r*1.5+(hit?1:0);plan.push({x,tr,r,hit,t0:T,dt});T+=dt;}
  const total=T,hits=segH.reduce((a,b)=>a+b,0);let mx=Math.max(...segH),hard=segH.lastIndexOf(mx);
  $('res').textContent='';const SP=0.45,PT=+(new URLSearchParams(location.search).get('pt'))||0,start=performance.now()-PT*SP*1000;let hp=0;
  (function frame(now){const t=(now-start)/1000/SP;g.clearRect(0,0,W,H);
-  for(let s=0;s<6;s++){g.fillStyle=s%2?'#ffffff08':'#ffffff12';g.fillRect(s*2*cw,0,2*cw,H);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText('第'+(s+1)+'段 难'+CURVE[s],s*2*cw+8,24);
-   g.fillStyle='#ffb4b4';g.fillText(segH[s]&&t>plan[s*2+1].t0+plan[s*2+1].dt?('-'+segH[s]+'❤'):'',s*2*cw+8,50);}
-  g.fillStyle='#6b4f2f';g.fillRect(0,H-40,W,40);g.font='40px sans-serif';
-  for(let x=0;x<COLS;x++)for(const it of col(x))g.fillText(E[it.type]||'',x*cw+cw/2-20,H-52);
+  for(let s=0;s<6;s++){g.fillStyle=s%2?'#ffffff08':'#ffffff12';g.fillRect(s*SW()*cw,0,SW()*cw,H);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText('第'+(s+1)+'段 难'+CURVE[s],s*SW()*cw+8,24);
+   g.fillStyle='#ffb4b4';g.fillText(segH[s]&&t>plan[Math.ceil((s+1)*SW())-1].t0+plan[Math.ceil((s+1)*SW())-1].dt?('-'+segH[s]+'❤'):'',s*SW()*cw+8,50);}
+  g.fillStyle='#6b4f2f';g.fillRect(0,H-40,W,40);g.font=Math.min(40,cw*.8)+'px sans-serif';
+  for(let x=0;x<COLS;x++)for(const it of col(x))g.fillText(E[it.type]||'',x*cw+cw*.1,H-52);
   const cur=plan.find(p=>t<p.t0+p.dt)||plan[COLS-1];const f=Math.min(1,(t-cur.t0)/cur.dt);
   const nx=Math.min(cur.x+f,COLS-.6)*cw,jump=cur.tr?Math.sin(f*Math.PI)*90:0;
   g.font='46px sans-serif';g.fillText('🥷',nx-10,H-44-jump);
   if(cur.hit&&f>.4&&f<.9){g.fillStyle='#ff6b6b';g.font='bold 34px sans-serif';g.fillText('-1 ❤',nx,H-120-jump);}
   if(t<total)anim=requestAnimationFrame(frame);
-  else $('res').innerHTML=`被打 <b>${hits}</b> 次 · 用时 <b>${Math.round(total)}</b> 秒 · 最难：第 <b>${hard+1}</b> 段 ${hard===5?'✅ 和 4 对上了':'🤔 计划最难是第 6 段'}`;})(performance.now());}
+  else $('res').innerHTML=`被打 <b>${hits}</b> 次 · 用时 <b>${Math.round(total)}</b> 秒 · ${hits?`最难：第 <b>${hard+1}</b> 段 ${hard===5?'✅ 和 4 对上了':'🤔 计划最难是第 6 段'}`:'😎 太简单 → 去②把数字调大'}`;})(performance.now());}
 $('run').onclick=preview;$('prev2').onclick=()=>go(2);
 let cur=0;const ORDER=['s0','s1','sP','s2','s3'];function go(n){cur=Math.max(0,Math.min(4,n));ORDER.forEach((id,i)=>$(id).classList.toggle('on',i===cur));document.querySelectorAll('.nostage').forEach((s,i)=>s.classList.toggle('on',i===cur));
  document.querySelectorAll('.st').forEach((s,i)=>{s.classList.toggle('on',i===cur);s.classList.toggle('done',i<cur);});
