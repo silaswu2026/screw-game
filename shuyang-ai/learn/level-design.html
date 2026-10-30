@@ -36,7 +36,7 @@ svg{width:100%;height:100%;min-height:0}
 .go.sm{font-size:15px!important;padding:4px 14px!important}
 </style><script src="ld-art.js?v=ld10"></script></head><body>
 <div class="bar"><figure class="pp"><img src="../avatars/xiaoyu.jpg" alt="小雨" style="object-position:32% 34%"><figcaption>小雨</figcaption></figure>
-<div class="st" data-s="0">⓪ 上节课回顾</div><div class="st" data-s="1">① 看图学习</div><div class="st" data-s="2">② 关卡频率 <i class="sd" data-s="2">●</i><i class="sd" data-s="3">●</i></div><div class="st" data-s="4">③ 关卡位置 <i class="sd" data-s="4">●</i><i class="sd" data-s="5">●</i></div><div class="st" data-s="6">④ 关卡难度 <i class="sd" data-s="6">●</i><i class="sd" data-s="7">●</i></div><div class="st" data-s="8">⑤ 实验·单机玩</div>
+<div class="st" data-s="0">⓪ 上节课回顾</div><div class="st" data-s="1">① 看图学习</div><div class="st" data-s="2">② 关卡频率 <i class="sd" data-s="2">●</i><i class="sd" data-s="3">●</i></div><div class="st" data-s="4">③ 关卡位置 <i class="sd" data-s="4">●</i><i class="sd" data-s="5">●</i></div><div class="st" data-s="6">④ 关卡难度 <i class="sd" data-s="6">●</i><i class="sd" data-s="7">●</i></div><div class="st" data-s="8">⑤ 设计关卡</div><div class="st" data-s="9">⑥ 单机玩</div>
 <figure class="pp"><img src="../avatars/dad-wuxin.jpg" alt="爸爸"><figcaption>爸爸</figcaption></figure><figure class="pp"><img src="../avatars/mom-chunyan.jpg" alt="妈妈"><figcaption>妈妈</figcaption></figure></div>
 <main>
 <section class="stage" id="sR"><h2>⓪ 上节课：角色动画 = 一张张图快速换 <span style="font-size:15px">帧速 <input type="range" id="fps" min="1" max="12" value="4" style="width:100px;vertical-align:middle"> <b id="fpsv">4</b> 帧/秒 <button class="go sm" id="rPl">⏸</button> <button class="go sm" id="rSt" style="background:linear-gradient(180deg,#ffb06b,#e2793b)">⏭ 一帧一帧</button></span></h2>
@@ -72,7 +72,11 @@ svg{width:100%;height:100%;min-height:0}
 <div class="grid" id="grid"></div><div id="scene" style="display:none"><svg id="sv"></svg><div class="chk" style="text-align:center"><button class="pal" id="ov" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-weight:800;padding:4px 12px">🔲 格子 开/关</button> 1格 = 40像素 · 🥷 1格宽 2格高 · 跳 3格远</div></div>
 <div style="text-align:center"><span class="chk" id="chk"></span> <button class="go sm" id="prev2">👀 预览</button></div></section>
 
-<section class="stage" id="s3"><h2>🧪 实验：我的关卡 → 单机玩</h2>
+<section class="stage" id="sM"><h2 class="s1h">🛠️ 设计我的关卡：摆位置 · 调频率 · 调难度</h2>
+<div id="mPal" style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"></div>
+<canvas id="cvM" width="960" height="250" style="width:100%;flex:1;min-height:0;background:#0006;border-radius:12px;cursor:pointer"></canvas>
+<div id="mCt" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:15px;font-weight:800;min-height:34px"></div></section>
+<section class="stage" id="s3"><h2>🧪 实验：玩我设计的关卡</h2>
 <div class="row"><div class="card"><div class="msg" id="sumt"></div><div id="sumseg" style="display:flex;gap:4px;width:100%"></div><div class="msg" id="sumtot"></div></div>
 <div class="card"><a class="go" id="play" href="../../xy-go/?custom=1">🎮 单机玩「我的关卡」</a><div class="msg" id="saved" style="color:#9ff0a8"></div><div class="msg" style="font-size:13px">玩完说：和预计一样吗？</div></div></div></section>
 </main>
@@ -168,7 +172,7 @@ function save(){const used=new Set(st.tiles.map(t=>t.type)),tr={};for(const k in
  $('sumt').textContent=TH[st.theme][0]+'关 · '+COLS+'格 · 预计掉血';
  $('sumseg').innerHTML=sh.map((v,i)=>`<div style="flex:1;text-align:center;background:#ffffff12;border-radius:8px;padding:4px"><div style="font-size:12px;color:#c9c3ef">第${i+1}段</div><div style="font-size:20px;color:${v?'#ff6b6b':'#9ff0a8'}">${v?'-'+v+'❤':'✓'}</div></div>`).join('');
  $('sumtot').innerHTML='总难度 <b style="font-size:24px">'+Math.max(1,Math.min(5,1+Math.round(tot/2)))+'</b> / 5 · 共掉 '+tot+' ❤';$('saved').textContent='已保存 ✅';}
-$('play').onclick=save;
+$('play').onclick=()=>mSave(true);
 
 
 let anim=null;
@@ -318,7 +322,7 @@ const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);if(sl===0)return sce
    g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText('② 频率   ③ 位置   ④ 难度  —— 每一块都走这 4 步：动手=教，预览=练→变→考',24,262);}
   if(t<12)a0=requestAnimationFrame(f);})(performance.now());};
 $('play0').onclick=()=>play0(0);
-function updHP(){try{const h=(MODE==='freq'&&$('sF').classList.contains('on')&&fHits!=null)?fHits:($('sQ').classList.contains('on')&&qHits!=null)?qHits:($('sD').classList.contains('on')&&dHits!=null)?dHits:totalHits(),M=6,left=Math.max(0,M-h);$('hp').innerHTML=`${'❤'.repeat(left)}${'🤍'.repeat(M-left)} <span style="font-size:12px;color:#c9c3ef">${$('sF').classList.contains('on')?'频率 → 掉':$('sQ').classList.contains('on')?'位置 → 掉':$('sD').classList.contains('on')?'难度 → 掉':'难度=频率×摆放 → 掉'}${h}❤</span>`;}catch(e){}}setInterval(updHP,300);setTimeout(updHP,0);
+function updHP(){try{const h=(MODE==='freq'&&$('sF').classList.contains('on')&&fHits!=null)?fHits:($('sQ').classList.contains('on')&&qHits!=null)?qHits:($('sD').classList.contains('on')&&dHits!=null)?dHits:(($('sM').classList.contains('on')||$('s3').classList.contains('on'))&&mHits!=null)?mHits:totalHits(),M=6,left=Math.max(0,M-h);$('hp').innerHTML=`${'❤'.repeat(left)}${'🤍'.repeat(M-left)} <span style="font-size:12px;color:#c9c3ef">${$('sF').classList.contains('on')?'频率 → 掉':$('sQ').classList.contains('on')?'位置 → 掉':$('sD').classList.contains('on')?'难度 → 掉':($('sM').classList.contains('on')||$('s3').classList.contains('on'))?'我的关卡 → 掉':'难度=频率×摆放 → 掉'}${h}❤</span>`;}catch(e){}}setInterval(updHP,300);setTimeout(updHP,0);
 let aR=null;const IMN=new Image();IMN.src='img/ninjas.png';const IMC=new Image();IMC.src='img/critters.png';
 const WK=[0,1,2,3,4,5].map(n=>{const i=new Image();i.src='img/walk/w'+n+'.png';return i;});
 const SPX=n=>{const i=new Image();i.src='../../xy-go/sprites/green/'+n+'.png';return i;};const RX=[...WK,SPX('idle'),SPX('jump_0'),SPX('knock_0')];
@@ -351,6 +355,46 @@ function crisp(cv){if(!cv.clientWidth)return;if(!cv._lw){cv._lw=CWD.get.call(cv)
 function crispAll(){document.querySelectorAll('.stage.on canvas').forEach(crisp);}addEventListener('resize',()=>setTimeout(crispAll,50));
 
 
+
+// ⑤ 设计我的关卡：组合 位置 + 频率 + 难度
+let aM=null,mHits=null,mTool='fire',mSel='fire',mRun=-1;const MC=12;
+const MT={fire:['🔥','火'],rock:['🪨','落石'],mist:['☠️','毒雾'],coin:['🪙','金币'],shield:['⭐','无敌星'],spring:['🌀','弹簧'],del:['🧽','擦掉']};
+const MP={fire:{dur:3,damage:1},rock:{interval:3,damage:1},mist:{interval:3,damage:1}};
+let mMap=(()=>{try{const d=JSON.parse(localStorage.getItem(KEY)||'null');if(d&&d.mine&&Array.isArray(d.mine.map)){Object.assign(MP,d.mine.mp||{});return d.mine.map;}}catch(e){}const m=Array(MC).fill(null);m[3]='fire';m[6]='coin';m[9]='rock';return m;})();
+const isTrap=k=>k==='fire'||k==='rock'||k==='mist';
+function mEst(){let sh=0;return mMap.map((k,x)=>{if(k==='shield'){sh++;return 0;}if(!isTrap(k))return 0;const p=MP[k];
+ let n=k==='fire'?{1:0,3:1,5:2}[p.dur]:{1:2,3:1,5:0}[p.interval];const nb=isTrap(mMap[x-1])||mMap[x-1]==='spring'||isTrap(mMap[x+1]);if(nb)n++;
+ let h=n*p.damage;if(h>0&&sh){sh--;h=Math.max(0,h-p.damage);}return h;});}
+function mPal(){$('mPal').innerHTML=Object.entries(MT).map(([k,[e,n]])=>`<button class="go sm" data-k="${k}" style="padding:3px 10px;font-size:16px;${mTool===k?'background:linear-gradient(180deg,#ffe07a,#f0b400);color:#222':'background:#3b4590'}">${e} ${n}</button>`).join('')+` <button class="go sm" id="mGo" style="padding:3px 12px;font-size:16px">▶ 跑一次</button>`;
+ document.querySelectorAll('#mPal button[data-k]').forEach(b=>b.onclick=()=>{mTool=b.dataset.k;if(isTrap(mTool))mSel=mTool;mPal();mCtl();});$('mGo').onclick=()=>{mRun=performance.now();};}
+function mCtl(){const k=mSel,p=MP[k],[e,n]=MT[k];const seg=(lab,key,vs,fmt)=>`<span style="background:#ffffff14;border-radius:12px;padding:2px 6px">${lab} `+vs.map(v=>`<button class="go sm" data-p="${key}" data-v="${v}" style="padding:2px 8px;font-size:15px;${p[key]===v?'background:linear-gradient(180deg,#ffe07a,#f0b400);color:#222':'background:#3b4590'}">${fmt(v)}</button>`).join('')+'</span>';
+ $('mCt').innerHTML=`<span style="align-self:center">${e} 所有${n}：</span>`+(k==='fire'?seg('⏳ 停','dur',[1,3,5],v=>v+'秒'):seg('⏱️ 每','interval',[1,3,5],v=>v+'秒'))+seg('💔','damage',[1,2,3],v=>v+'❤');
+ document.querySelectorAll('#mCt button').forEach(b=>b.onclick=()=>{MP[mSel][b.dataset.p]=+b.dataset.v;mCtl();mSave();});}
+function mSave(final){const tiles=[];for(let x=0;x<MC;x++)tiles.push({x,y:ROWS-1,type:'g'});mMap.forEach((k,x)=>{if(k)tiles.push({x,y:ROWS-2,type:k});});
+ const tr={},used=new Set(mMap);if(used.has('fire'))tr.fire={damage:MP.fire.damage,dur:MP.fire.dur,burn:MP.fire.dur};if(used.has('rock'))tr.rock={interval:MP.rock.interval,speed:3,damage:MP.rock.damage};if(used.has('mist'))tr.mist={interval:MP.mist.interval,damage:MP.mist.damage};
+ localStorage.setItem(KEY,JSON.stringify({theme:'swamp',cols:MC,rows:ROWS,tiles,traps:tr,savedAt:new Date().toISOString(),by:'伍澍暘',mine:{map:mMap,mp:MP}}));
+ if(final){const h=mEst(),tot=h.reduce((a,b)=>a+b,0);$('sumt').textContent='我的关卡 · 12格 · 预计掉血';
+  $('sumseg').innerHTML=mMap.map((k,x)=>k&&k!=='del'?`<div style="flex:1;text-align:center;background:#ffffff12;border-radius:8px;padding:4px"><div style="font-size:20px">${MT[k][0]}</div><div style="font-size:16px;color:${h[x]?'#ff6b6b':'#9ff0a8'}">${isTrap(k)?(h[x]?'-'+h[x]+'❤':'✓'):''}</div></div>`:'').join('');
+  $('sumtot').innerHTML='一共掉 <b style="font-size:24px">'+tot+'❤</b>';$('saved').textContent='已保存 ✅ 游戏里就是这一关';}}
+function mView(){cancelAnimationFrame(aM);mPal();mCtl();const cv=$('cvM');crisp(cv);const g=cv.getContext('2d'),W=cv.width,H=cv.height,L=20,cw=(W-200)/MC,gy=H-60;mSave();
+ cv.onclick=e=>{const r=cv.getBoundingClientRect(),x=Math.floor(((e.clientX-r.left)/r.width*W-L)/cw);if(x<0||x>=MC)return;
+  if(mTool==='del')mMap[x]=null;else if(mMap[x]===mTool&&isTrap(mTool)){mSel=mTool;}else mMap[x]=mTool;if(isTrap(mMap[x])){mSel=mMap[x];mCtl();}mSave();};
+ (function f(now){g.clearRect(0,0,W,H);const h=mEst(),tot=h.reduce((a,b)=>a+b,0);mHits=tot;
+  g.fillStyle='#6b4f2f';g.fillRect(L,gy,MC*cw,30);g.fillStyle='#4ea85c';g.fillRect(L,gy,MC*cw,6);
+  for(let x=0;x<MC;x++){g.strokeStyle='#ffffff22';g.lineWidth=1;g.strokeRect(L+x*cw+2,gy-80,cw-4,78);g.fillStyle='#c9c3ef';g.font='bold 13px sans-serif';g.fillText(x+1,L+x*cw+cw/2-5,gy+48);
+   const k=mMap[x];if(k){g.fillStyle='#fff';g.font='44px sans-serif';g.fillText(MT[k][0],L+x*cw+cw/2-24,gy-22);
+    if(isTrap(k)){const p=MP[k];g.font='bold 13px sans-serif';g.fillStyle='#ffe7a0';g.fillText((k==='fire'?'停'+p.dur:'每'+p.interval)+'秒 '+p.damage+'❤',L+x*cw+4,gy-84);}}}
+  if(A0().flag)g.drawImage(A0().flag,L+MC*cw-10,gy-60,50,56);
+  // 预览：匀速跑
+  const rt=mRun<0?-1:(now-mRun)/1000,P=6;let nx=L-10;if(rt>=0){nx=L+Math.min(rt,P)/P*MC*cw;}
+  let hurt=false,jump=0;for(let x=0;x<MC;x++){const cx=L+x*cw+cw/2;if(rt>=0&&nx>=cx){if(h[x]>0){g.fillStyle='#ff5a5a';g.font='bold 22px sans-serif';g.fillText('-'+h[x]+'❤',cx-22,gy-110);if(nx-cx<cw)hurt=true;}else if(isTrap(mMap[x])){g.fillStyle='#9ff0a8';g.font='bold 22px sans-serif';g.fillText('✓',cx-8,gy-110);}}
+   if(rt>=0&&isTrap(mMap[x])&&!h[x]&&Math.abs(nx-cx)<cw*.8)jump=Math.sin((nx-cx+cw*.8)/(cw*1.6)*Math.PI)*60;}
+  const im=hurt?LDART.HURT:jump>4?LDART.JUMP:(rt<0||rt>P)?LDART.IDLE:LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,nx-40,gy-90-jump,90,90);
+  const col=tot<=2?'#4ec96b':tot<=5?'#ffd23f':'#ff5a5a';g.fillStyle=col;g.beginPath();g.roundRect(W-170,10,160,H-20,16);g.fill();g.fillStyle='#1b1b2a';
+  g.font='bold 20px sans-serif';g.fillText('一共掉',W-130,46);g.font='bold 64px sans-serif';g.fillText(tot+'❤',W-158,124);g.font='bold 20px sans-serif';g.fillText(tot<=2?'简单':tot<=5?'刚刚好':'超难',W-124,164);
+  g.font='bold 14px sans-serif';g.fillText('点格子摆放',W-132,200);
+  aM=requestAnimationFrame(f);})(performance.now());}
+const A0=()=>LDART.ART;
 // 难度块：伤害 × 冒得快 × 停留久
 let aD=null,dHits=null;const DS={dmg:1,fast:0,stay:0};
 const DOPT=[['dmg','💔',['1❤','2❤','3❤'],[1,2,3]],['fast','冒刺',['🐢 慢','🐇 快'],[0,1]],['stay','⏳ 停',['短','中','久'],[0,1,2]]];
@@ -439,15 +483,15 @@ function freqView(prev){cancelAnimationFrame(aF);$('fSl').style.display=prev?'no
   if(done===1){done=2;}
   if(!done){done=1;setTimeout(()=>aF=requestAnimationFrame(f),400);const pv=fLast;fLast={I,h:fHit(I)};$('fRes').innerHTML=`${['','🏃 练','🔀 变','🏁 考'][fStep]}：每 <b>${I}</b> 秒 → <b>${n}</b> 次刺 → 掉 <b class="bad">${fHit(I)}❤</b>`+(fStep===3?(fHit(I)<=1?' ✅ 过关':' 😵 太难，回去调慢'):'')+(pv?` <span style="font-size:15px;color:#c9c3ef">（上次 每${pv.I}秒 掉${pv.h}❤ → 这次 ${fHit(I)}❤）</span>`:'');}})(performance.now());}
 $('fRun').onclick=()=>{fStep=1;freqView(true);};$('fTw').onclick=()=>{$('fI').value=1;$('fIv').textContent=1;fStep=2;freqView(true);};$('fEx').onclick=()=>{fStep=3;freqView(true);};
-let cur=0;const SCR=[['sR'],['s0'],['sF','freq'],['sF','freq'],['sQ','pos'],['sQ','pos'],['sD','diff'],['sD','diff'],['s3']],BLK=[0,1,2,2,3,3,4,4,5];
+let cur=0;const SCR=[['sR'],['s0'],['sF','freq'],['sF','freq'],['sQ','pos'],['sQ','pos'],['sD','diff'],['sD','diff'],['sM'],['s3']],BLK=[0,1,2,2,3,3,4,4,5,6];
 const TIT={freq:'⏱️ 频率：多久来一次',pos:'📍 位置：分开还是挤',diff:'💥 难度：速度·伤害·持续'};const taught={};
 function teach(m){if(taught[m])return;taught[m]=1;const tt=trapTiles();
  if(m==='freq')tt.forEach(t=>st.traps[t.type].interval=3);
  if(m==='diff')tt.forEach(t=>Object.assign(st.traps[t.type],{speed:2,damage:1,dur:2}));}
 function n4(id,i){const e=$(id);if(e)e.innerHTML=['教','练','变','考'].map((w,j)=>`<span class="${j===i?'on':j<i?'done':''}">${['①','②','③','④'][j]} ${w}</span>`).join('');}
 let pstep=1;
-function go(n){cur=Math.max(0,Math.min(8,n));const [id,m]=SCR[cur];if(m)MODE=m;
- ['sR','s0','sF','s1','sP','s2','s3','sQ','sD'].forEach(x=>$(x).classList.toggle('on',x===id));crispAll();
+function go(n){cur=Math.max(0,Math.min(9,n));const [id,m]=SCR[cur];if(m)MODE=m;
+ ['sR','s0','sF','s1','sP','s2','s3','sQ','sD','sM'].forEach(x=>$(x).classList.toggle('on',x===id));crispAll();
  document.querySelectorAll('.st').forEach((s,i)=>{s.classList.toggle('on',i===BLK[cur]);s.classList.toggle('done',i<BLK[cur]);});
  document.querySelectorAll('.sd').forEach(d=>d.classList.toggle('on',+d.dataset.s===cur));
  cancelAnimationFrame(stripAnim);
@@ -459,8 +503,9 @@ function go(n){cur=Math.max(0,Math.min(8,n));const [id,m]=SCR[cur];if(m)MODE=m;
  if(id==='s1'){teach(m);$('s1t').textContent=TIT[m]+' · 教：先安全，再拉数字';n4('n4a',0);traps();}
  if(id==='s2'){n4('n4c',0);design();}
  if(id==='sP'){$('sPt').textContent=TIT[m]+' · 忍者匀速跑';pstep=1;n4('n4b',1);preview();}
- if(cur===8)save();
- $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<8?'visible':'hidden';if(typeof updHP==='function')updHP();}
+ if(id==='sM')mView();else cancelAnimationFrame(aM);
+ if(cur===9)mSave(true);
+ $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<9?'visible':'hidden';if(typeof updHP==='function')updHP();}
 function twist(){const tt=trapTiles();if(!tt.length)return;const t=tt[tt.length-1];
  if(MODE==='freq')st.traps[t.type].interval=1;
  if(MODE==='diff')st.traps[t.type].speed=5;
