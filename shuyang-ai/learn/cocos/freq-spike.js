@@ -219,14 +219,11 @@
       return true;
     },
     _build: function () {
-      /* sky gradient bands — not empty navy */
-      this.addChild(mkColor(W, H, 18, 24, 52), 0);
-      var skyTop = mkColor(W, 160, 72, 110, 180, 210);
-      skyTop.setPosition(0, H - 160);
+      /* opaque sky — no dark “black panel” void at top */
+      this.addChild(mkColor(W, H, 58, 92, 150), 0);
+      var skyTop = mkColor(W, 120, 92, 140, 200);
+      skyTop.setPosition(0, H - 120);
       this.addChild(skyTop, 0);
-      var skyMid = mkColor(W, 100, 48, 70, 120, 160);
-      skyMid.setPosition(0, H - 220);
-      this.addChild(skyMid, 0);
 
       /* hills */
       var h1 = new cc.Sprite(hillTex);
