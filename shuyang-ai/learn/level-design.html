@@ -37,14 +37,23 @@ svg{width:100%;height:100%;min-height:0}
 #strip{aspect-ratio:960/150;max-width:100%;max-height:56px;width:auto!important;height:auto!important;flex:0 0 auto}
 @media (max-height:500px){
   .s1h,.stage.on>h2:not(.keep),.n4{display:none!important}
-  .bar{padding:1px 4px;gap:2px}.bar img{width:24px;height:24px}.pp{font-size:8px;line-height:1}.st{font-size:10px;padding:2px 1px}.pp figcaption{margin:0}
+  .bar{padding:1px 4px;gap:2px}.bar img{width:22px;height:22px}.pp{font-size:7px;line-height:1}.st{font-size:9px;padding:2px 1px}.pp figcaption{margin:0}
   main{padding:2px 6px;gap:2px}.stage{gap:2px}
   .foot{padding:1px 6px 2px}.foot button,.go{padding:4px 12px;font-size:14px;box-shadow:none}
   .n4{font-size:11px}.n4 span{padding:1px 6px}.msg{font-size:13px}
   .dim canvas{height:28px!important;aspect-ratio:auto}.dim b{font-size:15px!important}
   #sumtab td,#sumtab th{padding:0;line-height:1.15}.dim input{margin:0}.dim{gap:0!important}.cell{aspect-ratio:2.4}
   #hp{font-size:12px!important}
-  #s0 .row{gap:2px}#slt{font-size:13px!important}#sld{font-size:11px!important}
+  /* ① keep compact slide chrome so phone can flip pages */
+  #s0 h2.keep{display:flex!important;align-items:center;justify-content:center;gap:4px;flex-wrap:nowrap;font-size:13px;padding:0;margin:0;min-height:0}
+  #s0 h2.keep #slt{font-size:13px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
+  #s0 h2.keep #sld{font-size:11px!important}
+  #s0 h2.keep .sl,#s0 h2.keep #play0{font-size:12px!important;padding:2px 8px!important}
+  #s0 .msg{display:none!important} /* cut redundant 策划 tip on phone — idea is in the canvas */
+  /* ⓪ keep tiny frame controls */
+  #sR h2.keep{display:flex!important;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;font-size:12px;margin:0}
+  #sR h2.keep input{width:70px!important}
+  #sR .msg{font-size:11px!important}
   #fSl{font-size:16px!important}#fSl input{width:160px!important;height:20px!important}#fIv{font-size:24px!important}
   #dCt,#mCt,#mPal{font-size:12px!important;min-height:0!important}
   #fRes,#qRes,#dRes,.msg{font-size:12px!important;min-height:0!important;line-height:1.2}
@@ -54,17 +63,18 @@ svg{width:100%;height:100%;min-height:0}
 .n4{display:flex;gap:4px;justify-content:center;font-size:13px;font-weight:800}/* phone hide via media above */.n4 span{padding:2px 9px;border-radius:999px;background:#ffffff14;color:#c9c3ef}.n4 span.on{background:#e23b3b;color:#fff}.n4 span.done{background:#2f7a45;color:#fff}
 .go.sm{font-size:15px!important;padding:4px 14px!important}
 .kidsub{text-align:center;font-size:14px;font-weight:800;color:#c9c3ef;margin:-2px 0 2px;opacity:.95}
-</style><script src="ld-art.js?v=ld10"></script></head><body>
+body.teach #hp{visibility:hidden}
+</style><script src="ld-art.js?v=ld24"></script></head><body>
 <div class="bar"><figure class="pp"><img src="../avatars/xiaoyu.jpg" alt="小雨" style="object-position:32% 34%"><figcaption>小雨</figcaption></figure>
 <div class="st" data-s="0">⓪ 上节课回顾</div><div class="st" data-s="1">① 看图学习</div><div class="st" data-s="2">② 关卡频率 <i class="sd" data-s="2">●</i><i class="sd" data-s="3">●</i></div><div class="st" data-s="4">③ 关卡位置 <i class="sd" data-s="4">●</i><i class="sd" data-s="5">●</i></div><div class="st" data-s="6">④ 关卡难度 <i class="sd" data-s="6">●</i><i class="sd" data-s="7">●</i></div><div class="st" data-s="8">⑤ 设计关卡</div><div class="st" data-s="9">⑥ 单机玩</div>
 <figure class="pp"><img src="../avatars/dad-wuxin.jpg" alt="爸爸"><figcaption>爸爸</figcaption></figure><figure class="pp"><img src="../avatars/mom-chunyan.jpg" alt="妈妈"><figcaption>妈妈</figcaption></figure></div>
 <main>
-<section class="stage" id="sR"><h2>⓪ 上节课：角色动画 = 一张张图快速换 <span style="font-size:15px">帧速 <input type="range" id="fps" min="1" max="12" value="4" style="width:100px;vertical-align:middle"> <b id="fpsv">4</b> 帧/秒 <button class="go sm" id="rPl">⏸</button> <button class="go sm" id="rSt" style="background:linear-gradient(180deg,#ffb06b,#e2793b)">⏭ 一帧一帧</button></span></h2>
+<section class="stage" id="sR"><h2 class="keep">⓪ 动画帧 · 帧速 <input type="range" id="fps" min="1" max="12" value="4" style="width:100px;vertical-align:middle"> <b id="fpsv">4</b> <button class="go sm" id="rPl">⏸</button> <button class="go sm" id="rSt" style="background:linear-gradient(180deg,#ffb06b,#e2793b)">⏭ 一帧</button></h2>
 <div class="cvwrap"><canvas id="cvR" width="960" height="380" style="width:100%;min-height:0;background:#d6ecd0;border-radius:12px"></canvas></div>
-<div class="msg" style="font-size:15px">同一个角色，换姿势 → <b style="color:#ffe7a0">一致性</b>：脸、衣服、颜色都不变</div></section>
-<section class="stage" id="s0"><h2><button class="back sl" id="slp" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-size:16px;padding:3px 12px">◀</button> <span id="slt">好关卡：先简单，再变难</span> <span id="sld" style="font-size:13px"></span> <button class="sl" id="sln" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-size:16px;padding:3px 12px">▶</button> <button class="go" id="play0" style="font-size:15px;padding:4px 14px">▶ 播放</button></h2>
+<div class="msg" style="font-size:15px">同一个小雨，换姿势 → 脸、衣服、颜色都不变（这样才能认出他）</div></section>
+<section class="stage" id="s0"><h2 class="keep"><button class="back sl" id="slp" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-size:16px;padding:3px 12px">◀</button> <span id="slt">好关卡：先简单，再变难</span> <span id="sld" style="font-size:13px"></span> <button class="sl" id="sln" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-size:16px;padding:3px 12px">▶</button> <button class="go" id="play0" style="font-size:15px;padding:4px 14px">▶ 播放</button></h2>
 <div class="cvwrap"><canvas id="cv0" width="960" height="380" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas></div>
-<div class="msg" style="font-size:14px">🧠 策划故意这样设计 → 让人想「再来一次」· 我们要 ⏰ 适度玩</div></section>
+<div class="msg" style="font-size:14px">🧠 做游戏的人故意这样 → 让你想「再来一次」· 我们要 ⏰ 适度玩</div></section>
 
 <section class="stage" id="s1"><h2 class="s1h" id="s1t">点陷阱，拉数字</h2><div class="n4" id="n4a"></div>
 <canvas id="strip" width="960" height="150" style="width:100%;flex:none;background:#0006;border-radius:12px;cursor:pointer"></canvas>
@@ -92,7 +102,7 @@ svg{width:100%;height:100%;min-height:0}
 <div class="grid" id="grid"></div><div id="scene" style="display:none"><svg id="sv"></svg><div class="chk" style="text-align:center"><button class="pal" id="ov" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-weight:800;padding:4px 12px">🔲 格子 开/关</button> 1格 = 40像素 · 🥷 1格宽 2格高 · 跳 3格远</div></div>
 <div style="text-align:center"><span class="chk" id="chk"></span> <button class="go sm" id="prev2">👀 预览</button></div></section>
 
-<section class="stage" id="sM"><h2 class="s1h">🛠️ 设计我的关卡：摆位置 · 调频率 · 调难度</h2>
+<section class="stage" id="sM"><h2 class="s1h">🛠️ 设计我的关卡：摆位置 · 调频率 · 调难度</h2><div class="kidsub">摆东西 → 调数字 → ▶跑一次</div>
 <div id="mPal" style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"></div>
 <div class="cvwrap"><canvas id="cvM" width="960" height="360" style="width:100%;min-height:0;background:#0006;border-radius:12px;cursor:pointer"></canvas></div>
 <div id="mCt" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:15px;font-weight:800;min-height:34px"></div></section>
@@ -317,7 +327,7 @@ const SL=[
   '✋ 我自己决定停',
   '🎮 下一步：动手调'
 ];let sl=0;
-function slide(n){sl=(n+SL.length)%SL.length;$('slt').textContent=SL[sl];$('sld').textContent=SL.map((_,i)=>i===sl?'●':'○').join('');play0(0);}
+function slide(n){sl=(n+SL.length)%SL.length;$('slt').textContent=SL[sl];$('sld').textContent=SL.map((_,i)=>i===sl?'●':'○').join('');play0(0);if(typeof footLabel==='function')footLabel();}
 $('slp').onclick=()=>slide(sl-1);$('sln').onclick=()=>slide(sl+1);
 const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);const cv=$('cv0'),g=cv.getContext('2d'),W=cv.width,H=cv.height,A=LDART.ART,start=performance.now()-(PT||0)*1000;
  const spk=(x,y,n=3,hh=28)=>{for(let k=0;k<n;k++){g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(x+k*14,y);g.lineTo(x+k*14+7,y-hh);g.lineTo(x+k*14+14,y);g.closePath();g.fill();g.strokeStyle='#7a8794';g.stroke();}};
@@ -408,6 +418,7 @@ const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);const cv=$('cv0'),g=
   }
   if(t<14)a0=requestAnimationFrame(f);})(performance.now());};
 $('play0').onclick=()=>play0(0);
+$('cv0').onclick=()=>{if(cur===1){if(sl<SL.length-1)slide(sl+1);else go(cur+1);}};
 function updHP(){try{const h=(MODE==='freq'&&$('sF').classList.contains('on')&&fHits!=null)?fHits:($('sQ').classList.contains('on')&&qHits!=null)?qHits:($('sD').classList.contains('on')&&dHits!=null)?dHits:(($('sM').classList.contains('on')||$('s3').classList.contains('on'))&&mHits!=null)?mHits:totalHits(),M=6,left=Math.max(0,M-h);$('hp').innerHTML=`${'❤'.repeat(left)}${'🤍'.repeat(M-left)} <span style="font-size:12px;color:#c9c3ef">${$('sF').classList.contains('on')?'频率 → 掉':$('sQ').classList.contains('on')?'位置 → 掉':$('sD').classList.contains('on')?'难度 → 掉':($('sM').classList.contains('on')||$('s3').classList.contains('on'))?'我的关卡 → 掉':'难度=频率×摆放 → 掉'}${h}❤</span>`;}catch(e){}}setInterval(updHP,300);setTimeout(updHP,0);
 let aR=null;const IMN=new Image();IMN.src='img/ninjas.png';const IMC=new Image();IMC.src='img/critters.png';
 const WK=[0,1,2,3,4,5].map(n=>{const i=new Image();i.src='img/walk/w'+n+'.png';return i;});
@@ -602,8 +613,8 @@ function freqView(prev){cancelAnimationFrame(aF);$('fSl').style.display=prev?'no
    const hit=up(p);if(tt>=p&&hit){hits++;if(tt-p<1)hurt=true;g.fillStyle='#ff6b6b';g.font='bold 22px sans-serif';g.fillText('-1❤',x,gy-60);}else if(tt>=p+.3){g.fillStyle='#9ff0a8';g.font='bold 22px sans-serif';g.fillText('✓',x+10,gy-60);}});
   const im=tt>=DUR&&!hurt?LDART.IDLE:LDART.ninjaImg();if(im&&im.complete){if(hurt&&Math.floor(tt*10)%2)g.globalAlpha=.5;g.drawImage(im,nx-50,gy-96,100,100);g.globalAlpha=1;}
   if(hurt){g.fillStyle='#fff';g.font='38px sans-serif';g.fillText('💔',nx-10,gy-110);}
-  g.fillStyle='#ff6b6b';g.font='bold 44px sans-serif';g.fillText('-'+hits+'❤',W-160,gy-20);g.fillStyle='#c9c3ef';g.font='bold 15px sans-serif';g.fillText('越常冒越疼',W-164,gy+20);
-  fHits=fHit(I);if(typeof updHP==='function')updHP();
+  const lose=fHit(I);g.fillStyle='#ff6b6b';g.font='bold 44px sans-serif';g.fillText('-'+lose+'❤',W-160,gy-20);g.fillStyle='#c9c3ef';g.font='bold 15px sans-serif';g.fillText('越常冒越疼',W-164,gy+20);
+  fHits=lose;if(typeof updHP==='function')updHP();
   if(!prev){$('fRes').innerHTML=`每 <b>${I}</b> 秒 → <b>${n}</b> 次刺 → 掉 <b class="bad">${fHit(I)}❤</b>`;aF=requestAnimationFrame(f);return;}
   if(t<DUR+.3){aF=requestAnimationFrame(f);return;}
   if(done===1){done=2;}
@@ -616,13 +627,18 @@ function teach(m){if(taught[m])return;taught[m]=1;const tt=trapTiles();
  if(m==='diff')tt.forEach(t=>Object.assign(st.traps[t.type],{speed:2,damage:1,dur:2}));}
 function n4(id,i){const e=$(id);if(e)e.innerHTML=['教','练','变','考'].map((w,j)=>`<span class="${j===i?'on':j<i?'done':''}">${['①','②','③','④'][j]} ${w}</span>`).join('');}
 let pstep=1;
+function footLabel(){
+  if(cur===1){$('next').textContent=sl<SL.length-1?'下一页 ▶':'下一步 ▶';$('back').textContent=sl>0?'◀ 上一页':'上一步';}
+  else{$('next').textContent='下一步 ▶';$('back').textContent='上一步';}
+}
 function go(n){cur=Math.max(0,Math.min(9,n));const [id,m]=SCR[cur];if(m)MODE=m;
  ['sR','s0','sF','s1','sP','s2','s3','sQ','sD','sM'].forEach(x=>$(x).classList.toggle('on',x===id));crispAll();
+ document.body.classList.toggle('teach',id==='sR'||id==='s0');
  document.querySelectorAll('.st').forEach((s,i)=>{s.classList.toggle('on',i===BLK[cur]);s.classList.toggle('done',i<BLK[cur]);});
  document.querySelectorAll('.sd').forEach(d=>d.classList.toggle('on',+d.dataset.s===cur));
  cancelAnimationFrame(stripAnim);
  if(id==='sR')review();else cancelAnimationFrame(aR);
- if(id==='s0')slide(+(new URLSearchParams(location.search).get('sl'))||0),play0(+(new URLSearchParams(location.search).get('pt0'))||0);
+ if(id==='s0'){const qsl=new URLSearchParams(location.search).get('sl');slide(qsl!=null?+qsl:sl||0);play0(+(new URLSearchParams(location.search).get('pt0'))||0);}
  if(id==='sF')freqView(cur===3);else cancelAnimationFrame(aF);
  if(id==='sQ')qView(cur===5);else cancelAnimationFrame(aQ);
  if(id==='sD')dView(cur===7);else cancelAnimationFrame(aD);
@@ -631,7 +647,7 @@ function go(n){cur=Math.max(0,Math.min(9,n));const [id,m]=SCR[cur];if(m)MODE=m;
  if(id==='sP'){$('sPt').textContent=TIT[m]+' · 忍者匀速跑';pstep=1;n4('n4b',1);preview();}
  if(id==='sM')mView();else cancelAnimationFrame(aM);
  if(cur===9){mSave(true);if(!mPreviewDone&&$('saved'))$('saved').textContent='提示：先回⑤ ▶跑一次，再单机玩';}
- $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<9?'visible':'hidden';if(typeof updHP==='function')updHP();}
+ $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<9?'visible':'hidden';footLabel();if(typeof updHP==='function')updHP();}
 function twist(){const tt=trapTiles();if(!tt.length)return;const t=tt[tt.length-1];
  if(MODE==='freq')st.traps[t.type].interval=1;
  if(MODE==='diff')st.traps[t.type].speed=5;
@@ -639,7 +655,8 @@ function twist(){const tt=trapTiles();if(!tt.length)return;const t=tt[tt.length-
 $('twist').onclick=()=>{twist();pstep=2;n4('n4b',2);preview();updHP();};
 $('exam').onclick=()=>{pstep=3;n4('n4b',3);preview();};
 $('run').onclick=()=>{pstep=1;n4('n4b',1);preview();};
-$('next').onclick=()=>go(cur+1);$('back').onclick=()=>go(cur-1);
+$('next').onclick=()=>{if(cur===1&&sl<SL.length-1){slide(sl+1);footLabel();return;}go(cur+1);};
+$('back').onclick=()=>{if(cur===1&&sl>0){slide(sl-1);footLabel();return;}go(cur-1);};
 document.querySelector('.bar').onclick=e=>{const d=e.target.closest('[data-s]');if(d)go(+d.dataset.s);};
 {const q=new URLSearchParams(location.search);if(q.get('bump')||q.get('move')){preview();cancelAnimationFrame(anim);
  const tt=trapTiles();if(q.get('bump')){taught.freq=1;const k=tt[tt.length-1].type;st.traps[k].interval=1;}
