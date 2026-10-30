@@ -52,7 +52,7 @@
   let netConn = null;
   let netLinked = false;
   let netSnapAcc = 0;
-  let netPickLv = 0;
+  let netPickLv = 0; // custom level overrides at match time
   let netGuestPrev = { left: false, right: false, jump: false, throw: false };
   let netOutAcc = 0;
   const NET_PREFIX = 'xygo4';
@@ -663,19 +663,20 @@
   const LEVELS = [
     {
       name: '林间晨跑', en: 'Forest Jog',
-      hint: '第1关·沼泽：黑草陷阱+流沙（跳一跳逃出）',
+      hint: '第1关·热身：跳过小尖刺，打史莱姆',
       cols: 70, rows: 14, spawn: [2, 11], goal: [66, 11],
       checks: [[34, 11]],
       slimes: [[22, 11]], crates: [[16, 11]],
       walls: [{ l0: 28, l1: 29, r0: 33, r1: 34, top: 8 }],
       springs: [],
       spikes: [[10, 11]],
-      bombs: [[8, 11]],
-      fires: [[24, 11]],
+      bombs: [],
+      fires: [],
       bolts: [],
-      sands: [[18, 20]],
+      sands: [],
       rocks: [],
       mists: [],
+      simple: true,
       boss: { c: 58, name: '史莱姆王', kind: 'slime', hp: 4 },
       coins: [[4, 9], [6, 9], [12, 9], [18, 9], [24, 9], [30, 7], [38, 9], [44, 9], [52, 9], [62, 9]],
       stars: [[30, 6]],
@@ -690,19 +691,20 @@
     },
     {
       name: '苔岩小径', en: 'Moss Path',
-      hint: '第2关·山坡：落石从天降，看黄光躲开',
+      hint: '第2关·新陷阱：落石！看黄光就躲开',
       cols: 82, rows: 14, spawn: [2, 11], goal: [78, 11],
       checks: [[20, 11], [48, 11]],
       slimes: [[26, 11], [54, 11]], crates: [[18, 11]],
       walls: [{ l0: 36, l1: 37, r0: 41, r1: 42, top: 7 }],
       springs: [[35, 11]],
       spikes: [[12, 13]],
-      bombs: [[44, 11]],
-      fires: [[30, 11]],
+      bombs: [],
+      fires: [],
       bolts: [],
       sands: [],
       rocks: [[52, 11]],
       mists: [],
+      simple: true,
       boss: { c: 70, name: '野猪', kind: 'boar', hp: 5 },
       coins: [[5, 9], [10, 9], [16, 9], [24, 9], [32, 9], [39, 7], [46, 9], [56, 9], [64, 9], [74, 9]],
       stars: [[39, 5]],
@@ -1018,6 +1020,7 @@
   }
   function seedLevelTerrain() {
     levelTerrain = LEVEL_TERRAIN[levelIndex] || 'swamp';
+    if (LEVELS[levelIndex] && LEVELS[levelIndex].simple) return; // 先简单: no extra props
     if (levelTerrain === 'mountain') seedMountainTerrain();
     else if (levelTerrain === 'all') seedAllTerrains();
     else seedSwampTerrain();
@@ -1113,6 +1116,7 @@
   }
   function tickDynamicTerrain(dt) {
     if (mode !== 'play') return;
+    if (LEVELS[levelIndex] && LEVELS[levelIndex].simple) return; // 简单关/自制关：地形不乱变
     terraToastCd = Math.max(0, terraToastCd - dt);
     terraAcc += dt;
     // terrain can change anytime — fire every ~6.5s
@@ -1270,7 +1274,83 @@
     n.knockT = 0; n.knockPhase = null; n.knockAnimT = 0; n.locoT = 0;
   }
 
+  // ===== ?custom=1: level from 课程页 level-design.html (localStorage 'xygo-custom-level') =====
+  const CUSTOM_KEY = 'xygo-custom-level';
+  let customIndex = -1;
+  function buildCustomDef(d) {
+    d = d && typeof d === 'object' ? d : {};
+    const DC = Math.max(4, Math.min(40, d.cols | 0 || 12));
+    const DR = Math.max(2, Math.min(8, d.rows | 0 || 4));
+    const tiles = Array.isArray(d.tiles) ? d.tiles : [];
+    const tr = d.traps || {};
+    const W = 6, PAD = 6; // each design column = 6 game columns; 6 safe columns at start/end
+    const cols = PAD + DC * W + PAD + 10;
+    const gx = (x) => PAD + x * W + 2;
+    // surface row for design row y (ground row DR-1 → 11; each design row up = 2 tiles)
+    const S = (y) => 11 - (DR - 1 - y) * 2;
+    const at = (x, y) => tiles.filter((t) => t && t.x === x && t.y === y);
+    const groundCols = [];
+    for (let x = 0; x < DC; x++) {
+      const g = at(x, DR - 1).some((t) => t.type === 'g' || t.type === 'p');
+      groundCols.push(tiles.length ? g : true);
+    }
+    const plats = tiles.filter((t) => t && t.type === 'p' && t.y < DR - 1);
+    const def = {
+      name: '我的关卡', en: 'My Level', custom: true, simple: true,
+      hint: '自制关卡' + (d.by ? '·' + d.by : '') + '：' + ({ swamp: '沼泽', ocean: '海洋', space: '太空' }[d.theme] || '冒险'),
+      cols, rows: 14, spawn: [2, 11], goal: [cols - 5, 11],
+      checks: [], slimes: [], crates: [], walls: [], springs: [], spikes: [], bombs: [], fires: [],
+      bolts: [], sands: [], rocks: [], mists: [], coins: [], stars: [],
+      boss: { c: cols - 9, name: '史莱姆王', kind: 'slime', hp: 3 },
+      build(box) {
+        box(0, PAD - 1, 11, 13);
+        box(cols - PAD - 10, cols - 1, 11, 13);
+        for (let x = 0; x < DC; x++) if (groundCols[x]) box(PAD + x * W, PAD + x * W + W - 1, 11, 13);
+        plats.forEach((p) => box(PAD + p.x * W, PAD + p.x * W + W - 1, S(p.y), S(p.y)));
+      },
+    };
+    tiles.forEach((t) => {
+      if (!t || t.type === 'g' || t.type === 'p' || t.y >= DR - 1) return;
+      const c = gx(t.x | 0);
+      const r = S((t.y | 0) + 1); // stands on the row below
+      switch (t.type) {
+        case 'coin': def.coins.push([c, r - 2]); break;
+        case 'shield': def.stars.push([c, r - 2]); break;
+        case 'flag': def.checks.push([c, r]); break;
+        case 'spring': def.springs.push([c, r]); break;
+        case 'sand': case 'mud': def.sands.push([c, c + 1, r]); break;
+        case 'rock': case 'meteor': def.rocks.push([c, r]); break;
+        case 'fire': def.fires.push([c, r]); break;
+        case 'mist': case 'bubble': def.mists.push([c, r]); break;
+        case 'shark': def.slimes.push([c, r]); break;
+        case 'wave': def.spikes.push([c, c, r]); break;
+        default: break; // lowg etc: not yet
+      }
+    });
+    if (!def.slimes.length) def.slimes.push([PAD + Math.floor(DC / 2) * W, 11]);
+    const rk = tr.rock || tr.meteor;
+    if (rk) { if (rk.interval) def.rockInterval = +rk.interval; if (rk.speed) def.rockSpeed = +rk.speed; }
+    const sd = tr.sand || tr.mud;
+    if (sd && sd.sink) def.sandRate = 0.76 / Math.max(1, +sd.sink);
+    return def;
+  }
+  function installCustomLevel(d) {
+    const def = buildCustomDef(d);
+    if (customIndex >= 0) LEVELS[customIndex] = def;
+    else { LEVELS.push(def); customIndex = LEVELS.length - 1; }
+    return customIndex;
+  }
+  let customData = null;
+  var netClSnaps = 0;
+  try {
+    if (new URLSearchParams(location.search).get('custom') === '1') {
+      customData = JSON.parse(localStorage.getItem(CUSTOM_KEY) || 'null') || {};
+      installCustomLevel(customData);
+      netPickLv = customIndex;
+    }
+  } catch (e) { customData = {}; try { installCustomLevel(customData); } catch (e2) {} }
   function loadLevel(i) {
+    if (!LEVELS[i]) i = 0;
     levelIndex = i;
     const def = LEVELS[i];
     cols = def.cols;
@@ -1290,7 +1370,7 @@
     terraStep = 0;
     terraToastCd = 0;
     seedLevelTerrain();
-    seedGrasslandTraps();
+    if (!def.simple) seedGrasslandTraps();
     const ground = 11;
     coins = def.coins.map(([c, r]) => Object.assign({ got: false, bob: c }, cell(c, r)));
     stars = def.stars.map(([c, r]) => Object.assign({ got: false, bob: r }, cell(c, r)));
@@ -1338,6 +1418,7 @@
       return {
         c, x: c * T + T * 0.5, yTop: 2 * T, yGround: row * T,
         phase: (c % 7) * 0.41, warn: 0, rockOn: 0, rockY: 2 * T, rockVy: 0, cool: 0,
+        coolBase: def.rockInterval, grav: def.rockSpeed ? 1400 * def.rockSpeed / 3 : 1400,
       };
     });
     mists = (def.mists || []).map(([c, r]) => {
@@ -2044,7 +2125,7 @@
     // slow + sink while grounded
     n.vx *= 0.42;
     if (n.grounded) {
-      n.sandSink = Math.min(1.15, (n.sandSink || 0) + dt * 0.38);
+      n.sandSink = Math.min(1.15, (n.sandSink || 0) + dt * (LEVELS[levelIndex] && LEVELS[levelIndex].sandRate || 0.38));
       n.y += dt * 10 * Math.min(1, n.sandSink);
     }
     // jump helps escape
@@ -2069,12 +2150,12 @@
         continue;
       }
       if (r.rockOn) {
-        r.rockVy += 1400 * dt;
+        r.rockVy += (r.grav || 1400) * dt;
         r.rockY += r.rockVy * dt;
         if (r.rockY >= r.yGround - 6) {
           r.rockY = r.yGround - 6;
           r.rockOn = 0;
-          r.cool = 1.8 + (r.c % 3) * 0.25;
+          r.cool = r.coolBase != null ? r.coolBase : 1.8 + (r.c % 3) * 0.25;
           r.phase = 0;
           puff(r.x, r.yGround - 8, '#8a7a6a', 8);
         }
@@ -3861,6 +3942,10 @@
   }
   function netSend(obj) {
     if (!netLinked) return;
+    if (obj && customIndex >= 0 && netRole === 'host' && obj.lv === customIndex) {
+      if (obj.t === 'go' || obj.t === 'cmd') obj.cl = customData || {};
+      else if (obj.t === 'snap' && netClSnaps < 40) { netClSnaps++; obj.cl = customData || {}; }
+    }
     if (netTransport === 'bc') {
       netBCPost({ t: 'bc-data', role: netRole, session: netBcSession, payload: obj });
       return;
@@ -4276,6 +4361,9 @@
     netGuestPrev.throw = Th;
   }
   function netOnMsg(msg, asHost) {
+    if (msg && msg.cl && !asHost) {
+      try { customData = msg.cl; installCustomLevel(msg.cl); } catch (e) {}
+    }
     if (!msg || !msg.t) return;
     if (asHost) {
       if (msg.t === 'in') netApplyGuestInput(msg);
@@ -4504,7 +4592,7 @@
     netMatchAbort = false;
     netDestroy();
     netRole = 'host';
-    netPickLv = (opts.pickLv != null ? opts.pickLv : 0) | 0;
+    netPickLv = (opts.pickLv != null ? opts.pickLv : (customIndex >= 0 ? customIndex : 0)) | 0;
     const rooms = netRoomCandidates();
     if (!silent) {
       netShowRoom('host');
@@ -4922,7 +5010,7 @@
   });
   document.getElementById('play').addEventListener('click', () => {
     wantCoop = false;
-    requestLocalOrSoloStart(0);
+    requestLocalOrSoloStart(customIndex >= 0 ? customIndex : 0);
   });
   document.querySelectorAll('.picks button').forEach((b) => {
     b.addEventListener('click', () => {
@@ -5112,7 +5200,7 @@
         coop, companion, hp: player.hp, p2x: p2.x, p2y: p2.y, p2hp: p2.hp,
         p3x: p3.x, p3y: p3.y, p3hp: p3.hp, p3anim: p3.anim,
         bossHp: boss ? boss.hp : 0, bossAlive: !!(boss && boss.alive),
-        levels: LEVELS.length,
+        levels: LEVELS.length, customIndex, levelName: LEVELS[levelIndex] && LEVELS[levelIndex].name, rocksN: rocks.length, sandsN: sands.length, firesN: fires.length, bombsN: bombs.length, mistsN: mists.length,
         netRole, netCode, netLinked,
       };
     },
