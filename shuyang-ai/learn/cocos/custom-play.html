@@ -5,35 +5,55 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>玩我的关 · Cocos · 伍澍暘</title>
+<title>玩我的关 · Cocos · 第9关沼泽</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;background:#0b1a12}
 body{font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;color:#f7f4ff;display:flex;flex-direction:column;height:100dvh;height:100vh}
-.bar{position:relative;z-index:10;display:flex;gap:6px;padding:4px 8px;align-items:center;flex-shrink:0;background:#05070fee;min-height:34px}
-.bar a{color:#fff;font-weight:800;text-decoration:none;background:#3b4590;border-radius:999px;padding:5px 10px;font-size:12px}
-h1{margin:0;font-size:14px;color:#ffe7a0;flex:1;text-align:center;font-weight:900}
+.bar{position:relative;z-index:10;display:flex;gap:6px;padding:4px 8px;align-items:center;flex-shrink:0;background:#05070fee;min-height:32px}
+.bar a,.bar button.net{color:#fff;font-weight:800;text-decoration:none;background:#3b4590;border:0;border-radius:999px;padding:5px 10px;font-size:12px;cursor:pointer}
+.bar button.net{background:linear-gradient(180deg,#78d484,#4ea85c);color:#083018}
+h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:900}
 .badge{font-size:10px;font-weight:800;color:#1a2040;background:linear-gradient(180deg,#9ff0a8,#4ea85c);border-radius:999px;padding:3px 8px}
-#orientTip{display:none;position:absolute;left:50%;transform:translateX(-50%);top:36px;z-index:12;font-size:11px;font-weight:800;color:#ffe7a0;background:#1a2048cc;padding:3px 10px;border-radius:999px;pointer-events:none;white-space:nowrap}
+#orientTip{display:none;position:absolute;left:50%;transform:translateX(-50%);top:34px;z-index:12;font-size:11px;font-weight:800;color:#ffe7a0;background:#1a2048cc;padding:3px 10px;border-radius:999px;pointer-events:none;white-space:nowrap}
 #orientTip.on{display:block}
-/* Black letterbox host — maximize locked landscape AR (contain, never squash) */
 .shell{flex:1 1 auto;min-height:0;width:100%;position:relative;background:#0b1a12;display:flex;align-items:stretch;justify-content:stretch}
 .cvwrap{position:relative;flex:1 1 auto;width:100%;height:100%;background:#0b1a12;overflow:hidden;line-height:0}
-#gameCanvas{width:100%!important;height:100%!important;display:block;background:#1d4e38;touch-action:none}
-.hud{position:absolute;top:6px;left:8px;right:8px;z-index:6;display:flex;justify-content:space-between;align-items:center;pointer-events:none;text-shadow:0 1px 3px #000a}
-#hp{font-size:18px;letter-spacing:1px;font-weight:800}
-#coins{font-size:15px;color:#ffe7a0;font-weight:800}
-#msg{position:absolute;top:32px;left:0;right:0;z-index:6;text-align:center;font-weight:800;font-size:13px;color:#fff;text-shadow:0 1px 4px #000c;pointer-events:none;padding:0 8px}
+#gameCanvas{width:100%!important;height:100%!important;display:block;background:#0c1a14;touch-action:none}
+/* HUD — xy-go style: level card + green bar + coins (no six hearts) */
+.hud{position:absolute;top:8px;left:8px;right:8px;z-index:6;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;gap:8px}
+.lvlcard{background:#102016cc;border-radius:10px;padding:6px 10px;min-width:120px}
+#lvlChip{font-size:13px;font-weight:900;color:#fff;margin:0 0 4px}
+#hp{display:flex;align-items:center;gap:6px}
+#hp .hpchip{font-size:11px;font-weight:900;color:#9ff0a8;background:#1a3a24;border-radius:999px;padding:2px 7px}
+#hp .hpbar{display:inline-block;width:72px;height:8px;background:#1a3020;border-radius:4px;overflow:hidden;vertical-align:middle}
+#hp .hpbar i{display:block;height:100%;background:linear-gradient(90deg,#4ea85c,#9ff0a8);width:100%}
+#coins{font-size:14px;color:#ffe7a0;font-weight:800;text-shadow:0 1px 3px #000a;padding-top:4px}
+#bossBar{display:none;position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:6;background:#102016cc;border-radius:10px;padding:6px 12px;min-width:200px;max-width:90%;pointer-events:none}
+#bossBar.on{display:block}
+#bossBar .bn{font-size:13px;font-weight:800;color:#fff;margin:0 0 4px;text-align:center}
+#bossBar .bb{height:8px;background:#3a1818;border-radius:4px;overflow:hidden}
+#bossBar .bb i{display:block;height:100%;background:#ff5a5a;width:100%}
+#msg{position:absolute;top:88px;left:0;right:0;z-index:6;text-align:center;font-weight:800;font-size:12px;color:#fff;text-shadow:0 1px 4px #000c;pointer-events:none;padding:0 8px}
 #boot{display:none;position:absolute;inset:0;z-index:15;align-items:center;justify-content:center;text-align:center;font-size:13px;color:#ffb4b4;font-weight:800;background:#05070fcc;padding:16px}
 #boot.err{display:flex}
-/* Touch lives on shell letterbox (esp. portrait bottom), not covering gameplay */
-.touch{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-between;gap:10px;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));user-select:none;pointer-events:none;background:linear-gradient(180deg,transparent,#000a 35%,#000d)}
-.touch .cluster{display:flex;gap:10px;pointer-events:auto}
-.touch button{border:0;border-radius:18px;width:68px;height:68px;font-size:26px;font-weight:900;color:#fff;background:linear-gradient(180deg,#5a6ab0dd,#3b4590ee);box-shadow:0 4px 0 #2a3268;touch-action:none}
-.touch button:active,.touch button.on{transform:translateY(3px);box-shadow:none;background:linear-gradient(180deg,#78d484,#4ea85c)}
-.touch #btnJ{width:84px;background:linear-gradient(180deg,#ffb06bdd,#e2793bee);box-shadow:0 4px 0 #a35a20;font-size:20px}
-.dock{position:absolute;z-index:9;right:8px;top:8px;display:flex;gap:6px}
-.go{border:0;border-radius:999px;padding:7px 12px;font-size:12px;font-weight:900;color:#fff;background:linear-gradient(180deg,#78d484,#4ea85c);box-shadow:0 2px 0 #2f6d3a;text-decoration:none;display:inline-flex;align-items:center;opacity:.92}
+#netBanner{display:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:11;font-size:12px;font-weight:800;background:#1a2048ee;color:#9ff0a8;padding:4px 12px;border-radius:999px;white-space:nowrap}
+#netBanner.on{display:block}
+#netPanel{display:none;position:absolute;inset:0;z-index:25;align-items:center;justify-content:center;background:rgba(8,10,20,.82)}
+#netPanel.on{display:flex}
+#netPanel .card{background:linear-gradient(180deg,#2a3360,#1a2048);border:2px solid #9ff0a866;border-radius:16px;padding:16px 18px;text-align:center;max-width:92%;min-width:260px}
+#netPanel h2{margin:0 0 8px;font-size:18px;color:#ffe7a0}
+#netPanel p{margin:0 0 10px;font-size:13px;color:#c9c3ef;font-weight:700}
+#netPanel .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+/* Touch — ALWAYS in view on desktop too (was display:none ≥900px → 投丢失) */
+.touch{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-between;gap:10px;padding:8px 14px calc(8px + env(safe-area-inset-bottom,0px));user-select:none;pointer-events:none;background:linear-gradient(180deg,transparent,#0008 40%,#000c)}
+.touch .cluster{display:flex;gap:8px;pointer-events:auto}
+.touch button{border:0;border-radius:16px;width:64px;height:64px;font-size:22px;font-weight:900;color:#fff;background:linear-gradient(180deg,#5a6ab0dd,#3b4590ee);box-shadow:0 3px 0 #2a3268;touch-action:none}
+.touch button:active,.touch button.on{transform:translateY(2px);box-shadow:none;background:linear-gradient(180deg,#78d484,#4ea85c)}
+.touch #btnJ{width:72px;background:linear-gradient(180deg,#ffb06bdd,#e2793bee);box-shadow:0 3px 0 #a35a20;font-size:16px}
+.touch #btnT{width:72px;background:linear-gradient(180deg,#7ab0ffdd,#3b6fd4ee);box-shadow:0 3px 0 #274a8a;font-size:16px}
+.dock{position:absolute;z-index:9;right:8px;top:8px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:46%}
+.go{border:0;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:900;color:#fff;background:linear-gradient(180deg,#78d484,#4ea85c);box-shadow:0 2px 0 #2f6d3a;text-decoration:none;display:inline-flex;align-items:center;cursor:pointer}
 .go.sec{background:linear-gradient(180deg,#7ab0ff,#3b6fd4);box-shadow:0 2px 0 #274a8a;font-size:11px}
 #result{display:none;position:absolute;inset:0;z-index:20;align-items:center;justify-content:center;background:rgba(8,10,28,.75)}
 #result.show{display:flex}
@@ -43,44 +63,51 @@ h1{margin:0;font-size:14px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 #result .ctl{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 @media (orientation:portrait){
   #orientTip.on{display:block}
-  .shell{align-items:stretch;background:#0b1a12}
-  body{background:#0b1a12}
-  .touch button{width:78px;height:78px}.touch #btnJ{width:98px}
-  .dock .go.sec{display:none}
+  .touch button{width:72px;height:72px}.touch #btnJ,.touch #btnT{width:88px}
 }
 @media (orientation:landscape),(max-height:480px){
   #orientTip{display:none!important}
-  .shell{background:#0b1a12;align-items:stretch}
-  body{background:#0b1a12}
-  .bar{min-height:28px;padding:2px 8px}h1{font-size:12px}.badge{display:none}
-  .touch button{width:56px;height:56px;font-size:20px}.touch #btnJ{width:70px;font-size:15px}
-  #hp{font-size:15px}#msg{font-size:11px;top:28px}
+  .bar{min-height:26px;padding:2px 8px}h1{font-size:12px}.badge{display:none}
+  .touch button{width:52px;height:52px;font-size:18px}.touch #btnJ,.touch #btnT{width:64px;font-size:14px}
+  #msg{font-size:11px;top:78px}#bossBar{top:46px}
 }
 @media (min-width:900px) and (min-height:520px){
-  .touch{display:none}
-  .cvwrap{border-radius:10px}
-  .dock{top:auto;bottom:10px;right:12px}
+  /* Keep touch visible — desktop must show 左/右/跳/投 inside frame */
+  .touch{padding-bottom:12px}
+  .touch button{width:58px;height:58px}
+  .touch #btnJ,.touch #btnT{width:70px}
+  .dock{top:auto;bottom:78px;right:12px}
+  .cvwrap{border-radius:0}
 }
 </style>
 <script>document.ccConfig={debugMode:0,frameRate:60,id:"gameCanvas",renderMode:1,showFPS:false};</script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="../../../vendor/cocos2d-html5/cocos2d-js-v3.13-lite.js"></script>
 </head>
 <body>
 <div class="bar">
   <a href="../level-design.html?path=tonight&s=3">← 回玩完</a>
   <h1>🎮 玩我的关</h1>
-  <span class="badge">同 xy-go</span>
+  <button class="net" id="btnNet" type="button">🤝 联机游玩</button>
+  <span class="badge">Cocos</span>
 </div>
-<div id="orientTip">📱 竖屏可玩 · 横屏更铺满</div>
+<div id="orientTip">📱 竖屏可玩 · 比例同横屏</div>
+<div id="netBanner"></div>
 <div class="shell" id="shell">
   <div class="cvwrap" id="cvwrap">
-    <canvas id="gameCanvas" width="640" height="368"></canvas>
-    <div class="hud"><div id="hp">❤❤❤❤❤❤</div><div id="coins">🪙 0</div></div>
-    <div id="msg">← → 移动 · 跳 · 躲刺</div>
+    <canvas id="gameCanvas" width="640" height="520"></canvas>
+    <div class="hud">
+      <div class="lvlcard">
+        <div id="lvlChip">第9关 我的关卡</div>
+        <div id="hp"><span class="hpchip">A 绿</span><span class="hpbar"><i style="width:100%"></i></span></div>
+      </div>
+      <div id="coins">🪙 0</div>
+    </div>
+    <div id="bossBar"><div class="bn">鳄鱼王</div><div class="bb"><i style="width:100%"></i></div></div>
+    <div id="msg">←→移动 · 跳 · F/J投 · 打鳄王</div>
     <div id="boot"></div>
     <div class="dock">
       <button class="go" id="retry" type="button">重来</button>
-      <a class="go sec" href="../../xy-go/?custom=1">旧版 xy-go</a>
     </div>
     <div id="result" aria-live="polite">
       <div class="card">
@@ -92,17 +119,28 @@ h1{margin:0;font-size:14px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
         </div>
       </div>
     </div>
-  </div>
-  <div class="touch" id="touch">
-    <div class="cluster">
-      <button type="button" id="btnL" aria-label="左">◀</button>
-      <button type="button" id="btnR" aria-label="右">▶</button>
-    </div>
-    <div class="cluster">
-      <button type="button" id="btnJ" aria-label="跳">跳</button>
+    <div class="touch" id="touch">
+      <div class="cluster">
+        <button type="button" id="btnL" aria-label="左">◀</button>
+        <button type="button" id="btnR" aria-label="右">▶</button>
+      </div>
+      <div class="cluster">
+        <button type="button" id="btnJ" aria-label="跳">跳</button>
+        <button type="button" id="btnT" aria-label="投">投</button>
+      </div>
     </div>
   </div>
 </div>
-<script src="custom-play.js?v=c12"></script>
+<div id="netPanel">
+  <div class="card">
+    <h2>🤝 联机游玩</h2>
+    <p id="netWait">PeerJS 自动匹配队友…</p>
+    <div class="row">
+      <button class="go" id="netStart" type="button" style="display:none">开始游戏</button>
+      <button class="go sec" id="netCancel" type="button">取消</button>
+    </div>
+  </div>
+</div>
+<script src="custom-play.js?v=c13"></script>
 </body>
 </html>
