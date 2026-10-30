@@ -33,7 +33,7 @@ svg{width:100%;height:100%;min-height:0}
 @media (max-height:500px){.cell{aspect-ratio:2.4}.bar img{width:28px;height:28px}h2{font-size:17px}}
 </style></head><body>
 <div class="bar"><img src="../avatars/xiaoyu.jpg" alt="小雨">
-<div class="st" data-s="0">① 看图</div><div class="st" data-s="1">② 动手</div><div class="st" data-s="2">③ 设计</div><div class="st" data-s="3">④ 联网玩</div>
+<div class="st" data-s="0">① 看图</div><div class="st" data-s="1">② 动手</div><div class="st" data-s="2">③ 预览</div><div class="st" data-s="3">④ 设计</div><div class="st" data-s="4">⑤ 联网玩</div>
 <img src="../avatars/pengpeng.jpg" alt="伍澍暘"></div>
 <main>
 <section class="stage" id="s0"><h2>好关卡：先简单，再变难</h2>
@@ -53,11 +53,15 @@ svg{width:100%;height:100%;min-height:0}
 <section class="stage" id="s1"><h2>拉一拉数字，陷阱就变了</h2>
 <div class="row" id="traps" style="flex-wrap:wrap"></div></section>
 
+<section class="stage" id="sP"><h2>👀 忍者自动闯关</h2>
+<canvas id="cv" width="960" height="220" style="width:100%;flex:1;min-height:0;background:#0006;border-radius:12px"></canvas>
+<div class="msg" id="res" style="min-height:24px"></div>
+<div style="text-align:center"><button class="go" id="run" style="font-size:18px;padding:6px 22px">👀 预览</button></div></section>
 <section class="stage" id="s2"><h2>选主题，点格子放东西</h2>
 <div class="th" id="th" style="text-align:center"></div>
 <div class="pal" id="pal" style="text-align:center"></div>
 <div class="grid" id="grid"></div>
-<div class="chk" id="chk" style="text-align:center"></div></section>
+<div class="chk" id="chk" style="text-align:center"></div><div style="text-align:center"><button class="go" id="prev2" style="font-size:16px;padding:5px 18px">👀 预览我的关</button></div></section>
 
 <section class="stage" id="s3"><h2>保存，去小雨闯关玩！</h2>
 <div class="row"><div class="card"><div class="big" id="sum"></div><div class="msg" id="sumt"></div>
@@ -106,10 +110,35 @@ function save(){const used=new Set(st.tiles.map(t=>t.type)),tr={};for(const k in
  localStorage.setItem(KEY,JSON.stringify({theme:st.theme,cols:COLS,rows:ROWS,tiles:st.tiles,traps:tr,curve:st.curve,savedAt:new Date().toISOString(),by:'伍澍暘'}));
  $('sum').textContent=TH[st.theme][1].map(k=>E[k]).join('');$('sumt').textContent=TH[st.theme][0]+'关 · 难度 '+CURVE.join('-');$('saved').textContent='已保存 ✅';}
 $('play').onclick=save;
-let cur=0;function go(n){cur=Math.max(0,Math.min(3,n));document.querySelectorAll('.stage').forEach((s,i)=>s.classList.toggle('on',i===cur));
+
+const RISK={rock:p=>p.speed/6*.5+.4/p.interval,meteor:p=>p.speed/6*.5+.4/p.interval,fire:p=>p.burn/10*.7,sand:p=>p.sink/5*.7,
+ shark:p=>p.speed/6*.8,wave:p=>p.height/4*.8,mud:p=>p.slow/90*.6,bubble:p=>.8/p.interval,lowg:p=>(100-p.gravity)/100*.5,mist:()=>.4};
+let anim=null;
+function preview(){cancelAnimationFrame(anim);const cv=$('cv'),g=cv.getContext('2d'),W=cv.width,H=cv.height,cw=W/COLS;
+ const col=x=>st.tiles.filter(t=>t.x===x&&t.y===ROWS-2);
+ const plan=[];let danger=0,shield=0,T=0;const segH=[0,0,0,0,0,0];
+ for(let x=0;x<COLS;x++){let r=0,hit=false,tr=null;
+  for(const t of col(x)){if(t.type==='shield')shield++;if(RISK[t.type]){tr=t.type;r=RISK[t.type](st.traps[t.type]);}}
+  if(tr){danger+=r;if(danger>=1){danger-=1;if(shield)shield--;else{hit=true;segH[Math.floor(x/2)]++;}}}
+  const dt=1+r*1.5+(hit?1:0);plan.push({x,tr,r,hit,t0:T,dt});T+=dt;}
+ const total=T,hits=segH.reduce((a,b)=>a+b,0);let mx=Math.max(...segH),hard=segH.lastIndexOf(mx);
+ $('res').textContent='';const SP=0.45,PT=+(new URLSearchParams(location.search).get('pt'))||0,start=performance.now()-PT*SP*1000;let hp=0;
+ (function frame(now){const t=(now-start)/1000/SP;g.clearRect(0,0,W,H);
+  for(let s=0;s<6;s++){g.fillStyle=s%2?'#ffffff08':'#ffffff12';g.fillRect(s*2*cw,0,2*cw,H);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText('第'+(s+1)+'段 难'+CURVE[s],s*2*cw+8,24);
+   g.fillStyle='#ffb4b4';g.fillText(segH[s]&&t>plan[s*2+1].t0+plan[s*2+1].dt?('-'+segH[s]+'❤'):'',s*2*cw+8,50);}
+  g.fillStyle='#6b4f2f';g.fillRect(0,H-40,W,40);g.font='40px sans-serif';
+  for(let x=0;x<COLS;x++)for(const it of col(x))g.fillText(E[it.type]||'',x*cw+cw/2-20,H-52);
+  const cur=plan.find(p=>t<p.t0+p.dt)||plan[COLS-1];const f=Math.min(1,(t-cur.t0)/cur.dt);
+  const nx=Math.min(cur.x+f,COLS-.6)*cw,jump=cur.tr?Math.sin(f*Math.PI)*90:0;
+  g.font='46px sans-serif';g.fillText('🥷',nx-10,H-44-jump);
+  if(cur.hit&&f>.4&&f<.9){g.fillStyle='#ff6b6b';g.font='bold 34px sans-serif';g.fillText('-1 ❤',nx,H-120-jump);}
+  if(t<total)anim=requestAnimationFrame(frame);
+  else $('res').innerHTML=`被打 <b>${hits}</b> 次 · 用时 <b>${Math.round(total)}</b> 秒 · 最难：第 <b>${hard+1}</b> 段 ${hard===5?'✅ 和 4 对上了':'🤔 计划最难是第 6 段'}`;})(performance.now());}
+$('run').onclick=preview;$('prev2').onclick=()=>go(2);
+let cur=0;const ORDER=['s0','s1','sP','s2','s3'];function go(n){cur=Math.max(0,Math.min(4,n));ORDER.forEach((id,i)=>$(id).classList.toggle('on',i===cur));document.querySelectorAll('.nostage').forEach((s,i)=>s.classList.toggle('on',i===cur));
  document.querySelectorAll('.st').forEach((s,i)=>{s.classList.toggle('on',i===cur);s.classList.toggle('done',i<cur);});
- if(cur===1)traps();if(cur===2)design();if(cur===3)save();
- $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<3?'visible':'hidden';}
+ if(cur===1)traps();if(cur===2)preview();if(cur===3)design();if(cur===4)save();
+ $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<4?'visible':'hidden';}
 $('next').onclick=()=>go(cur+1);$('back').onclick=()=>go(cur-1);
 document.querySelector('.bar').onclick=e=>{const s=e.target.dataset.s;if(s!=null)go(+s);};
 go(+(new URLSearchParams(location.search).get("s"))||0);})();
