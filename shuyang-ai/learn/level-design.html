@@ -1,248 +1,116 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
+<html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#12162f">
-<title>道具和关卡是怎么设计的 · 伍澍暘</title>
+<title>关卡设计台 · 伍澍暘</title>
 <style>
-:root{color-scheme:dark;--gold:#ffe7a0;--green:#4ea85c;--text:#f7f4ff}
-*{box-sizing:border-box}html,body{margin:0}
-body{min-height:100dvh;font-family:-apple-system,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;color:var(--text);
-background:radial-gradient(900px 420px at 80% -10%,#5a3d9a55,transparent 60%),linear-gradient(180deg,#0f1230,#1b2152 48%,#24305f);
-padding:calc(12px + env(safe-area-inset-top)) 12px 28px}
-.wrap{max-width:760px;margin:0 auto}
-h1{margin:4px 0;font-size:clamp(24px,6vw,34px);text-align:center}
-.kicker{margin:0;text-align:center;color:var(--gold);font-weight:800;font-size:14px}
-.cast{display:flex;justify-content:center;gap:14px;margin:10px 0}
-.cast figure{margin:0;text-align:center;font-size:13px;color:var(--gold);font-weight:800}
-.cast img{width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:center 18%;border:3px solid #ffe9a088;display:block}
-.sec{background:#12183acc;border:2px solid #ffffff22;border-radius:20px;padding:14px;margin:0 0 14px}
-.sec h2{margin:0 0 8px;font-size:19px;color:var(--gold);display:flex;gap:8px;align-items:center}
-.n{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;align-items:center;justify-content:center;font-size:15px}
-.say{display:flex;gap:10px;align-items:flex-start;margin:8px 0}
-.say img{width:40px;height:40px;border-radius:50%;object-fit:cover;object-position:center 18%;flex:none;border:2px solid #ffe9a066}
-.say .b{background:#ffffff12;border-radius:14px;padding:8px 11px;line-height:1.5;font-size:16px}
-.say .who{color:var(--gold);font-weight:800;margin-right:4px}
-.formula{background:#2f7a4533;border:2px dashed #78d48499;border-radius:14px;padding:10px;font-size:17px;font-weight:800;line-height:1.7;text-align:center}
-ul{margin:6px 0;padding-left:22px;line-height:1.6}
-button,.btn{appearance:none;border:0;border-radius:999px;padding:9px 14px;font-size:15px;font-weight:800;color:#fff;background:#3b4590;margin:3px;cursor:pointer;text-decoration:none;display:inline-block}
-button.on{background:var(--green)}
-.go{background:linear-gradient(180deg,#78d484,#4ea85c);box-shadow:0 3px 0 #2f6d3a;font-size:17px}
-.grid{display:grid;gap:2px;background:#0008;padding:4px;border-radius:10px;touch-action:manipulation;user-select:none}
-.cell{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:clamp(13px,3.2vw,22px);background:#ffffff0d;cursor:pointer}
-.cell.g{background:#6b4f2f}.cell.p{background:#8a6a40}.cell.seg{box-shadow:inset 2px 0 0 #ffe7a055}
-.pal{display:flex;flex-wrap:wrap;gap:2px;margin:6px 0}
-.pal button{padding:6px 10px;font-size:14px}
-.chk{list-style:none;padding:0}.chk li{padding:4px 0}
-.ok{color:#9ff0a8}.bad{color:#ffb4b4}
-.nums label{display:inline-flex;align-items:center;gap:6px;margin:4px 10px 4px 0;font-size:15px}
-.nums input{width:64px;font-size:15px;border-radius:8px;border:0;padding:5px}
-svg{width:100%;height:auto;background:#0006;border-radius:12px;touch-action:none}
-.tip{color:#c9c3ef;font-size:14px}
-details{margin:6px 0}summary{cursor:pointer;color:var(--gold);font-weight:800}
-table{border-collapse:collapse;width:100%;font-size:14px}td,th{border:1px solid #ffffff22;padding:5px}
-@media (orientation:landscape) and (max-height:500px){.cast img{width:40px;height:40px}h1{font-size:24px}}
-</style>
-</head>
-<body><div class="wrap">
-<p class="kicker">2026年10月30日 · 周五 · AI 冒险月</p>
-<h1>道具和关卡是怎么设计的</h1>
-<div class="cast">
-<figure><img src="../avatars/xiaoyu.jpg" alt="小雨">小雨</figure>
-<figure><img src="../avatars/dad-wuxin.jpg" alt="爸爸">爸爸</figure>
-<figure><img src="../avatars/pengpeng.jpg" alt="伍澍暘">伍澍暘</figure>
-</div>
+*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;color:#f7f4ff;background:linear-gradient(180deg,#0f1230,#24305f);display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+.bar{display:flex;gap:6px;padding:8px 10px 4px;align-items:center}
+.bar img{width:34px;height:34px;border-radius:50%;object-fit:cover;object-position:center 18%;border:2px solid #ffe7a0}
+.st{flex:1;text-align:center;padding:6px 2px;border-radius:999px;background:#ffffff14;font-weight:800;font-size:15px;color:#c9c3ef;cursor:pointer}
+.st.on{background:#4ea85c;color:#fff}.st.done{background:#2f7a4588;color:#fff}
+main{flex:1;min-height:0;padding:4px 12px;display:flex;flex-direction:column;gap:6px;max-width:900px;width:100%;margin:0 auto}
+.stage{display:none;flex:1;min-height:0;flex-direction:column;gap:6px}.stage.on{display:flex}
+h2{margin:0;font-size:20px;color:#ffe7a0;text-align:center}
+.row{display:flex;gap:8px;flex:1;min-height:0}.row>*{flex:1;min-width:0}
+.card{background:#12183acc;border:2px solid #ffffff22;border-radius:14px;padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:800}
+.big{font-size:28px}.msg{font-size:16px;text-align:center}
+.steps{display:flex;align-items:flex-end;gap:6px;height:100%;min-height:70px;width:100%}
+.steps div{flex:1;background:#78d484;border-radius:6px 6px 0 0;display:flex;align-items:flex-start;justify-content:center;font-size:20px;color:#12162f;padding-top:2px}
+svg{width:100%;height:100%;min-height:0}
+.trap{flex-direction:row;gap:8px;justify-content:flex-start}
+.trap .e{font-size:34px}.trap label{display:flex;flex-direction:column;font-size:13px;flex:1}
+.trap input{width:100%}.trap b{color:#ffe7a0;font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:2px;width:100%}
+.cell{aspect-ratio:1.6;border-radius:3px;background:#ffffff0d;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer}
+.cell.g{background:#6b4f2f}.cell.p{background:#8a6a40}
+.pal button,.th button{border:0;border-radius:999px;padding:5px 10px;font-size:16px;font-weight:800;background:#3b4590;color:#fff;margin:2px}
+.pal button.on,.th button.on{background:#4ea85c}
+.foot{display:flex;justify-content:space-between;padding:6px 12px 10px;gap:8px}
+.foot button,.go{border:0;border-radius:999px;padding:10px 26px;font-size:20px;font-weight:800;color:#fff;background:linear-gradient(180deg,#78d484,#4ea85c);box-shadow:0 3px 0 #2f6d3a;text-decoration:none;cursor:pointer}
+.foot .back{background:#3b4590;box-shadow:none}
+.ok{color:#9ff0a8}.bad{color:#ffb4b4}.chk{font-size:15px}
+@media (max-height:500px){.cell{aspect-ratio:2.4}.bar img{width:28px;height:28px}h2{font-size:17px}}
+</style></head><body>
+<div class="bar"><img src="../avatars/xiaoyu.jpg" alt="小雨">
+<div class="st" data-s="0">① 看图</div><div class="st" data-s="1">② 动手</div><div class="st" data-s="2">③ 设计</div><div class="st" data-s="3">④ 联网玩</div>
+<img src="../avatars/pengpeng.jpg" alt="伍澍暘"></div>
+<main>
+<section class="stage" id="s0"><h2>好关卡：先简单，再变难</h2>
+<div class="row">
+<div class="card"><div class="steps" id="steps"></div><div class="msg">难 → 松 → 难</div></div>
+<div class="card"><svg viewBox="0 0 200 130">
+<polygon points="20,110 190,110 190,10" fill="#ffb4b433"/><polygon points="20,110 20,10 190,10" fill="#7fb2ff33"/>
+<polygon points="20,110 50,110 190,25 190,10 160,10 20,80" fill="#78d48466"/>
+<text x="120" y="100" fill="#ffb4b4" font-size="14" font-weight="800">😵着急</text>
+<text x="30" y="30" fill="#7fb2ff" font-size="14" font-weight="800">😴无聊</text>
+<text x="80" y="66" fill="#fff" font-size="15" font-weight="800" transform="rotate(-30 100 60)">😄心流</text>
+<text x="70" y="126" fill="#c9c3ef" font-size="10">你会的 →</text><text x="2" y="70" fill="#c9c3ef" font-size="10" transform="rotate(-90 8 70)">难度 →</text></svg>
+<div class="msg">刚好难一点 = 最想玩</div></div>
+<div class="card"><div class="big">🪨🔥⏳</div><div class="msg">陷阱是策划故意设的</div><div class="big">🔢</div><div class="msg">背后都是数据</div></div>
+</div></section>
 
-<section class="sec"><h2><span class="n">1</span>开场约定 · 2 分钟</h2>
-<div class="say"><img src="../avatars/dad-wuxin.jpg"><div class="b"><span class="who">爸爸</span>今天 25 分钟。你是设计师，我是第一个玩家。规矩：先自己想，问 AI 只要提示不要答案，最后你要不看屏幕讲给我听。</div></div>
-<div class="say"><img src="../avatars/pengpeng.jpg"><div class="b"><span class="who">伍澍暘</span>好！我来说「开始」。</div></div>
-</section>
+<section class="stage" id="s1"><h2>拉一拉数字，陷阱就变了</h2>
+<div class="row" id="traps" style="flex-wrap:wrap"></div></section>
 
-<section class="sec"><h2><span class="n">2</span>今天造什么 · 3 分钟</h2>
-<div class="say"><img src="../avatars/xiaoyu.jpg"><div class="b"><span class="who">小雨</span>小雨闯关马上要有三个新关：<b>沼泽关</b>（淤泥、毒泡）、<b>海洋航海关</b>（浪、鲨鱼）、<b>太空关</b>（陨石、低重力）。今天你来设计其中一关！</div></div>
-<div class="say"><img src="../avatars/xiaoyu.jpg"><div class="b"><span class="who">小雨</span>先看清楚本质——再花哨的关卡，拆开都是这几样：</div></div>
-<div class="formula">一关 = 地形 + 陷阱 + 道具 + 节奏（先易后难）<br>每个陷阱都要有<b>躲法 / 规律</b><br>一个道具 = <b>作用</b> + <b>代价/限制</b> + <b>什么时候用</b></div>
-<details><summary>小雨闯关里已经有的（点开看）</summary>
-<table><tr><th>东西</th><th>规律 / 躲法</th></tr>
-<tr><td>🔥 着火</td><td>烧 5 秒；左右来回晃能灭火。红忍者不怕火</td></tr>
-<tr><td>🌀 弹簧/发射器</td><td>踩上去弹高——是帮手，也可能把你弹进坑</td></tr>
-<tr><td>⏳ 流沙</td><td>站着会往下陷，要一直跳着走</td></tr>
-<tr><td>🪨 落石</td><td>先有影子/抖动再掉，看准间隔冲过去</td></tr>
-<tr><td>☠️ 毒雾</td><td>一阵一阵，等它散了再过</td></tr>
-<tr><td>💥 爆炸</td><td>先闪再炸，离远点</td></tr>
-<tr><td>🟢🔴 忍者</td><td>绿忍者不怕尖刺，红忍者不怕火——角色本身也是「道具」</td></tr></table></details>
-</section>
-
-<section class="sec"><h2><span class="n">3</span>先自己试 · 4 分钟</h2>
-<p>不看下面，先对爸爸说：</p>
-<ul><li>你选哪个主题？那里会有什么地形？</li>
-<li>想一个新陷阱，它的<b>规律</b>是什么？玩家怎么<b>躲</b>？</li>
-<li>想一个新道具，它<b>帮你什么</b>？它的<b>代价</b>是什么（只能用几秒？要花金币？）</li></ul>
-<p class="tip">爸爸只听、不纠正。说不出就跳到下一步问提示。</p>
-</section>
-
-<section class="sec"><h2><span class="n">4</span>请教一下 · 要提示不要答案 · 2 分钟</h2>
-<div class="say"><img src="../avatars/xiaoyu.jpg"><div class="b"><span class="who">小雨</span>想不出来？点一个提示（都是提前写好的，不是现场 AI）：</div></div>
-<div id="hints"></div><p id="hintOut" class="say"></p>
-</section>
-
-<section class="sec"><h2><span class="n">★</span>核心：怎么让人越玩越想玩</h2>
-<div class="say"><img src="../avatars/xiaoyu.jpg"><div class="b"><span class="who">小雨</span>好关卡让人觉得「一开始很简单，慢慢变难，还想再来一次」。秘诀有六条：</div></div>
-<ul>
-<li><b>先教一件事，再考它</b>：第一次出现落石，下面是平地、石头掉得慢；后面才在坑边掉石头。</li>
-<li><b>一次只加一个新东西</b>：别让流沙、毒雾、火第一次就同时出现。</li>
-<li><b>难—松—难</b>：一段难的后面给一段平路喘口气，像跑步要歇一下。</li>
-<li><b>失败代价小，马上能重来</b>：掉坑就从旁边存档点复活，不用从头。</li>
-<li><b>每段有小奖励</b>：金币、星星、一句「太棒了」——有成就感才想继续。</li>
-<li><b>刚好比你会的多一点</b>：太简单会无聊，太难会生气；刚刚好最上头，这叫「心流」。</li></ul>
-<p><b>拖一拖难度曲线</b>：6 段，每个点上下拖（1 很简单 – 5 很难）。</p>
-<svg id="curve" viewBox="0 0 600 240"></svg>
-<ul class="chk" id="curveChk"></ul>
-</section>
-
-<section class="sec"><h2><span class="n">5</span>玩一玩 · 改一改 · 8 分钟</h2>
-<p>选一个做好的关卡（难度已按 1-2-1-3-2-4 排好），再动几块、改几个数字：</p>
-<div id="themes"></div>
-<div class="pal" id="pal"></div>
+<section class="stage" id="s2"><h2>选主题，点格子放东西</h2>
+<div class="th" id="th" style="text-align:center"></div>
+<div class="pal" id="pal" style="text-align:center"></div>
 <div class="grid" id="grid"></div>
-<p class="tip" id="legend"></p>
-<div class="nums" id="nums"></div>
-</section>
+<div class="chk" id="chk" style="text-align:center"></div></section>
 
-<section class="sec"><h2><span class="n">6</span>验一验 · 4 分钟</h2>
-<ul class="chk" id="checks"></ul>
-<button class="go" id="save">保存关卡</button>
-<a class="btn go" id="play" href="../../xy-go/?net=1&custom=1">去小雨闯关试玩我的关</a>
-<p class="tip" id="saved"></p>
-<p class="tip">爸爸当第一个玩家：玩一遍，说哪里太难、哪里太无聊。澍暘只改<b>一处</b>，再保存再玩。</p>
-</section>
-
-<section class="sec"><h2><span class="n">7</span>说得出 · 不用 AI · 3 分钟</h2>
-<p>关掉屏幕，向爸爸复述（爸爸勾）：</p>
-<div id="tell"></div>
-</section>
-
-<section class="sec"><h2><span class="n">8</span>收工一句</h2>
-<div class="say"><img src="../avatars/dad-wuxin.jpg"><div class="b"><span class="who">爸爸</span>今天你发现，所有关卡<b>底下</b>其实都是什么？</div></div>
-<div class="say"><img src="../avatars/pengpeng.jpg"><div class="b"><span class="who">伍澍暘</span>（用自己的话说……）</div></div>
-</section>
-</div>
+<section class="stage" id="s3"><h2>保存，去小雨闯关玩！</h2>
+<div class="row"><div class="card"><div class="big" id="sum"></div><div class="msg" id="sumt"></div>
+<a class="go" id="play" href="../../xy-go/?net=1&custom=1">🎮 联网玩我的关</a><div class="msg" id="saved" style="color:#9ff0a8"></div></div>
+<div class="card"><div class="msg">🗣️ 讲给爸爸：<br>① 先简单再变难<br>② 陷阱是故意设的<br>③ 背后都是数字</div></div></div></section>
+</main>
+<div class="foot"><button class="back" id="back">上一步</button><button id="next">下一步 ▶</button></div>
 <script>
 (function(){
-const KEY='xygo-custom-level';
-const COLS=12,ROWS=6;
-const T={ // type: [emoji,name,kind,dodge/rule or effect,cost]
- g:['','地面','地形'],p:['','平台','地形'],gap:['','坑','地形'],
- mud:['🟫','淤泥','陷阱','走得慢，跳着过'],bubble:['🫧','毒泡','陷阱','一会冒一会停，停的时候过'],
- wave:['🌊','浪','陷阱','浪来前船会晃，晃完往高处跳'],shark:['🦈','鲨鱼','陷阱','来回游，等它游远再过'],
- meteor:['☄️','陨石','陷阱','先有红影子，看影子躲开'],lowg:['🌙','低重力','地形','跳得高又慢，提前起跳'],
- rock:['🪨','落石','陷阱','先抖再掉，按间隔冲'],fire:['🔥','火','陷阱','被烧 5 秒，左右晃灭火'],
- sand:['⏳','流沙','陷阱','站着会陷，连续跳'],mist:['☠️','毒雾','陷阱','一阵一阵，等散'],
- spring:['🌀','弹簧','道具','弹高','可能弹过头'],shield:['🛡️','护盾','道具','挡一次伤','只能挡一次'],
- boots:['👢','跳跳鞋','道具','5 秒跳更高','5 秒就没了'],coin:['⭐','星星','奖励','加分、开心','要冒险去拿'],
- flag:['🚩','存档点','道具','死了从这里重来','一关只放几个']};
-const THEMES={
- swamp:{name:'沼泽关',traps:['mud','bubble','sand','mist']},
- ocean:{name:'海洋航海关',traps:['wave','shark','rock']},
- space:{name:'太空关',traps:['meteor','lowg','fire']}};
-const PROPS=['spring','shield','boots','coin','flag'];
-const BASE_CURVE=[1,2,1,3,2,4];
-function preset(th){
- const tiles=[];for(let x=0;x<COLS;x++)tiles.push({x,y:ROWS-1,type:'g'});
- const tr=THEMES[th].traps, a=tr[0],b=tr[1],c=tr[2]||tr[0];
- const put=(x,y,t)=>tiles.push({x,y,type:t});
- // 6 segments of 2 cols; difficulty 1-2-1-3-2-4
- put(1,4,'coin');                       //1: 教：一个星星
- put(2,4,a);                             //2: 第一次出现 a（单个）
- put(3,4,'flag');
- put(5,4,'coin');                        //1: 喘气
- put(6,4,a);put(7,4,b);put(7,2,'p');     //3: a+b
- put(8,4,'shield');                      //2: 道具+一个
- put(9,4,b);
- put(10,4,c);put(11,4,a);put(11,2,'coin');//4: 最难
- if(th==='space')put(4,4,'boots');else put(4,4,'spring');
- return tiles;}
-const DEF_TRAPS={rock:{speed:3,interval:2,damage:1},fire:{burn:5},sand:{sink:2},mist:{interval:3},
- mud:{slow:50},bubble:{interval:2},wave:{height:2,interval:3},shark:{speed:3},meteor:{speed:3,interval:3,damage:1},lowg:{gravity:40}};
-const NUMLAB={speed:'速度',interval:'间隔秒',damage:'伤害',burn:'烧几秒',sink:'陷几秒',slow:'变慢%',height:'浪高',gravity:'重力%'};
-let st={theme:'swamp',tiles:preset('swamp'),traps:JSON.parse(JSON.stringify(DEF_TRAPS)),curve:BASE_CURVE.slice()};
-try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.tiles&&THEMES[s.theme])st=Object.assign(st,s);}catch(e){}
+const KEY='xygo-custom-level',COLS=12,ROWS=4,$=id=>document.getElementById(id);
+const CURVE=[1,2,1,3,2,4];
+$('steps').innerHTML=CURVE.map(v=>`<div style="height:${v*24}%">${v}</div>`).join('');
+const E={mud:'🟫',bubble:'🫧',sand:'⏳',mist:'☠️',wave:'🌊',shark:'🦈',rock:'🪨',meteor:'☄️',fire:'🔥',lowg:'🌙',spring:'🌀',shield:'🛡️',coin:'⭐',flag:'🚩'};
+const TH={swamp:['沼泽',['mud','bubble','sand']],ocean:['海洋',['wave','shark','rock']],space:['太空',['meteor','lowg','fire']]};
+const NUM={rock:['落石',{speed:[3,1,6,'速度'],interval:[2,1,5,'间隔秒']}],fire:['火',{burn:[5,1,10,'烧几秒']}],sand:['流沙',{sink:[2,1,5,'陷几秒']}],
+ meteor:['陨石',{speed:[3,1,6,'速度'],interval:[3,1,5,'间隔秒']}],shark:['鲨鱼',{speed:[3,1,6,'速度']}],wave:['浪',{height:[2,1,4,'浪高']}],
+ mud:['淤泥',{slow:[50,10,90,'变慢%']}],bubble:['毒泡',{interval:[2,1,5,'间隔秒']}],lowg:['低重力',{gravity:[40,10,90,'重力%']}]};
+let st={theme:'swamp',tiles:[],traps:{},curve:CURVE.slice()};
+for(const k in NUM){st.traps[k]={};for(const f in NUM[k][1])st.traps[k][f]=NUM[k][1][f][0];}
+function preset(th){const [a,b,c]=TH[th][1],t=[];for(let x=0;x<COLS;x++)t.push({x,y:ROWS-1,type:'g'});
+ [[1,'coin'],[2,a],[3,'flag'],[4,'spring'],[5,'coin'],[6,a],[7,b],[8,'shield'],[9,b],[10,c],[11,a]].forEach(([x,ty])=>t.push({x,y:ROWS-2,type:ty}));
+ t.push({x:7,y:0,type:'p'},{x:11,y:0,type:'coin'});return t;}
+st.tiles=preset('swamp');
+// stage 2 trap cards (show current theme + rock/fire)
+function traps(){const ks=[...new Set(['rock','fire','sand',...TH[st.theme][1]])].slice(0,4);
+ $('traps').innerHTML=ks.map(k=>`<div class="card trap" style="flex:1 1 45%"><span class="e">${E[k]}</span><div style="flex:1">${Object.entries(NUM[k][1]).map(([f,d])=>`<label>${NUM[k][0]} · ${d[3]} <b id="v-${k}-${f}">${st.traps[k][f]}</b><input type="range" min="${d[1]}" max="${d[2]}" value="${st.traps[k][f]}" data-k="${k}" data-f="${f}"></label>`).join('')}</div></div>`).join('');}
+$('traps').oninput=e=>{const i=e.target;st.traps[i.dataset.k][i.dataset.f]=+i.value;$('v-'+i.dataset.k+'-'+i.dataset.f).textContent=i.value;};
 let brush='g';
-const $=id=>document.getElementById(id);
-
-// hints
-const HINTS=['陷阱想不出？想想现实里什么东西会「一下一下」地来（浪、风、闪电）——有规律才有躲法。',
- '道具想不出？想一件你玩游戏时最想要的帮助，再问：它要是永远有效，游戏还好玩吗？',
- '不知道放哪？先放一个最简单的，让玩家「学会」它，再放难的。',
- '关卡太难？后面加一个存档点 🚩 或一段平路。'];
-$('hints').innerHTML=HINTS.map((h,i)=>`<button data-h="${i}">提示 ${i+1}</button>`).join('');
-$('hints').onclick=e=>{const i=e.target.dataset.h;if(i!=null)$('hintOut').innerHTML=`<img src="../avatars/xiaoyu.jpg"><span class="b"><span class="who">小雨</span>${HINTS[i]}</span>`;};
-
-// curve
-function drawCurve(){
- const c=st.curve,X=i=>50+i*100,Y=v=>220-v*40;
- let s='';for(let v=1;v<=5;v++)s+=`<line x1="30" x2="590" y1="${Y(v)}" y2="${Y(v)}" stroke="#ffffff18"/><text x="8" y="${Y(v)+5}" fill="#c9c3ef" font-size="14">${v}</text>`;
- s+=`<polyline fill="none" stroke="#ffe7a0" stroke-width="5" points="${c.map((v,i)=>X(i)+','+Y(v)).join(' ')}"/>`;
- c.forEach((v,i)=>{s+=`<circle data-i="${i}" cx="${X(i)}" cy="${Y(v)}" r="16" fill="#4ea85c" stroke="#fff" stroke-width="3"/><text x="${X(i)-14}" y="236" fill="#c9c3ef" font-size="13">第${i+1}段</text>`;});
- $('curve').innerHTML=s;
- const ck=[[c[0]<=2,'开头简单（第1段 ≤ 2）'],[c[5]===Math.max(...c),'最后一段最难'],
-  [c.some((v,i)=>i>0&&v<c[i-1]),'有「松」的地方喘口气'],[c.every((v,i)=>i===0||v-c[i-1]<=2),'每次只难一点点（不猛跳超过 2）']];
- $('curveChk').innerHTML=ck.map(([o,t])=>`<li class="${o?'ok':'bad'}">${o?'✅':'❌'} ${t}</li>`).join('');}
-(function(){let drag=null;const svg=$('curve');
- const pt=e=>{const r=svg.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*600,y:(e.clientY-r.top)/r.height*240};};
- svg.addEventListener('pointerdown',e=>{const p=pt(e);drag=Math.max(0,Math.min(5,Math.round((p.x-50)/100)));svg.setPointerCapture(e.pointerId);move(e);});
- function move(e){if(drag==null)return;const v=Math.max(1,Math.min(5,Math.round((220-pt(e).y)/40)));if(st.curve[drag]!==v){st.curve[drag]=v;drawCurve();checks();}}
- svg.addEventListener('pointermove',move);svg.addEventListener('pointerup',()=>drag=null);})();
-
-// editor
-function themes(){$('themes').innerHTML=Object.entries(THEMES).map(([k,v])=>`<button data-t="${k}" class="${st.theme===k?'on':''}">${v.name}</button>`).join('')+'<button data-t="reset">↺ 用做好的</button>';}
-$('themes').onclick=e=>{const t=e.target.dataset.t;if(!t)return;if(t!=='reset')st.theme=t;st.tiles=preset(st.theme);st.curve=BASE_CURVE.slice();render();};
-function pal(){const list=['g','p','gap',...THEMES[st.theme].traps,...PROPS,'erase'];
- $('pal').innerHTML=list.map(k=>`<button data-b="${k}" class="${brush===k?'on':''}">${k==='erase'?'🧽 擦掉':(T[k][0]||(k==='g'?'🟤':k==='p'?'▬':'⬛'))+' '+T[k][1]}</button>`).join('');
- $('legend').textContent=brush==='erase'?'点格子擦掉':(T[brush][3]?`${T[brush][1]}：${T[brush][3]}${T[brush][4]?'｜代价：'+T[brush][4]:''}`:'点格子放'+T[brush][1]);}
-$('pal').onclick=e=>{const b=e.target.closest('button');if(b){brush=b.dataset.b;pal();}};
-function at(x,y){return st.tiles.filter(t=>t.x===x&&t.y===y);}
-function grid(){$('grid').style.gridTemplateColumns=`repeat(${COLS},1fr)`;let h='';
- for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){const ts=at(x,y);const base=ts.find(t=>t.type==='g'||t.type==='p');const it=ts.find(t=>t.type!=='g'&&t.type!=='p');
-  h+=`<div class="cell ${base?base.type:''} ${x%2===0&&x?'seg':''}" data-x="${x}" data-y="${y}">${it&&T[it.type]?T[it.type][0]:''}</div>`;}
- $('grid').innerHTML=h;}
-$('grid').onclick=e=>{const c=e.target.closest('.cell');if(!c)return;const x=+c.dataset.x,y=+c.dataset.y;
- const terr=brush==='g'||brush==='p'||brush==='gap';
- st.tiles=st.tiles.filter(t=>!(t.x===x&&t.y===y&&(brush==='erase'||(terr?(t.type==='g'||t.type==='p'):(t.type!=='g'&&t.type!=='p')))));
- if(brush==='gap')st.tiles=st.tiles.filter(t=>!(t.x===x&&t.y===y));
- else if(brush!=='erase')st.tiles.push({x,y,type:brush});render();};
-function nums(){const used=new Set(st.tiles.map(t=>t.type));let h='';
- for(const k of Object.keys(DEF_TRAPS)){if(!used.has(k))continue;st.traps[k]=st.traps[k]||Object.assign({},DEF_TRAPS[k]);
-  h+=`<div><b>${T[k][0]} ${T[k][1]}</b> `+Object.keys(st.traps[k]).map(f=>`<label>${NUMLAB[f]||f}<input type="number" min="0" max="100" data-k="${k}" data-f="${f}" value="${st.traps[k][f]}"></label>`).join('')+'</div>';}
- $('nums').innerHTML=h||'<p class="tip">放上陷阱后，这里能改它的数字。</p>';}
-$('nums').oninput=e=>{const i=e.target;if(i.dataset.k){st.traps[i.dataset.k][i.dataset.f]=Number(i.value);checks();}};
-function checks(){
- const trapAt=x=>st.tiles.filter(t=>t.x===x&&T[t.type]&&T[t.type][2]==='陷阱');
- const seg=[0,1,2,3,4,5].map(s=>trapAt(2*s).length+trapAt(2*s+1).length);
- const firsts={};st.tiles.filter(t=>T[t.type]&&T[t.type][2]==='陷阱').sort((a,b)=>a.x-b.x).forEach(t=>{if(firsts[t.type]==null)firsts[t.type]=t.x;});
- const newPerSeg=[0,1,2,3,4,5].map(s=>Object.values(firsts).filter(x=>Math.floor(x/2)===s).length);
- const allDodge=st.tiles.every(t=>!(T[t.type]&&T[t.type][2]==='陷阱')||T[t.type][3]);
- const noWall=![...Array(COLS-1).keys()].some(x=>trapAt(x).length&&trapAt(x+1).length&&trapAt(x+2).length&&trapAt(x+3).length);
- const fire=st.traps.fire&&st.tiles.some(t=>t.type==='fire')?st.traps.fire.burn<=8:true;
- const fair=Object.values(st.traps).every(o=>(o.interval==null||o.interval>=1)&&(o.speed==null||o.speed<=6)&&(o.damage==null||o.damage<=2));
- const ck=[
-  [allDodge&&noWall&&fair&&fire,'这个陷阱有没有躲法？（没有连着 4 格都是陷阱，数字不离谱）'],
-  [seg[0]<=1&&seg[5]>=Math.max(...seg),'是不是先易后难？（开头最多 1 个陷阱，最后一段最多）'],
-  [newPerSeg.every(n=>n<=1),'一次只加一个新东西？'],
-  [seg.some((v,i)=>i>0&&v<seg[i-1]),'有喘气的地方吗？（某段比前一段少）'],
-  [st.tiles.some(t=>t.type==='flag'),'失败了能马上重来吗？（有存档点 🚩）'],
-  [st.tiles.some(t=>t.type==='coin'),'有小奖励吗？（有星星 ⭐）'],
-  [st.tiles.some(t=>['shield','boots','spring'].includes(t.type)&&t.x<10),'难段前给了道具吗？道具的代价你说得出吗？']];
- $('checks').innerHTML=ck.map(([o,t])=>`<li class="${o?'ok':'bad'}">${o?'✅':'🤔'} ${t}</li>`).join('')+`<li class="tip">每段陷阱数：${seg.join(' - ')}（做好的是按 1-2-1-3-2-4 排的）</li>`;}
-function render(){themes();pal();grid();nums();checks();drawCurve();}
-$('save').onclick=()=>{const used=new Set(st.tiles.map(t=>t.type));const traps={};for(const k in st.traps)if(used.has(k))traps[k]=st.traps[k];
- const data={theme:st.theme,cols:COLS,rows:ROWS,tiles:st.tiles,traps,curve:st.curve,savedAt:new Date().toISOString(),by:'伍澍暘'};
- localStorage.setItem(KEY,JSON.stringify(data));$('saved').textContent='已保存 ✅ '+THEMES[st.theme].name+'，点「去小雨闯关试玩」';};
-$('play').onclick=()=>$('save').click();
-const TELL=['一关 = 地形 + 陷阱 + 道具 + 节奏','每个陷阱都要有躲法 / 规律（举一个例子）','道具 = 作用 + 代价 + 什么时候用（举一个例子）','先教再考、一次加一个、难-松-难','失败代价小、有小奖励、刚好难一点点'];
-$('tell').innerHTML=TELL.map(t=>`<label style="display:block;padding:4px 0;font-size:16px"><input type="checkbox"> ${t}</label>`).join('');
-render();
-})();
-</script>
-</body></html>
+function design(){
+ $('th').innerHTML=Object.entries(TH).map(([k,v])=>`<button data-t="${k}" class="${k===st.theme?'on':''}">${v[0]}</button>`).join('');
+ const pl=['g',...TH[st.theme][1],'shield','coin','flag','x'];
+ $('pal').innerHTML=pl.map(k=>`<button data-b="${k}" class="${k===brush?'on':''}">${k==='g'?'🟤地':k==='x'?'🧽':E[k]}</button>`).join('');
+ let h='';for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){const ts=st.tiles.filter(t=>t.x===x&&t.y===y);const base=ts.find(t=>t.type==='g'||t.type==='p');const it=ts.find(t=>t!==base);
+  h+=`<div class="cell ${base?base.type:''}" data-x="${x}" data-y="${y}">${it?E[it.type]:''}</div>`;}
+ $('grid').innerHTML=h;
+ const isT=t=>TH[st.theme][1].includes(t.type)||NUM[t.type];
+ const seg=[0,1,2,3,4,5].map(s=>st.tiles.filter(t=>isT(t)&&Math.floor(t.x/2)===s).length);
+ const a=seg[0]<=1&&seg[5]>=Math.max(...seg),b=seg.some((v,i)=>i&&v<seg[i-1]);
+ $('chk').innerHTML=`陷阱数 ${seg.join('-')} &nbsp; <span class="${a?'ok':'bad'}">${a?'✅':'🤔'}先易后难</span> &nbsp; <span class="${b?'ok':'bad'}">${b?'✅':'🤔'}有喘气</span>`;}
+$('th').onclick=e=>{const t=e.target.dataset.t;if(t){st.theme=t;st.tiles=preset(t);design();}};
+$('pal').onclick=e=>{const b=e.target.dataset.b;if(b){brush=b;design();}};
+$('grid').onclick=e=>{const c=e.target.closest('.cell');if(!c)return;const x=+c.dataset.x,y=+c.dataset.y,terr=brush==='g';
+ st.tiles=st.tiles.filter(t=>!(t.x===x&&t.y===y&&(brush==='x'||(terr?t.type==='g'||t.type==='p':t.type!=='g'&&t.type!=='p'))));
+ if(brush!=='x')st.tiles.push({x,y,type:brush});design();};
+function save(){const used=new Set(st.tiles.map(t=>t.type)),tr={};for(const k in st.traps)if(used.has(k))tr[k]=st.traps[k];
+ localStorage.setItem(KEY,JSON.stringify({theme:st.theme,cols:COLS,rows:ROWS,tiles:st.tiles,traps:tr,curve:st.curve,savedAt:new Date().toISOString(),by:'伍澍暘'}));
+ $('sum').textContent=TH[st.theme][1].map(k=>E[k]).join('');$('sumt').textContent=TH[st.theme][0]+'关 · 难度 '+CURVE.join('-');$('saved').textContent='已保存 ✅';}
+$('play').onclick=save;
+let cur=0;function go(n){cur=Math.max(0,Math.min(3,n));document.querySelectorAll('.stage').forEach((s,i)=>s.classList.toggle('on',i===cur));
+ document.querySelectorAll('.st').forEach((s,i)=>{s.classList.toggle('on',i===cur);s.classList.toggle('done',i<cur);});
+ if(cur===1)traps();if(cur===2)design();if(cur===3)save();
+ $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<3?'visible':'hidden';}
+$('next').onclick=()=>go(cur+1);$('back').onclick=()=>go(cur-1);
+document.querySelector('.bar').onclick=e=>{const s=e.target.dataset.s;if(s!=null)go(+s);};
+go(+(new URLSearchParams(location.search).get("s"))||0);})();
+</script></body></html>
