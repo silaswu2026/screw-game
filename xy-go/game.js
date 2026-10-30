@@ -11,7 +11,7 @@
   const MAX_HP = 5;
 
   const canvas = document.getElementById('view');
-  const ctx = canvas.getContext('2d');
+  let ctx = canvas.getContext('2d');
   const hud = document.getElementById('hud');
   const menu = document.getElementById('menu');
   const panel = document.getElementById('panel');
@@ -330,6 +330,12 @@
   };
   (function loadSpriteFrames() {
     const base = 'sprites/green/';
+    ['walk_1', 'walk_2', 'walk_3'].forEach((name) => {
+      const im = new Image();
+      im.decoding = 'async';
+      im.src = base + name + '.png';
+      FRAME_CACHE.frames[name + '_png'] = { img: im };
+    });
     const sheet = new Image();
     sheet.decoding = 'async';
     sheet.src = base + 'green-knock-sheet.png';
@@ -375,8 +381,8 @@
 
   // Green sheet is authored; blue/red get a source-atop tint so they don't look green.
   const SPRITE_TINT = {
-    blue: 'rgba(20, 90, 255, 0.72)',
-    red: 'rgba(230, 35, 35, 0.68)',
+    blue: '#2a6bff',
+    red: '#ff2a2a',
   };
   let _tintCanvas = null;
   function drawSpriteFrame(name, face, alpha, drawH, palette) {
@@ -403,9 +409,12 @@
         o.clearRect(0, 0, iw, ih);
         o.globalCompositeOperation = 'source-over';
         o.drawImage(sh, entry.x, entry.y, entry.w, entry.h, 0, 0, iw, ih);
-        o.globalCompositeOperation = 'source-atop';
+        // recolor but keep shading/face details (color blend), then clip to sprite alpha
+        o.globalCompositeOperation = 'color';
         o.fillStyle = tint;
         o.fillRect(0, 0, iw, ih);
+        o.globalCompositeOperation = 'destination-in';
+        o.drawImage(sh, entry.x, entry.y, entry.w, entry.h, 0, 0, iw, ih);
         o.globalCompositeOperation = 'source-over';
         ctx.drawImage(_tintCanvas, -w / 2, -h + 2, w, h);
       } else {
@@ -426,9 +435,12 @@
         o.clearRect(0, 0, iw, ih);
         o.globalCompositeOperation = 'source-over';
         o.drawImage(im, 0, 0, iw, ih);
-        o.globalCompositeOperation = 'source-atop';
+        // recolor but keep shading/face details (color blend), then clip to sprite alpha
+        o.globalCompositeOperation = 'color';
         o.fillStyle = tint;
         o.fillRect(0, 0, iw, ih);
+        o.globalCompositeOperation = 'destination-in';
+        o.drawImage(im, 0, 0, iw, ih);
         o.globalCompositeOperation = 'source-over';
         ctx.drawImage(_tintCanvas, -w / 2, -h + 2, w, h);
       } else {
@@ -1298,7 +1310,7 @@
     }
     const plats = tiles.filter((t) => t && t.type === 'p' && t.y < DR - 1);
     const def = {
-      name: '我的关卡', en: 'My Level', custom: true, simple: true,
+      name: '我的关卡', en: 'My Level', custom: true, simple: true, theme: d.theme || 'swamp',
       hint: '自制关卡' + (d.by ? '·' + d.by : '') + '：' + ({ swamp: '沼泽', ocean: '海洋', space: '太空' }[d.theme] || '冒险'),
       cols, rows: 14, spawn: [2, 11], goal: [cols - 5, 11],
       checks: [], slimes: [], crates: [], walls: [], springs: [], spikes: [], bombs: [], fires: [],
@@ -1482,6 +1494,12 @@
       name: bdef.name, kind: bdef.kind, state: 'walk', t: 0,
       vx: 0, vy: 0, grounded: true, wave: 0, roller: null, arena: false, dir: -1,
     };
+    {
+      const cs = critterSet();
+      slimes.forEach((m, k) => { m.look = m.kind === 'shark' ? 'shark' : cs.mobs[k % cs.mobs.length]; });
+      boss.look = cs.boss;
+      boss.name = cs.name;
+    }
     markers = {
       gaps: findGaps(ground),
       walls: (def.walls || []).map((w) => ({
@@ -3262,6 +3280,145 @@
     rr(s.x - 14, top - 8, 28, 10, 4);
     ctx.fill();
   }
+  // ===== 主题小怪：每个场景配可爱动物（同一画风：圆身体+大眼睛+腮红，两帧走路） =====
+  const LEVEL_CRITTERS = [
+    { mobs: ['boar', 'wolf', 'bear'], boss: 'bear', name: '熊大王' },      // 1 林间
+    { mobs: ['wolf', 'bear', 'boar'], boss: 'boar', name: '野猪王' },      // 2 苔岩
+    { mobs: ['wolf', 'boar', 'bear'], boss: 'wolf', name: '影狼' },        // 3 萤火林
+    { mobs: ['scorpion', 'snake'], boss: 'scorpion', name: '刺蝎王' },     // 4 尖刺(沙漠)
+    { mobs: ['snake', 'scorpion'], boss: 'snake', name: '炎沙蛇' },        // 5 火焰(沙漠)
+    { mobs: ['snake', 'boar'], boss: 'wolf', name: '雷狼' },               // 6 雷鸣(草原)
+    { mobs: ['frog', 'croc'], boss: 'croc', name: '鳄霸' },                // 7 沼泽
+    { mobs: ['crab', 'frog', 'alien', 'wolf'], boss: 'robot', name: '终极机器人' }, // 8 全融合
+  ];
+  const THEME_CRITTERS = {
+    swamp: { mobs: ['frog', 'croc'], boss: 'croc', name: '鳄鱼王' },
+    ocean: { mobs: ['crab', 'shark'], boss: 'shark', name: '鲨鱼王' },
+    space: { mobs: ['alien', 'robot'], boss: 'robot', name: '机器人王' },
+    forest: LEVEL_CRITTERS[0], desert: LEVEL_CRITTERS[3],
+  };
+  function critterSet() {
+    const d = LEVELS[levelIndex];
+    if (d && d.custom) return THEME_CRITTERS[d.theme] || THEME_CRITTERS.swamp;
+    return LEVEL_CRITTERS[levelIndex] || LEVEL_CRITTERS[0];
+  }
+  const CRIT_COL = {
+    boar: ['#a8693f', '#e9b98f'], wolf: ['#8e9aad', '#e6ebf2'], bear: ['#8a5a3a', '#e7c49a'],
+    frog: ['#5cc75a', '#c9f2a8'], croc: ['#3f9a5c', '#bfe6a0'], crab: ['#f06a4f', '#ffd0bf'],
+    shark: ['#5b8fc9', '#e8f2ff'], scorpion: ['#d59a3a', '#f7dca0'], snake: ['#8cc63f', '#f1f7a8'],
+    alien: ['#9b7bea', '#e3d8ff'], robot: ['#9fb3c2', '#e8f0f5'],
+  };
+  function drawCritter(look, t, dir, sc) {
+    const col = CRIT_COL[look] || CRIT_COL.boar;
+    const step = Math.sin(t * 10) > 0 ? 1 : 0; // 2-frame walk
+    ctx.save();
+    ctx.scale((dir < 0 ? -1 : 1) * sc, sc);
+    const legY = -4;
+    ctx.fillStyle = '#00000025';
+    ctx.beginPath(); ctx.ellipse(0, -1, 16, 4, 0, 0, Math.PI * 2); ctx.fill();
+    const body = (rx, ry, cy) => { ctx.fillStyle = col[0]; ctx.beginPath(); ctx.ellipse(0, cy, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); };
+    const belly = (rx, ry, cx, cy) => { ctx.fillStyle = col[1]; ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); };
+    const legs = (n, w, h) => {
+      ctx.fillStyle = col[0];
+      for (let i = 0; i < n; i++) {
+        const lx = -10 + i * (20 / Math.max(1, n - 1));
+        const up = ((i + step) % 2) ? 3 : 0;
+        rr(lx - w / 2, legY - h + 4 - up, w, h, w / 2); ctx.fill();
+      }
+    };
+    const eyes = (ex, ey, r) => {
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(ex - 5, ey, r, 0, Math.PI * 2); ctx.arc(ex + 5, ey, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1b1b1b';
+      ctx.beginPath(); ctx.arc(ex - 4, ey + 0.5, r * 0.55, 0, Math.PI * 2); ctx.arc(ex + 6, ey + 0.5, r * 0.55, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(ex - 3.4, ey - 0.6, r * 0.2, 0, Math.PI * 2); ctx.arc(ex + 6.6, ey - 0.6, r * 0.2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,120,140,0.55)';
+      ctx.beginPath(); ctx.ellipse(ex - 8, ey + 5, 2.6, 1.6, 0, 0, Math.PI * 2); ctx.ellipse(ex + 9, ey + 5, 2.6, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+    };
+    const ear = (x, y, w, h, round) => {
+      ctx.fillStyle = col[0]; ctx.beginPath();
+      if (round) ctx.arc(x, y, w, 0, Math.PI * 2);
+      else { ctx.moveTo(x - w, y); ctx.lineTo(x, y - h); ctx.lineTo(x + w, y); }
+      ctx.fill();
+    };
+    switch (look) {
+      case 'boar':
+        legs(4, 5, 8); body(18, 12, -15); belly(9, 6, 7, -12);
+        ear(-4, -25, 4, 7); ear(4, -26, 4, 7);
+        ctx.fillStyle = '#f2a7a0'; ctx.beginPath(); ctx.ellipse(15, -14, 5, 4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(12, -10); ctx.lineTo(14, -4); ctx.lineTo(15, -10); ctx.fill();
+        eyes(4, -19, 3); break;
+      case 'wolf':
+        legs(4, 5, 9); body(17, 11, -16);
+        ctx.fillStyle = col[0]; ctx.beginPath(); ctx.ellipse(-18, -20, 8, 3.5, -0.6 + step * 0.2, 0, Math.PI * 2); ctx.fill();
+        belly(8, 6, 8, -12); ear(-2, -25, 4, 9); ear(7, -25, 4, 9);
+        ctx.fillStyle = col[1]; ctx.beginPath(); ctx.ellipse(15, -15, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(20, -16, 1.8, 0, Math.PI * 2); ctx.fill();
+        eyes(4, -20, 3); break;
+      case 'bear':
+        legs(4, 6, 8); body(18, 14, -17); belly(10, 8, 3, -13);
+        ear(-6, -29, 4.5, 0, true); ear(10, -29, 4.5, 0, true);
+        ctx.fillStyle = col[1]; ctx.beginPath(); ctx.ellipse(10, -16, 5, 4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#2a1a12'; ctx.beginPath(); ctx.arc(12, -17, 1.8, 0, Math.PI * 2); ctx.fill();
+        eyes(2, -22, 3); break;
+      case 'frog':
+        ctx.fillStyle = col[0];
+        rr(-14, -8 - step * 3, 9, 6, 3); ctx.fill(); rr(5, -8 - (1 - step) * 3, 9, 6, 3); ctx.fill();
+        body(16, 11, -12); belly(10, 6, 0, -9);
+        ear(-6, -22, 5.5, 0, true); ear(6, -22, 5.5, 0, true); eyes(0, -22, 3.6);
+        ctx.strokeStyle = '#2d6a2b'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, -14, 5, 0.2, Math.PI - 0.2); ctx.stroke(); break;
+      case 'croc':
+        legs(4, 5, 6); body(19, 9, -11);
+        ctx.fillStyle = col[0]; rr(10, -16, 14, 8, 4); ctx.fill(); rr(-28, -12, 12, 5, 2.5); ctx.fill();
+        ctx.fillStyle = '#fff'; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(13 + k * 4, -8); ctx.lineTo(15 + k * 4, -5); ctx.lineTo(17 + k * 4, -8); ctx.fill(); }
+        ctx.fillStyle = '#2f7a46'; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(-8 + k * 7, -19, 2.4, 0, Math.PI * 2); ctx.fill(); }
+        eyes(6, -20, 3.2); break;
+      case 'crab':
+        ctx.strokeStyle = col[0]; ctx.lineWidth = 2.5;
+        for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.moveTo(-8, -8); ctx.lineTo(-16, -2 - ((k + step) % 2) * 3); ctx.moveTo(8, -8); ctx.lineTo(16, -2 - ((k + 1 + step) % 2) * 3); ctx.stroke(); }
+        body(15, 9, -11);
+        ctx.fillStyle = col[0]; ctx.beginPath(); ctx.arc(-17, -20 - step * 2, 5, 0, Math.PI * 2); ctx.arc(17, -20 - (1 - step) * 2, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = col[0]; ctx.fillRect(-6, -24, 2, 6); ctx.fillRect(5, -24, 2, 6);
+        eyes(0, -24, 3.2); break;
+      case 'shark':
+        ctx.fillStyle = col[0]; ctx.beginPath(); ctx.moveTo(-14, -14); ctx.lineTo(-24, -22 + step * 4); ctx.lineTo(-24, -6 - step * 4); ctx.fill();
+        body(18, 10, -12); belly(13, 5, 2, -7);
+        ctx.fillStyle = col[0]; ctx.beginPath(); ctx.moveTo(-4, -21); ctx.lineTo(2, -32); ctx.lineTo(8, -21); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(8, -8); ctx.lineTo(10, -5); ctx.lineTo(12, -8); ctx.lineTo(14, -5); ctx.lineTo(16, -8); ctx.fill();
+        eyes(6, -15, 3); break;
+      case 'scorpion':
+        legs(4, 3, 6); body(15, 8, -10);
+        ctx.strokeStyle = col[0]; ctx.lineWidth = 5; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(-12, -12); ctx.quadraticCurveTo(-24, -26, -10, -32 + step * 2); ctx.stroke(); ctx.lineCap = 'butt';
+        ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.moveTo(-10, -36 + step * 2); ctx.lineTo(-5, -30 + step * 2); ctx.lineTo(-12, -29 + step * 2); ctx.fill();
+        ctx.fillStyle = col[0]; ctx.beginPath(); ctx.arc(18, -12 - step * 2, 4.5, 0, Math.PI * 2); ctx.fill();
+        eyes(6, -14, 3); break;
+      case 'snake':
+        ctx.fillStyle = col[0];
+        for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(-16 + k * 8, -6 - Math.sin(t * 8 + k) * 2, 6, 0, Math.PI * 2); ctx.fill(); }
+        body(10, 9, -16); belly(6, 5, 3, -12);
+        ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(10, -12); ctx.lineTo(15 + step * 2, -12); ctx.stroke();
+        eyes(3, -20, 3); break;
+      case 'alien':
+        legs(2, 5, 7); body(13, 13, -16); belly(8, 6, 0, -11);
+        ctx.strokeStyle = col[0]; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-4, -28); ctx.lineTo(-7, -36); ctx.moveTo(4, -28); ctx.lineTo(7, -36); ctx.stroke();
+        ctx.fillStyle = '#ffe14a'; ctx.beginPath(); ctx.arc(-7, -37, 2.5, 0, Math.PI * 2); ctx.arc(7, -37, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -20, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#1b1b1b'; ctx.beginPath(); ctx.arc(1, -20, 3.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,120,140,0.55)'; ctx.beginPath(); ctx.ellipse(-8, -14, 2.6, 1.6, 0, 0, Math.PI * 2); ctx.ellipse(8, -14, 2.6, 1.6, 0, 0, Math.PI * 2); ctx.fill(); break;
+      case 'robot':
+      default:
+        ctx.fillStyle = '#5d6d7e'; rr(-9, -8 - step * 2, 6, 8, 2); ctx.fill(); rr(3, -8 - (1 - step) * 2, 6, 8, 2); ctx.fill();
+        ctx.fillStyle = col[0]; rr(-14, -28, 28, 22, 6); ctx.fill();
+        ctx.fillStyle = col[1]; rr(-10, -24, 20, 11, 4); ctx.fill();
+        ctx.fillStyle = '#5d6d7e'; ctx.fillRect(-1, -34, 2, 6);
+        ctx.fillStyle = Math.sin(t * 6) > 0 ? '#ff5a5a' : '#ffe14a'; ctx.beginPath(); ctx.arc(0, -35, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#2ecc71'; ctx.beginPath(); ctx.arc(-4, -19, 2.6, 0, Math.PI * 2); ctx.arc(5, -19, 2.6, 0, Math.PI * 2); ctx.fill();
+        break;
+    }
+    ctx.restore();
+  }
   function drawBoss(b) {
     if (!b) return;
     if (b.state === 'shock' && b.wave > 0) {
@@ -3284,7 +3441,14 @@
     ctx.translate(b.x, b.y);
     const crouch = b.state === 'crouch' ? 0.72 : 1;
     ctx.scale(b.alive ? 1 : 1.15, (b.alive ? 1 : 0.35) * crouch);
-    if (b.kind === 'boar') {
+    if (b.look) {
+      drawCritter(b.look, sim, b.dir || -1, 2.1);
+      ctx.fillStyle = '#ffd34a';
+      ctx.beginPath();
+      const cy = -64;
+      ctx.moveTo(-12, cy + 8); ctx.lineTo(-12, cy - 2); ctx.lineTo(-6, cy + 3); ctx.lineTo(0, cy - 6);
+      ctx.lineTo(6, cy + 3); ctx.lineTo(12, cy - 2); ctx.lineTo(12, cy + 8); ctx.fill();
+    } else if (b.kind === 'boar') {
       ctx.fillStyle = '#7a4b2e';
       ctx.beginPath();
       ctx.ellipse(0, -24, 34, 20, 0, 0, Math.PI * 2);
@@ -3622,8 +3786,12 @@
     ctx.translate(0, -bob);
     let ok = false;
     if (n.anim === 'run') {
-      drawHero(n.phase, 'run', n.face, alpha, n.palette || 'green', Math.abs(n.vx));
-      ok = true;
+      // same authored ninja as idle/jump: walk_1..3 (walk_0 is a broken ghost frame)
+      const RUN_SEQ = ['walk_1', 'walk_2', 'walk_3', 'walk_2'];
+      const fi = Math.floor(((n.phase || 0) / Math.PI) * 2) & 3;
+      ok = drawSpriteFrame(RUN_SEQ[fi], n.face, alpha, 82, n.palette || 'green');
+      if (!ok) ok = drawSpriteFrame('idle', n.face, alpha, 82, n.palette || 'green');
+      if (!ok) drawHero(n.phase, 'run', n.face, alpha, n.palette || 'green', Math.abs(n.vx));
     } else if (n.anim === 'jump' || n.anim === 'walljump' || n.anim === 'slide') {
       const fname = locoFrameName(n);
       ok = drawSpriteFrame(fname, n.face, alpha, 82, n.palette || 'green');
@@ -3811,6 +3979,13 @@
     for (let i = 0; i < slimes.length; i++) {
       const m = slimes[i];
       if (m.dead) continue;
+      if (m.look) {
+        ctx.save();
+        ctx.translate(m.x, m.y);
+        drawCritter(m.look, sim + i * 0.37, m.dir || 1, 1);
+        ctx.restore();
+        continue;
+      }
       const squash = m.grounded ? 1.08 : 0.92;
       ctx.save();
       ctx.translate(m.x, m.y);
@@ -5271,8 +5446,48 @@
     }
   } catch (e) { /* ignore */ }
 
+  // test-only: render pose/creature gallery offscreen → dataURL
+  function galleryShot(kind) {
+    const oc = document.createElement('canvas');
+    const keep = ctx, keepSim = sim;
+    try {
+      if (kind === 'ninjas') {
+        const states = ['idle', 'run0', 'run1', 'run2', 'run3', 'jump', 'throw', 'hurt', 'burn'];
+        oc.width = 110 * states.length; oc.height = 3 * 120 + 30;
+        ctx = oc.getContext('2d');
+        ctx.fillStyle = '#cfe9cf'; ctx.fillRect(0, 0, oc.width, oc.height);
+        ctx.fillStyle = '#222'; ctx.font = 'bold 14px sans-serif';
+        states.forEach((st, i) => ctx.fillText(st, i * 110 + 30, 20));
+        ['green', 'blue', 'red'].forEach((pal, r) => states.forEach((st, i) => {
+          const n = { x: i * 110 + 55, y: 30 + (r + 1) * 115, face: 1, palette: pal, anim: st.startsWith('run') ? 'run' : (st === 'hurt' || st === 'burn' ? 'idle' : st),
+            phase: st.startsWith('run') ? (+st[3]) * Math.PI / 2 + 0.1 : 0, vx: st.startsWith('run') ? 200 : 0, vy: 0,
+            invuln: 0, flash: 0, glow: 0, bones: st === 'hurt' ? 0.3 : 0, burnT: st === 'burn' ? 2 : 0, shake: 0, squash: 0 };
+          sim = 0.3;
+          drawNinja(n);
+        }));
+      } else {
+        const sets = [['森林', LEVEL_CRITTERS[0]], ['山坡', LEVEL_CRITTERS[1]], ['沙漠', LEVEL_CRITTERS[3]], ['草原', LEVEL_CRITTERS[5]], ['沼泽', THEME_CRITTERS.swamp], ['海洋', THEME_CRITTERS.ocean], ['太空', THEME_CRITTERS.space]];
+        oc.width = 900; oc.height = sets.length * 130 + 10;
+        ctx = oc.getContext('2d');
+        ctx.fillStyle = '#d8ecf7'; ctx.fillRect(0, 0, oc.width, oc.height);
+        sets.forEach(([nm, cs], r) => {
+          const y = r * 130 + 110;
+          ctx.fillStyle = '#222'; ctx.font = 'bold 18px sans-serif'; ctx.fillText(nm, 10, y - 50);
+          let x = 110;
+          cs.mobs.forEach((lk) => [0, 0.16].forEach((tt) => {
+            ctx.save(); ctx.translate(x, y); drawCritter(lk, tt, 1, 1.4); ctx.restore();
+            ctx.fillStyle = '#444'; ctx.font = '11px sans-serif'; ctx.fillText(lk, x - 14, y + 14); x += 70;
+          }));
+          ctx.save(); ctx.translate(x + 40, y); drawCritter(cs.boss, 0, -1, 2.1); ctx.restore();
+          ctx.fillStyle = '#b00'; ctx.font = 'bold 12px sans-serif'; ctx.fillText('BOSS ' + cs.name, x + 5, y + 14);
+        });
+      }
+    } finally { ctx = keep; sim = keepSim; }
+    return oc.toDataURL('image/png');
+  }
   window.__ninja = {
     ready: true,
+    galleryShot,
     press,
     press2,
     step,
