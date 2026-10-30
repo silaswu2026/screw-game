@@ -16,9 +16,6 @@ main{flex:1;display:flex;flex-direction:column;gap:6px;padding:0 12px 10px;max-w
 .ctl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;font-weight:800}
 .ctl input[type=range]{width:min(280px,58vw);height:32px;vertical-align:middle;accent-color:#7ab0ff}
 .ctl b#fIv{font-size:36px;color:#ffe7a0;min-width:1.2em;display:inline-block;text-align:center}
-.n4{display:flex;gap:6px;justify-content:center;font-size:12px;font-weight:800;pointer-events:none;user-select:none}
-.n4 span{padding:2px 0;color:#8e87b8;border-bottom:2px solid transparent}
-.n4 span.on{color:#ffe7a0;border-bottom-color:#ffe7a0}.n4 span.done{color:#78d484}
 .go{border:0;border-radius:999px;padding:12px 20px;font-size:17px;font-weight:800;color:#fff;background:linear-gradient(180deg,#78d484,#4ea85c);box-shadow:0 3px 0 #2f6d3a;cursor:pointer;transition:transform .08s}
 .go:active{transform:translateY(2px);box-shadow:none}
 .go.tw{background:linear-gradient(180deg,#ffb06b,#e2793b);box-shadow:0 3px 0 #a35a20}
@@ -64,8 +61,7 @@ document.ccConfig = {
   <span style="width:88px"></span>
 </div>
 <main>
-  <p class="kidsub">拖滑条看刺变密 · 再点下面三个按钮玩</p>
-  <div class="n4" id="n4"></div>
+  <p class="kidsub">拖滑条改刺的间隔 · 点下面按钮让忍者跑</p>
   <div class="ctl">每 <input type="range" id="fI" min="1" max="5" value="3"> <b id="fIv">3</b> 秒冒一次刺</div>
   <div class="cvwrap">
     <canvas id="gameCanvas" width="960" height="360"></canvas>
@@ -86,6 +82,6 @@ document.ccConfig = {
     <button class="go ex" id="fEx" type="button">🏁 考：最后一跑</button>
   </div>
 </main>
-<script src="freq-spike.js?v=p1"></script>
+<script src="freq-spike.js?v=p2"></script>
 </body>
 </html>

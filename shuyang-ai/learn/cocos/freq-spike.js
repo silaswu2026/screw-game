@@ -73,12 +73,7 @@
     try { tone(220, 0.22, 'sawtooth', 0.12, 90); } catch (e) {}
   }
 
-  function n4(i) {
-    $('n4').innerHTML = ['教', '练', '变', '考'].map(function (w, j) {
-      return '<span class="' + (j === i ? 'on' : j < i ? 'done' : '') + '">' +
-        ['①', '②', '③', '④'][j] + ' ' + w + '</span>';
-    }).join('');
-  }
+  function n4(i) { /* removed: cryptic progress row confused kids */ }
   function setAct(step) {
     ['fRun', 'fTw', 'fEx'].forEach(function (id, j) {
       var el = $(id);
@@ -261,21 +256,23 @@
       }
 
       /* ground strip */
-      var ground = mkColor(W - 170, 34, 107, 79, 47);
+      var ground = mkColor(W, 34, 107, 79, 47);
       ground.setPosition(0, 0);
       this.addChild(ground, 3);
-      var grass = mkColor(W - 170, 10, 78, 168, 92);
+      var grass = mkColor(W, 10, 78, 168, 92);
       grass.setPosition(0, 26);
       this.addChild(grass, 4);
-      /* dirt detail lines */
-      var dirtLine = mkColor(W - 170, 3, 80, 55, 35, 140);
+      var dirtLine = mkColor(W, 3, 80, 55, 35, 140);
       dirtLine.setPosition(0, 12);
       this.addChild(dirtLine, 4);
 
-      var L = 16, cw = (W - 190) / 12;
+      /* full-width ground math — no top timeline strip, no side black card */
+      var L = 24, cw = (W - 48) / 12;
       this.L = L; this.cw = cw; this.gy = 34;
+      this.cells = [];
+      this.marks = [];
 
-      /* decorative platforms between pads — denser world */
+      /* decorative platforms between pads */
       var platXs = [1.2, 3.1, 5.0, 7.2, 10.0];
       for (var pi = 0; pi < platXs.length; pi++) {
         var pl = new cc.Sprite(platTex);
@@ -286,27 +283,6 @@
         pl.setOpacity(220);
         this.addChild(pl, 5);
         this.plats.push(pl);
-      }
-
-      /* side card panel */
-      var card = mkColor(150, 150, 20, 24, 48, 200);
-      card.setPosition(W - 160, 40);
-      this.addChild(card, 8);
-
-      for (var s = 1; s <= 12; s++) {
-        var cell = mkColor(cw - 4, 58, 255, 255, 255, 18);
-        cell.setPosition(L + (s - 1) * cw + 2, H - 74);
-        this.addChild(cell, 6);
-        this.cells.push(cell);
-        var lab = new cc.LabelTTF(s + '″', 'Arial', 13);
-        lab.setFontFillColor(cc.color(201, 195, 239));
-        lab.setPosition(L + (s - 1) * cw + cw / 2, H - 24);
-        this.addChild(lab, 7);
-        var mk = new cc.Sprite(spikeSmTex);
-        mk.setPosition(L + (s - 1) * cw + cw / 2, H - 48);
-        mk.setVisible(false);
-        this.addChild(mk, 7);
-        this.marks.push(mk);
       }
 
       for (var i = 0; i < PAD.length; i++) {
@@ -322,33 +298,26 @@
         sp.setVisible(false);
         this.addChild(sp, 7);
         this.padSpikes.push(sp);
-        var hl = new cc.LabelTTF('', 'Arial', 20);
+        var hl = new cc.LabelTTF('', 'Arial', 22);
         hl.setFontFillColor(cc.color(255, 107, 107));
         hl.setPosition(px2 + cw * 0.35, this.gy + 78);
         this.addChild(hl, 9);
         this.hitLabs.push(hl);
       }
 
-      this.countLab = new cc.LabelTTF('4 次', 'Arial', 34);
+      /* one clear kid readout — no black panel */
+      this.countLab = new cc.LabelTTF('刺 4 次', 'Arial', 28);
       this.countLab.setFontFillColor(cc.color(255, 231, 160));
-      this.countLab.setPosition(W - 85, H - 46);
+      this.countLab.setPosition(W - 90, H - 36);
       this.addChild(this.countLab, 10);
 
-      this.side = new cc.LabelTTF('-2❤', 'Arial', 40);
-      this.side.setFontFillColor(cc.color(255, 107, 107));
-      this.side.setPosition(W - 85, 128);
+      this.side = new cc.LabelTTF('掉 2❤', 'Arial', 28);
+      this.side.setFontFillColor(cc.color(255, 140, 140));
+      this.side.setPosition(W - 90, H - 72);
       this.addChild(this.side, 10);
 
-      this.hint = new cc.LabelTTF('越常越疼', 'Arial', 14);
-      this.hint.setFontFillColor(cc.color(201, 195, 239));
-      this.hint.setPosition(W - 85, 88);
-      this.addChild(this.hint, 10);
-
-      this.title = new cc.LabelTTF('教：拖滑条看刺变密', 'Arial', 18);
-      this.title.setFontFillColor(cc.color(255, 231, 160));
-      this.title.setAnchorPoint(0, 1);
-      this.title.setPosition(16, H - 82);
-      this.addChild(this.title, 10);
+      this.hint = null;
+      this.title = null;
 
       this.ninja = new cc.Sprite(SP + 'walk_0.png');
       this.ninja.setAnchorPoint(0.5, 0);
@@ -404,13 +373,6 @@
       }
       lastRaised = raised;
 
-      for (var s2 = 1; s2 <= 12; s2++) {
-        var cell = this.cells[s2 - 1];
-        if (tt >= s2) { cell.setColor(cc.color(59, 69, 144)); cell.setOpacity(255); }
-        else { cell.setColor(cc.color(255, 255, 255)); cell.setOpacity(18); }
-        this.marks[s2 - 1].setVisible(!!drops[s2]);
-      }
-
       var hurt = false;
       for (var pi = 0; pi < PAD.length; pi++) {
         var p = PAD[pi];
@@ -439,7 +401,7 @@
         }
       }
 
-      var nx = Math.min(W - 220, L + tt / DUR * 12 * cw);
+      var nx = Math.min(W - 80, L + tt / DUR * 12 * cw);
       this.ninja.setPosition(nx, gy);
       this.frameT += dt;
       if (this.frameT > 0.1) {
@@ -451,11 +413,8 @@
       this.ninja.setOpacity(hurt && Math.floor(tt * 10) % 2 ? 130 : 255);
       if (hurt) this.ninja.setPosition(nx, gy + 6 * Math.abs(Math.sin(tt * 20)));
 
-      this.countLab.setString(n + ' 次');
-      this.side.setString('-' + lose + '❤');
-      this.title.setString(this.preview
-        ? (['', '练', '变', '考'][fStep] || '跑') + '：每' + I + '秒 · ' + n + '次刺'
-        : '教：每' + I + '秒冒刺 → ' + n + '次');
+      this.countLab.setString('刺 ' + n + ' 次');
+      this.side.setString('掉 ' + lose + '❤');
       updHP(lose);
 
       if (!this.preview) {
