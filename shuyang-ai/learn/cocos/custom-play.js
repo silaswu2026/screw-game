@@ -1,14 +1,14 @@
 /**
- * 玩我的关 — Cocos2d-JS Lite landscape side-view runner (xy-go feel)
- * Design: 960×380 landscape. Portrait: letterbox + tip, still playable.
- * Reads localStorage xygo-custom-level (JSON v1.1).
+ * 玩我的关 — landscape side-view (960×600)
+ * Letterbox lock AR: maximize stage inside black shell (contain). No squash.
+ * Portrait: still playable + tip; landscape/desktop fill wider.
  */
 (function () {
   var KEY = 'xygo-custom-level';
   var SP = '../../../xy-go/sprites/green/';
   var RES = [SP + 'walk_0.png', SP + 'walk_1.png', SP + 'walk_2.png', SP + 'walk_3.png',
     SP + 'idle.png', SP + 'knock_0.png', SP + 'jump_0.png'];
-  var W = 960, H = 380, T = 80, MAX_HP = 6;
+  var W = 960, H = 600, T = 80, MAX_HP = 6;
   var sceneRef = null, spikeTex = null, cloudTex = null, hillTex = null, fireTex = null, coinTex = null, flagTex = null;
   var level = null;
   var inp = { left: false, right: false, jump: false, jumpPressed: false };
@@ -21,44 +21,31 @@
   function updateOrientTip() {
     var tip = $('orientTip');
     if (!tip) return;
-    var portrait = window.innerHeight > window.innerWidth;
-    tip.classList.toggle('on', portrait);
+    tip.classList.toggle('on', window.innerHeight > window.innerWidth);
   }
 
-  /** Fit landscape stage into shell; drive Cocos frame from wrap (not tall window). */
+  /** Maximize locked-AR stage in shell (cinema letterbox). */
   function fitStage() {
     updateOrientTip();
     var wrap = $('cvwrap');
-    var shell = document.querySelector('.shell');
+    var shell = $('shell');
     if (!wrap || !shell) return;
-    var aw = shell.clientWidth || window.innerWidth;
-    var ah = shell.clientHeight || Math.max(120, window.innerHeight - 90);
-    if (aw < 2 || ah < 2) return;
+    var aw = Math.max(2, shell.clientWidth || window.innerWidth);
+    var ah = Math.max(2, shell.clientHeight || Math.max(160, window.innerHeight - 40));
     var ar = W / H;
     var dw, dh;
     if (aw / ah > ar) { dh = ah; dw = Math.round(ah * ar); }
     else { dw = aw; dh = Math.round(aw / ar); }
     wrap.style.width = dw + 'px';
     wrap.style.height = dh + 'px';
-    wrap.style.maxWidth = '100%';
-    wrap.style.maxHeight = '100%';
-    wrap.style.aspectRatio = 'auto';
     var cv = $('gameCanvas');
-    if (cv) {
-      cv.style.width = dw + 'px';
-      cv.style.height = dh + 'px';
-    }
-    if (typeof cc !== 'undefined' && cc.view) {
-      try {
-        if (cc.view.setFrameSize) cc.view.setFrameSize(dw, dh);
-        cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
-        if (cc.view._resizeEvent) cc.view._resizeEvent();
-        else if (typeof cc._canvas === 'object' && cc.view._adjustViewportMeta) {
-          /* lite: force policy apply */
-          cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
-        }
-      } catch (e) { /* ignore resize races */ }
-    }
+    if (cv) { cv.style.width = dw + 'px'; cv.style.height = dh + 'px'; }
+    if (typeof cc === 'undefined' || !cc.view) return;
+    try {
+      if (cc.view.setFrameSize) cc.view.setFrameSize(dw, dh);
+      cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
+      if (cc.view._resizeEvent) cc.view._resizeEvent();
+    } catch (e) { /* ignore */ }
   }
 
   function loadLevel() {
@@ -224,19 +211,19 @@
       level = loadLevel();
       var cols = level.cols;
       this.worldW = (cols + 4) * T;
-      this.gy = 96;
+      this.gy = 150;
 
       this.bg = mkColor(W * 2, H, 58, 92, 150);
       this.addChild(this.bg, -2);
-      var sky = mkColor(W * 2, 140, 92, 140, 200);
-      sky.setPosition(0, H - 140);
+      var sky = mkColor(W * 2, H - this.gy, 92, 140, 200);
+      sky.setPosition(0, this.gy);
       this.addChild(sky, -2);
 
-      var h1 = new cc.Sprite(hillTex); h1.setAnchorPoint(0, 0); h1.setPosition(0, 70); h1.setOpacity(200); this.world.addChild(h1, 0);
-      var h2 = new cc.Sprite(hillTex); h2.setAnchorPoint(0, 0); h2.setScaleX(-1); h2.setPosition(this.worldW - 40, 60); h2.setOpacity(170); this.world.addChild(h2, 0);
+      var h1 = new cc.Sprite(hillTex); h1.setAnchorPoint(0, 0); h1.setPosition(0, this.gy - 40); h1.setOpacity(200); this.world.addChild(h1, 0);
+      var h2 = new cc.Sprite(hillTex); h2.setAnchorPoint(0, 0); h2.setScaleX(-1); h2.setPosition(this.worldW - 40, this.gy - 50); h2.setOpacity(170); this.world.addChild(h2, 0);
       for (var ci = 0; ci < Math.ceil(this.worldW / 260); ci++) {
         var cl = new cc.Sprite(cloudTex);
-        cl.setPosition(80 + ci * 260, H - 55 - (ci % 2) * 16);
+        cl.setPosition(80 + ci * 260, H - 80 - (ci % 2) * 22);
         cl.setOpacity(150); this.world.addChild(cl, 1);
       }
 
@@ -281,7 +268,7 @@
       this.ninja = new cc.Sprite(SP + 'idle.png');
       this.ninja.setAnchorPoint(0.5, 0);
       var sz = this.ninja.getContentSize();
-      this.nScale = 92 / Math.max(sz.width || 100, 1);
+      this.nScale = 110 / Math.max(sz.width || 100, 1);
       this.ninja.setScale(this.nScale);
       this.world.addChild(this.ninja, 10);
       this.walk = [SP + 'walk_0.png', SP + 'walk_1.png', SP + 'walk_2.png', SP + 'walk_3.png'];
@@ -327,7 +314,7 @@
         else this.vx *= Math.max(0, 1 - dt * 12);
 
         if (this.grounded && inp.jumpPressed) {
-          this.vy = 520;
+          this.vy = 560;
           this.grounded = false;
           this.ninja.setTexture(SP + 'jump_0.png');
         }
@@ -378,7 +365,7 @@
           var raised = tr.kind === 'fire' ? fireUp : spikeUp;
           tr.sp.setVisible(raised);
           if (raised && this.invuln <= 0) {
-            var near = Math.abs(this.px - tr.x) < tr.w && this.py < this.gy + 50;
+            var near = Math.abs(this.px - tr.x) < tr.w && this.py < this.gy + 55;
             var key = tr.kind + ':' + i + ':' + Math.floor(elapsed / I);
             if (near && !this.hitKeys[key]) {
               this.hitKeys[key] = 1;
@@ -398,8 +385,8 @@
         for (var j = 0; j < this.coinNodes.length; j++) {
           var cn = this.coinNodes[j];
           if (cn.got) continue;
-          cn.sp.setPosition(cn.x, this.gy + 42 + Math.sin(now * 5 + j) * 5);
-          if (Math.abs(this.px - cn.x) < 36 && this.py < this.gy + 70) {
+          cn.sp.setPosition(cn.x, this.gy + 48 + Math.sin(now * 5 + j) * 5);
+          if (Math.abs(this.px - cn.x) < 36 && this.py < this.gy + 80) {
             cn.got = true; cn.sp.setVisible(false); this.coins += 1; updHUD(this.hp, this.coins);
           }
         }
@@ -443,8 +430,6 @@
       try {
         cc.view.enableRetina(false);
         cc.view.adjustViewPort(true);
-        // Do NOT resizeWithBrowserSize — that makes a tall portrait frame on phones.
-        // We drive frame size from the landscape letterboxed wrap via fitStage().
         fitStage();
         cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
         spikeTex = buildSpikeTex();

@@ -8,17 +8,17 @@
 <title>玩我的关 · Cocos · 伍澍暘</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;overflow:hidden;background:#05070f}
-body{font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;color:#f7f4ff;display:flex;flex-direction:column;min-height:100dvh;min-height:100vh}
-.bar{display:flex;gap:6px;padding:4px 8px;align-items:center;flex-shrink:0;z-index:5;background:#0a0e22ee}
+html,body{margin:0;height:100%;overflow:hidden;background:#000}
+body{font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;color:#f7f4ff;display:flex;flex-direction:column;height:100dvh;height:100vh}
+.bar{position:relative;z-index:10;display:flex;gap:6px;padding:4px 8px;align-items:center;flex-shrink:0;background:#05070fee;min-height:34px}
 .bar a{color:#fff;font-weight:800;text-decoration:none;background:#3b4590;border-radius:999px;padding:5px 10px;font-size:12px}
-h1{margin:0;font-size:15px;color:#ffe7a0;flex:1;text-align:center;font-weight:900}
+h1{margin:0;font-size:14px;color:#ffe7a0;flex:1;text-align:center;font-weight:900}
 .badge{font-size:10px;font-weight:800;color:#1a2040;background:linear-gradient(180deg,#9ff0a8,#4ea85c);border-radius:999px;padding:3px 8px}
-#orientTip{display:none;flex-shrink:0;text-align:center;font-size:12px;font-weight:800;color:#ffe7a0;background:#1a2048;padding:4px 8px;border-bottom:1px solid #ffe7a033}
+#orientTip{display:none;position:absolute;left:50%;transform:translateX(-50%);top:36px;z-index:12;font-size:11px;font-weight:800;color:#ffe7a0;background:#1a2048cc;padding:3px 10px;border-radius:999px;pointer-events:none;white-space:nowrap}
 #orientTip.on{display:block}
-.shell{flex:1 1 auto;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;background:#000;position:relative;padding:0}
-/* Landscape stage — never grows into a tall portrait frame */
-.cvwrap{position:relative;flex:0 0 auto;aspect-ratio:960/380;width:min(100%,calc(100dvh * 960 / 380));max-width:100%;max-height:100%;height:auto;background:#000;border:0;overflow:hidden;line-height:0;box-shadow:0 0 0 1px #ffffff22}
+/* Black letterbox host — stage centered & maximized at locked landscape AR */
+.shell{flex:1 1 auto;min-height:0;width:100%;position:relative;background:#000;display:flex;align-items:center;justify-content:center}
+.cvwrap{position:relative;flex:0 0 auto;background:#000;overflow:hidden;line-height:0;box-shadow:0 0 0 1px #ffffff18}
 #gameCanvas{width:100%!important;height:100%!important;display:block;background:#3a5c96;touch-action:none}
 .hud{position:absolute;top:6px;left:8px;right:8px;z-index:6;display:flex;justify-content:space-between;align-items:center;pointer-events:none;text-shadow:0 1px 3px #000a}
 #hp{font-size:18px;letter-spacing:1px;font-weight:800}
@@ -26,39 +26,35 @@ h1{margin:0;font-size:15px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 #msg{position:absolute;top:32px;left:0;right:0;z-index:6;text-align:center;font-weight:800;font-size:13px;color:#fff;text-shadow:0 1px 4px #000c;pointer-events:none;padding:0 8px}
 #boot{display:none;position:absolute;inset:0;z-index:15;align-items:center;justify-content:center;text-align:center;font-size:13px;color:#ffb4b4;font-weight:800;background:#05070fcc;padding:16px}
 #boot.err{display:flex}
-.touch{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-between;gap:10px;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));user-select:none;pointer-events:none;background:linear-gradient(180deg,transparent,#0008 40%,#000b)}
+.touch{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-between;gap:10px;padding:8px 12px;user-select:none;pointer-events:none;background:linear-gradient(180deg,transparent,#0008 45%,#000b)}
 .touch .cluster{display:flex;gap:10px;pointer-events:auto}
-.touch button{border:0;border-radius:18px;width:68px;height:68px;font-size:26px;font-weight:900;color:#fff;background:linear-gradient(180deg,#5a6ab0cc,#3b4590ee);box-shadow:0 4px 0 #2a3268;touch-action:none}
+.touch button{border:0;border-radius:18px;width:68px;height:68px;font-size:26px;font-weight:900;color:#fff;background:linear-gradient(180deg,#5a6ab0dd,#3b4590ee);box-shadow:0 4px 0 #2a3268;touch-action:none}
 .touch button:active,.touch button.on{transform:translateY(3px);box-shadow:none;background:linear-gradient(180deg,#78d484,#4ea85c)}
-.touch #btnJ{width:84px;background:linear-gradient(180deg,#ffb06bcc,#e2793bee);box-shadow:0 4px 0 #a35a20;font-size:20px}
-.dock{flex-shrink:0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));background:#0a0e22}
-.go{border:0;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:900;color:#fff;background:linear-gradient(180deg,#78d484,#4ea85c);box-shadow:0 2px 0 #2f6d3a;text-decoration:none;display:inline-flex;align-items:center}
-.go.sec{background:linear-gradient(180deg,#7ab0ff,#3b6fd4);box-shadow:0 2px 0 #274a8a;font-size:12px}
+.touch #btnJ{width:84px;background:linear-gradient(180deg,#ffb06bdd,#e2793bee);box-shadow:0 4px 0 #a35a20;font-size:20px}
+.dock{position:absolute;z-index:9;right:8px;top:8px;display:flex;gap:6px}
+.go{border:0;border-radius:999px;padding:7px 12px;font-size:12px;font-weight:900;color:#fff;background:linear-gradient(180deg,#78d484,#4ea85c);box-shadow:0 2px 0 #2f6d3a;text-decoration:none;display:inline-flex;align-items:center;opacity:.92}
+.go.sec{background:linear-gradient(180deg,#7ab0ff,#3b6fd4);box-shadow:0 2px 0 #274a8a;font-size:11px}
 #result{display:none;position:absolute;inset:0;z-index:20;align-items:center;justify-content:center;background:rgba(8,10,28,.75)}
 #result.show{display:flex}
 #result .card{background:linear-gradient(180deg,#2a3360,#1a2048);border:2px solid #ffe7a066;border-radius:18px;padding:14px 18px;text-align:center;max-width:92%}
 #result .big{font-size:28px;font-weight:900;margin:0 0 6px}
 #result .sub{font-size:13px;font-weight:800;color:#c9c3ef;margin:0 0 10px}
 #result .ctl{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.note{display:none}
-/* Portrait phone: keep landscape stage letterboxed; tip only, still playable */
 @media (orientation:portrait){
   #orientTip.on{display:block}
-  .cvwrap{width:100%;max-height:none;height:auto}
-  .touch button{width:60px;height:60px;font-size:22px}.touch #btnJ{width:74px;font-size:16px}
+  .touch button{width:72px;height:72px}.touch #btnJ{width:90px}
+  .dock .go.sec{display:none}
 }
-@media (orientation:landscape){
+@media (orientation:landscape),(max-height:480px){
   #orientTip{display:none!important}
-  .bar{padding:2px 8px}h1{font-size:13px}.badge{display:none}
-  .cvwrap{width:min(100%,calc((100dvh - 52px) * 960 / 380));max-height:calc(100dvh - 52px)}
-  .touch{padding:4px 10px}.touch button{width:56px;height:56px;font-size:20px}.touch #btnJ{width:68px;font-size:15px}
-  .dock{padding:3px 8px}.go{padding:6px 12px;font-size:12px;box-shadow:none}
+  .bar{min-height:28px;padding:2px 8px}h1{font-size:12px}.badge{display:none}
+  .touch button{width:56px;height:56px;font-size:20px}.touch #btnJ{width:70px;font-size:15px}
   #hp{font-size:15px}#msg{font-size:11px;top:28px}
 }
-@media (min-width:900px) and (min-height:500px){
-  .cvwrap{width:min(1100px,96vw,calc((100dvh - 64px) * 960 / 380));border-radius:12px}
-  .touch{display:none} /* keyboard on desktop */
-  .shell{padding:4px 0}
+@media (min-width:900px) and (min-height:520px){
+  .touch{display:none}
+  .cvwrap{border-radius:10px}
+  .dock{top:auto;bottom:10px;right:12px}
 }
 </style>
 <script>document.ccConfig={debugMode:0,frameRate:60,id:"gameCanvas",renderMode:1,showFPS:false};</script>
@@ -70,10 +66,10 @@ h1{margin:0;font-size:15px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
   <h1>🎮 玩我的关</h1>
   <span class="badge">横版侧视</span>
 </div>
-<div id="orientTip">📱 竖屏也能玩 · 横屏更铺满（可转一下）</div>
-<div class="shell">
+<div id="orientTip">📱 竖屏可玩 · 横屏更铺满</div>
+<div class="shell" id="shell">
   <div class="cvwrap" id="cvwrap">
-    <canvas id="gameCanvas" width="960" height="380"></canvas>
+    <canvas id="gameCanvas" width="960" height="600"></canvas>
     <div class="hud"><div id="hp">❤❤❤❤❤❤</div><div id="coins">🪙 0</div></div>
     <div id="msg">← → 移动 · 跳 · 躲刺</div>
     <div id="boot"></div>
@@ -85,6 +81,10 @@ h1{margin:0;font-size:15px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
       <div class="cluster">
         <button type="button" id="btnJ" aria-label="跳">跳</button>
       </div>
+    </div>
+    <div class="dock">
+      <button class="go" id="retry" type="button">重来</button>
+      <a class="go sec" href="../../xy-go/?custom=1">旧版 xy-go</a>
     </div>
     <div id="result" aria-live="polite">
       <div class="card">
@@ -98,10 +98,6 @@ h1{margin:0;font-size:15px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
     </div>
   </div>
 </div>
-<div class="dock">
-  <button class="go" id="retry" type="button">重来</button>
-  <a class="go sec" href="../../xy-go/?custom=1">旧版 xy-go（备用）</a>
-</div>
-<script src="custom-play.js?v=c4"></script>
+<script src="custom-play.js?v=c10"></script>
 </body>
 </html>
