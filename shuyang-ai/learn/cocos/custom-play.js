@@ -40,24 +40,27 @@
     tip.classList.toggle('on', window.innerHeight > window.innerWidth);
   }
 
-  /** Full-bleed shell; same TILES_VIS for portrait & landscape (no separate H/V art scale). */
+  /** Full-bleed like xy-go: shell = viewport; EXACT_FIT kills bottom letterbox black bar. */
   function fitStage() {
     updateOrientTip();
     var wrap = $('cvwrap');
     var shell = $('shell');
     if (!wrap || !shell) return;
-    var aw = Math.max(2, shell.clientWidth || window.innerWidth);
-    var ah = Math.max(2, shell.clientHeight || Math.max(160, window.innerHeight - 40));
+    /* shell is position:fixed inset 0 — use window size (not shrunk by top bar) */
+    var aw = Math.max(2, window.innerWidth || shell.clientWidth);
+    var ah = Math.max(2, window.innerHeight || shell.clientHeight);
     var zoom = ah / (TILES_VIS * T);
     zoom = Math.max(0.85, Math.min(zoom, 2.0));
     var nextW = Math.max(240, Math.round(aw / zoom));
     var nextH = Math.max(240, Math.round(ah / zoom));
-    wrap.style.width = aw + 'px';
-    wrap.style.height = ah + 'px';
+    /* keep design AR identical to frame AR to avoid even 1px letterbox */
+    nextH = Math.max(240, Math.round(nextW * ah / aw));
+    wrap.style.width = '100%';
+    wrap.style.height = '100%';
     var cv = $('gameCanvas');
     if (cv) {
-      cv.style.width = aw + 'px';
-      cv.style.height = ah + 'px';
+      cv.style.width = '100%';
+      cv.style.height = '100%';
       cv.width = nextW;
       cv.height = nextH;
     }
@@ -73,7 +76,11 @@
     if (typeof cc === 'undefined' || !cc.view) { lastFitKey = fitKey; return; }
     try {
       if (cc.view.setFrameSize) cc.view.setFrameSize(aw, ah);
-      cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
+      /* EXACT_FIT: stretch to fill — no black SHOW_ALL bars on widescreen */
+      cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.EXACT_FIT);
+      if (cc.director && cc.director.setClearColor) {
+        cc.director.setClearColor(cc.color(12, 26, 20, 255));
+      }
       if (cc.view._resizeEvent) cc.view._resizeEvent();
     } catch (e) {}
     lastFitKey = fitKey;
@@ -402,8 +409,9 @@
       var cols = level.cols;
       var gy = this.gy;
       var c, x0;
-      var deep = mkColor(this.worldW + 80, Math.max(40, gy - 8), 28, 36, 32);
-      deep.setPosition(-40, -8);
+      /* Fill entire strip under ground to canvas bottom — no black void / letterbox look */
+      var deep = mkColor(this.worldW + 80, Math.max(gy + 4, 80), 28, 36, 32);
+      deep.setPosition(-40, 0);
       this.world.addChild(deep, 0);
       /* swamp water under gaps */
       for (c = 0; c < cols; c++) {
@@ -987,7 +995,7 @@
         cc.view.enableRetina(false);
         cc.view.adjustViewPort(true);
         fitStage();
-        cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
+        cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.EXACT_FIT);
         spikeTex = buildSpikeTex();
         fireTex = buildFireTex();
         coinTex = buildCoinTex();

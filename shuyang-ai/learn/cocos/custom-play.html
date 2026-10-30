@@ -9,17 +9,17 @@
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;background:#0b1a12}
-body{font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;color:#f7f4ff;display:flex;flex-direction:column;height:100dvh;height:100vh}
-.bar{position:relative;z-index:10;display:flex;gap:6px;padding:4px 8px;align-items:center;flex-shrink:0;background:#05070fee;min-height:32px}
+body{font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;color:#f7f4ff;height:100dvh;height:100vh;position:relative}
+.bar{position:absolute;left:0;right:0;top:0;z-index:10;display:flex;gap:6px;padding:4px 8px;align-items:center;background:#05070f99;min-height:32px;backdrop-filter:blur(4px)}
 .bar a,.bar button.net{color:#fff;font-weight:800;text-decoration:none;background:#3b4590;border:0;border-radius:999px;padding:5px 10px;font-size:12px;cursor:pointer}
 .bar button.net{background:linear-gradient(180deg,#78d484,#4ea85c);color:#083018}
 h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:900}
 .badge{font-size:10px;font-weight:800;color:#1a2040;background:linear-gradient(180deg,#9ff0a8,#4ea85c);border-radius:999px;padding:3px 8px}
 #orientTip{display:none;position:absolute;left:50%;transform:translateX(-50%);top:34px;z-index:12;font-size:11px;font-weight:800;color:#ffe7a0;background:#1a2048cc;padding:3px 10px;border-radius:999px;pointer-events:none;white-space:nowrap}
 #orientTip.on{display:block}
-.shell{flex:1 1 auto;min-height:0;width:100%;position:relative;background:#0b1a12;display:flex;align-items:stretch;justify-content:stretch}
-.cvwrap{position:relative;flex:1 1 auto;width:100%;height:100%;background:#0b1a12;overflow:hidden;line-height:0}
-#gameCanvas{width:100%!important;height:100%!important;display:block;background:#0c1a14;touch-action:none}
+.shell{position:fixed;inset:0;width:100%;height:100%;background:#0c1a14;display:block}
+.cvwrap{position:absolute;inset:0;width:100%;height:100%;background:#0c1a14;overflow:hidden;line-height:0}
+#gameCanvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block;background:#0c1a14;touch-action:none}
 /* HUD — xy-go style: level card + green bar + coins (no six hearts) */
 .hud{position:absolute;top:8px;left:8px;right:8px;z-index:6;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;gap:8px}
 .lvlcard{background:#102016cc;border-radius:10px;padding:6px 10px;min-width:120px}
@@ -46,7 +46,7 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 #netPanel p{margin:0 0 10px;font-size:13px;color:#c9c3ef;font-weight:700}
 #netPanel .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
 /* Touch — ALWAYS in view on desktop too (was display:none ≥900px → 投丢失) */
-.touch{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-between;gap:10px;padding:8px 14px calc(8px + env(safe-area-inset-bottom,0px));user-select:none;pointer-events:none;background:linear-gradient(180deg,transparent,#0008 40%,#000c)}
+.touch{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-between;gap:10px;padding:8px 14px calc(8px + env(safe-area-inset-bottom,0px));user-select:none;pointer-events:none;background:transparent}
 .touch .cluster{display:flex;gap:8px;pointer-events:auto}
 .touch button{border:0;border-radius:16px;width:64px;height:64px;font-size:22px;font-weight:900;color:#fff;background:linear-gradient(180deg,#5a6ab0dd,#3b4590ee);box-shadow:0 3px 0 #2a3268;touch-action:none}
 .touch button:active,.touch button.on{transform:translateY(2px);box-shadow:none;background:linear-gradient(180deg,#78d484,#4ea85c)}
@@ -68,16 +68,18 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 @media (orientation:landscape),(max-height:480px){
   #orientTip{display:none!important}
   .bar{min-height:26px;padding:2px 8px}h1{font-size:12px}.badge{display:none}
+  .touch{background:transparent}
   .touch button{width:52px;height:52px;font-size:18px}.touch #btnJ,.touch #btnT{width:64px;font-size:14px}
   #msg{font-size:11px;top:78px}#bossBar{top:46px}
 }
 @media (min-width:900px) and (min-height:520px){
-  /* Keep touch visible — desktop must show 左/右/跳/投 inside frame */
-  .touch{padding-bottom:12px}
+  /* Keep touch visible; no bottom black letterbox strip */
+  .touch{padding-bottom:14px;background:transparent}
   .touch button{width:58px;height:58px}
   .touch #btnJ,.touch #btnT{width:70px}
   .dock{top:auto;bottom:78px;right:12px}
   .cvwrap{border-radius:0}
+  html,body,.shell,.cvwrap,#gameCanvas{background:#0c1a14}
 }
 </style>
 <script>document.ccConfig={debugMode:0,frameRate:60,id:"gameCanvas",renderMode:1,showFPS:false};</script>
@@ -141,6 +143,6 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
     </div>
   </div>
 </div>
-<script src="custom-play.js?v=c13"></script>
+<script src="custom-play.js?v=c14"></script>
 </body>
 </html>
