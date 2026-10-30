@@ -98,20 +98,19 @@
     var tiles = [];
     var x;
     for (x = 0; x < DC; x++) tiles.push({ x: x, y: DR - 1, type: 'g' });
-    /* 真断坑：挖掉连续 1 格地面（展开后 = EXP 列宽坑）*/
-    [Math.floor(DC * 0.34), Math.floor(DC * 0.70)].forEach(function (gx) {
+    /* 真断坑：两处设计列挖空（世界侧仅正中3格，可跳）——靠前，死前可见 */
+    [Math.max(2, Math.floor(DC * 0.22)), Math.max(4, Math.floor(DC * 0.48))].forEach(function (gx) {
       tiles = tiles.filter(function (t) { return !(t.x === gx && t.y === DR - 1); });
     });
-    var at = function (f) { return Math.min(DC - 1, Math.round(f * DC)); };
-    tiles.push({ x: at(0.10), y: DR - 2, type: 'coin' });
-    tiles.push({ x: at(0.18), y: DR - 2, type: 'spike' });
-    tiles.push({ x: at(0.26), y: DR - 2, type: 'coin' });
-    tiles.push({ x: at(0.42), y: DR - 2, type: 'fire' });
-    tiles.push({ x: at(0.50), y: DR - 2, type: 'coin' });
-    tiles.push({ x: at(0.58), y: DR - 2, type: 'spike' });
-    tiles.push({ x: at(0.78), y: DR - 2, type: 'fire' });
-    tiles.push({ x: at(0.86), y: DR - 2, type: 'coin' });
-    tiles.push({ x: at(0.92), y: DR - 2, type: 'flag' });
+    var at = function (f) { return Math.min(DC - 1, Math.max(0, Math.round(f * DC))); };
+    tiles.push({ x: at(0.08), y: DR - 2, type: 'coin' });
+    tiles.push({ x: at(0.14), y: DR - 2, type: 'spike' });
+    tiles.push({ x: at(0.28), y: DR - 2, type: 'fire' }); /* 火1 坑后不久 */
+    tiles.push({ x: at(0.34), y: DR - 2, type: 'coin' });
+    tiles.push({ x: at(0.40), y: DR - 2, type: 'spike' });
+    tiles.push({ x: at(0.55), y: DR - 2, type: 'fire' }); /* 火2 */
+    tiles.push({ x: at(0.60), y: DR - 2, type: 'flag' }); /* 中段旗，死前可见 */
+    tiles.push({ x: at(0.68), y: DR - 2, type: 'coin' });
     return {
       version: '1.1', theme: 'swamp', cols: DC, rows: DR, tiles: tiles,
       traps: { spike: { interval: 3, up: 1, damage: 1 }, fire: { damage: 1, dur: 2, burn: 2 } },
@@ -159,23 +158,29 @@
       if ((tt.y | 0) >= DR - 1) return;
       items.push({ type: tt.type, c: gx(tt.x | 0), designX: tt.x | 0 });
     });
-    /* 小岩 FAIL：老版沼泽必有真断坑 + 火 + 旗；编辑器关缺则补 */
+    /* 小岩：缺断坑/火/旗则补；位置靠前，进关死前能看见 */
     var holeN = groundCols.filter(function (g) { return !g; }).length;
     if (holeN === 0 && DC >= 6) {
-      groundCols[Math.floor(DC * 0.34)] = false;
-      groundCols[Math.floor(DC * 0.70)] = false;
+      groundCols[Math.max(2, Math.floor(DC * 0.22))] = false;
+      groundCols[Math.max(4, Math.floor(DC * 0.48))] = false;
     }
-    var hasFire = items.some(function (it) { return it.type === 'fire'; });
+    var fireItems = items.filter(function (it) { return it.type === 'fire'; });
+    if (fireItems.length < 2) {
+      if (!fireItems.length) {
+        items.push({ type: 'fire', c: gx(Math.max(1, Math.floor(DC * 0.28))), designX: Math.floor(DC * 0.28) });
+      }
+      items.push({ type: 'fire', c: gx(Math.max(2, Math.floor(DC * 0.55))), designX: Math.floor(DC * 0.55) });
+    }
     var hasFlag = items.some(function (it) { return it.type === 'flag'; });
-    if (!hasFire) {
-      items.push({ type: 'fire', c: gx(Math.floor(DC * 0.42)), designX: Math.floor(DC * 0.42) });
-      items.push({ type: 'fire', c: gx(Math.floor(DC * 0.78)), designX: Math.floor(DC * 0.78) });
-    }
     if (!hasFlag) {
-      items.push({ type: 'flag', c: gx(Math.floor(DC * 0.92)), designX: Math.floor(DC * 0.92) });
+      items.push({ type: 'flag', c: gx(Math.max(3, Math.floor(DC * 0.60))), designX: Math.floor(DC * 0.60) });
     }
     if (!traps.fire) traps.fire = { damage: 1, dur: 2, burn: 2 };
     if (!traps.spike) traps.spike = { interval: 3, up: 1, damage: 1 };
+
+    /* 鳄王放中段偏后（约 62%），终点紧随其后 —— 死前可见鳄精灵+旗 */
+    var bossC = PAD + Math.floor(DC * 0.62) * EXP + 2;
+    var goalC = Math.min(cols - 5, bossC + 8);
 
     return {
       version: d.version || '1.1',
@@ -186,8 +191,8 @@
       hook_seen: d.hook_seen || d.reflectHook || '',
       vs_expect: d.vs_expect || d.reflectExpect || '',
       spawnC: 2,
-      goalC: cols - 5,
-      bossC: cols - 9
+      goalC: goalC,
+      bossC: bossC
     };
   }
 
@@ -422,7 +427,10 @@
       if (c < 0 || c >= level.cols) return true;
       if (c < PAD || c >= PAD + level.DC * EXP) return true;
       var dx = Math.floor((c - PAD) / EXP);
-      return !!(level.groundCols[dx]);
+      if (level.groundCols[dx]) return true;
+      /* 断坑仅挖 EXP 块正中 3 格（120px）——可一跳过去，像老版 */
+      var local = (c - PAD) - dx * EXP;
+      return !(local >= 2 && local <= 4);
     },
     _buildGround: function () {
       var cols = level.cols;
@@ -537,6 +545,7 @@
       this.bossSp.setPosition(this.boss.x, this.boss.y);
       this.bossSp.setScale(Math.max(1.6, DRAW_H * 1.35 / 64));
       this.world.addChild(this.bossSp, 8);
+      this.bossSp.setVisible(true);
 
       this.ninja = new cc.Sprite(SP + 'idle.png');
       this.ninja.setAnchorPoint(0.5, 0);
@@ -613,13 +622,13 @@
           ff.n.setOpacity(90 + Math.floor((Math.sin(elapsed * 5 + i) * 0.5 + 0.5) * 140));
         }
 
-        var speed = 140;
+        var speed = 200; /* ≈ xy-go MOVE */
         if (inp.left && !inp.right) { this.vx = -speed; this.face = -1; }
         else if (inp.right && !inp.left) { this.vx = speed; this.face = 1; }
         else this.vx *= Math.max(0, 1 - dt * 12);
 
         if (this.grounded && inp.jumpPressed) {
-          this.vy = 320;
+          this.vy = 680; /* ≈ xy-go JUMP_V — 3-tile pit jumpable */
           this.grounded = false;
           this.ninja.setTexture(SP + 'jump_0.png');
         }
@@ -635,7 +644,8 @@
           }
         }
 
-        this.vy -= 900 * dt;
+        this.vy -= 1650 * dt; /* ≈ xy-go GRAV */
+        if (this.vy < -980) this.vy = -980;
         this.px += this.vx * dt;
         this.py += this.vy * dt;
         if (this.px < T * 0.5) this.px = T * 0.5;
@@ -1012,6 +1022,7 @@
     if (typeof cc === 'undefined') { bootErr('Cocos 未加载'); return; }
     window.addEventListener('error', function (e) { bootErr(e.message || String(e)); });
     bindControls();
+    netBindUI(); /* c16: was defined but never called — 联机按钮无 handler */
     updateOrientTip();
     fitStage();
     window.addEventListener('resize', fitStage);

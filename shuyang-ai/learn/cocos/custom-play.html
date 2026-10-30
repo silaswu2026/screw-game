@@ -21,20 +21,20 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 .cvwrap{position:absolute;inset:0;width:100%;height:100%;background:#3d2a1c;overflow:hidden;line-height:0}
 #gameCanvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block;background:#3d2a1c;touch-action:none}
 /* HUD — xy-go style: level card + green bar + coins (no six hearts) */
-.hud{position:absolute;top:8px;left:8px;right:8px;z-index:6;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;gap:8px}
-.lvlcard{background:#102016cc;border-radius:10px;padding:6px 10px;min-width:120px}
-#lvlChip{font-size:13px;font-weight:900;color:#fff;margin:0 0 4px}
-#hp{display:flex;align-items:center;gap:6px}
-#hp .hpchip{font-size:11px;font-weight:900;color:#9ff0a8;background:#1a3a24;border-radius:999px;padding:2px 7px}
-#hp .hpbar{display:inline-block;width:72px;height:8px;background:#1a3020;border-radius:4px;overflow:hidden;vertical-align:middle}
-#hp .hpbar i{display:block;height:100%;background:linear-gradient(90deg,#4ea85c,#9ff0a8);width:100%}
-#coins{font-size:14px;color:#ffe7a0;font-weight:800;text-shadow:0 1px 3px #000a;padding-top:4px}
-#bossBar{display:none;position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:6;background:#102016cc;border-radius:10px;padding:6px 12px;min-width:200px;max-width:90%;pointer-events:none}
+.hud{position:fixed;top:40px;left:8px;right:8px;z-index:28;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;gap:8px}
+.lvlcard{background:#102016ee;border-radius:10px;padding:7px 12px;min-width:132px;min-height:44px;border:1px solid #9ff0a855;box-shadow:0 2px 8px #0006}
+#lvlChip{display:block;font-size:14px;font-weight:900;color:#fff;line-height:1.3;min-height:18px;margin:0 0 5px;white-space:nowrap}
+#hp{display:flex;align-items:center;gap:6px;min-height:14px}
+#hp .hpchip{font-size:11px;font-weight:900;color:#9ff0a8;background:#1a3a24;border-radius:999px;padding:2px 7px;line-height:1.2}
+#hp .hpbar{display:inline-block;width:84px;height:10px;background:#1a3020;border-radius:5px;overflow:hidden;vertical-align:middle;border:1px solid #4ea85c66}
+#hp .hpbar i{display:block;height:100%;min-height:8px;background:linear-gradient(90deg,#4ea85c,#9ff0a8);width:100%}
+#coins{font-size:14px;color:#ffe7a0;font-weight:800;text-shadow:0 1px 3px #000a;background:#102016ee;border-radius:10px;padding:6px 10px;border:1px solid #ffe7a044}
+#bossBar{display:none;position:fixed;top:96px;left:50%;transform:translateX(-50%);z-index:28;background:#102016ee;border-radius:10px;padding:6px 12px;min-width:200px;max-width:90%;pointer-events:none;border:1px solid #ff5a5a66}
 #bossBar.on{display:block}
 #bossBar .bn{font-size:13px;font-weight:800;color:#fff;margin:0 0 4px;text-align:center}
 #bossBar .bb{height:8px;background:#3a1818;border-radius:4px;overflow:hidden}
 #bossBar .bb i{display:block;height:100%;background:#ff5a5a;width:100%}
-#msg{position:absolute;top:88px;left:0;right:0;z-index:6;text-align:center;font-weight:800;font-size:12px;color:#fff;text-shadow:0 1px 4px #000c;pointer-events:none;padding:0 8px}
+#msg{position:fixed;top:128px;left:0;right:0;z-index:28;text-align:center;font-weight:800;font-size:12px;color:#fff;text-shadow:0 1px 4px #000c;pointer-events:none;padding:0 8px}
 #boot{display:none;position:absolute;inset:0;z-index:15;align-items:center;justify-content:center;text-align:center;font-size:13px;color:#ffb4b4;font-weight:800;background:#05070fcc;padding:16px}
 #boot.err{display:flex}
 #netBanner{display:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:11;font-size:12px;font-weight:800;background:#1a2048ee;color:#9ff0a8;padding:4px 12px;border-radius:999px;white-space:nowrap}
@@ -52,7 +52,7 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 .touch button:active,.touch button.on{transform:translateY(2px);box-shadow:none;background:linear-gradient(180deg,#78d484,#4ea85c)}
 .touch #btnJ{width:72px;background:linear-gradient(180deg,#ffb06bdd,#e2793bee);box-shadow:0 3px 0 #a35a20;font-size:16px}
 .touch #btnT{width:72px;background:linear-gradient(180deg,#7ab0ffdd,#3b6fd4ee);box-shadow:0 3px 0 #274a8a;font-size:16px}
-.dock{position:absolute;z-index:9;right:8px;top:8px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:46%}
+.dock{position:absolute;z-index:9;right:8px;top:44px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:46%}
 .go{border:0;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:900;color:#fff;background:linear-gradient(180deg,#78d484,#4ea85c);box-shadow:0 2px 0 #2f6d3a;text-decoration:none;display:inline-flex;align-items:center;cursor:pointer}
 .go.sec{background:linear-gradient(180deg,#7ab0ff,#3b6fd4);box-shadow:0 2px 0 #274a8a;font-size:11px}
 #result{display:none;position:absolute;inset:0;z-index:20;align-items:center;justify-content:center;background:rgba(8,10,28,.75)}
@@ -64,13 +64,14 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 @media (orientation:portrait){
   #orientTip.on{display:block}
   .touch button{width:72px;height:72px}.touch #btnJ,.touch #btnT{width:88px}
+  .hud{top:38px}.lvlcard{min-height:48px}#lvlChip{font-size:15px}#bossBar{top:100px}#msg{top:134px}
 }
 @media (orientation:landscape),(max-height:480px){
   #orientTip{display:none!important}
   .bar{min-height:26px;padding:2px 8px}h1{font-size:12px}.badge{display:none}
   .touch{background:transparent}
   .touch button{width:52px;height:52px;font-size:18px}.touch #btnJ,.touch #btnT{width:64px;font-size:14px}
-  #msg{font-size:11px;top:78px}#bossBar{top:46px}
+  .hud{top:32px}#msg{font-size:11px;top:110px}#bossBar{top:84px}
 }
 @media (min-width:900px) and (min-height:520px){
   /* Keep touch visible; no bottom black letterbox strip */
@@ -95,9 +96,6 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 </div>
 <div id="orientTip">📱 竖屏可玩 · 比例同横屏</div>
 <div id="netBanner"></div>
-<div class="shell" id="shell">
-  <div class="cvwrap" id="cvwrap">
-    <canvas id="gameCanvas" width="640" height="520"></canvas>
     <div class="hud">
       <div class="lvlcard">
         <div id="lvlChip">第9关 我的关卡</div>
@@ -107,6 +105,9 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
     </div>
     <div id="bossBar"><div class="bn">鳄鱼王</div><div class="bb"><i style="width:100%"></i></div></div>
     <div id="msg">←→移动 · 跳 · F/J投 · 打鳄王</div>
+<div class="shell" id="shell">
+  <div class="cvwrap" id="cvwrap">
+    <canvas id="gameCanvas" width="640" height="520"></canvas>
     <div id="boot"></div>
     <div class="dock">
       <button class="go" id="retry" type="button">重来</button>
@@ -143,6 +144,6 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
     </div>
   </div>
 </div>
-<script src="custom-play.js?v=c15"></script>
+<script src="custom-play.js?v=c16"></script>
 </body>
 </html>
