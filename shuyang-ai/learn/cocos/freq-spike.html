@@ -10,9 +10,10 @@ body{font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;color:#f7
 .bar{display:flex;gap:8px;padding:8px 12px 2px;align-items:center}
 .bar a{color:#fff;font-weight:800;text-decoration:none;background:#3b4590;border-radius:999px;padding:6px 12px;font-size:14px}
 h1{margin:0;font-size:20px;color:#ffe7a0;flex:1;text-align:center;font-weight:900}
-main{flex:1;display:flex;flex-direction:column;gap:6px;padding:0 12px 10px;max-width:960px;width:100%;margin:0 auto;min-height:0}
-.cvwrap{position:relative;flex:1 1 auto;min-height:200px;display:flex;align-items:center;justify-content:center;background:#0006;border-radius:16px;border:2px solid #ffffff22;overflow:hidden}
-#gameCanvas{width:100%!important;height:auto!important;max-height:min(58vh,420px);background:#1a2040;display:block;border-radius:14px}
+main{flex:1;display:flex;flex-direction:column;gap:8px;padding:0 12px 12px;max-width:960px;width:100%;margin:0 auto;min-height:0}
+/* hug the canvas — never grow a black letterbox above/below the stage */
+.cvwrap{position:relative;flex:0 0 auto;width:100%;display:block;background:transparent;border-radius:16px;border:2px solid #ffffff33;overflow:hidden;line-height:0}
+#gameCanvas{width:100%!important;height:auto!important;max-height:none;aspect-ratio:960/300;background:#3a5c96;display:block;vertical-align:top;border-radius:14px}
 .ctl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;font-weight:800}
 .ctl input[type=range]{width:min(280px,58vw);height:32px;vertical-align:middle;accent-color:#7ab0ff}
 .ctl b#fIv{font-size:36px;color:#ffe7a0;min-width:1.2em;display:inline-block;text-align:center}
@@ -39,7 +40,6 @@ main{flex:1;display:flex;flex-direction:column;gap:6px;padding:0 12px 10px;max-w
   .bar{padding:4px 8px}.bar a{padding:4px 10px;font-size:12px}h1{font-size:15px}
   .kidsub{font-size:12px}.ctl b#fIv{font-size:26px}
   .go{padding:8px 14px;font-size:14px;box-shadow:none}
-  #gameCanvas{max-height:42vh}
   #result .big{font-size:32px}#result button{padding:10px 22px;font-size:17px}
 }
 </style>
@@ -76,12 +76,12 @@ document.ccConfig = {
   <div id="boot"></div>
   <div id="hp">❤❤❤❤❤❤</div>
   <div id="msg">每 <b style="color:#ffe7a0">3</b> 秒 → 变密就更疼</div>
-  <div class="ctl" id="acts">
+  <div class="ctl" id="acts" style="margin-top:auto">
     <button class="go" id="fRun" type="button">🏃 练：跑一次</button>
     <button class="go tw" id="fTw" type="button">🔀 变：每1秒！</button>
     <button class="go ex" id="fEx" type="button">🏁 考：最后一跑</button>
   </div>
 </main>
-<script src="freq-spike.js?v=p2d"></script>
+<script src="freq-spike.js?v=p3"></script>
 </body>
 </html>
