@@ -22,22 +22,6 @@ button{font:inherit;font-weight:900;border:0;cursor:pointer}
 #hint{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:2;background:#ffffffee;border-radius:14px;padding:8px 12px;font-weight:800;font-size:14px;text-align:center;max-width:92vw;pointer-events:none}
 #toast{position:fixed;top:42%;left:50%;transform:translate(-50%,-50%);z-index:4;background:#fff;border-radius:18px;padding:12px 16px;font-weight:900;box-shadow:0 8px 24px #0003;opacity:0;transition:opacity .2s;pointer-events:none;text-align:center}
 #toast.on{opacity:1}
-#menu,#panel{position:fixed;z-index:3;pointer-events:none}
-#menu{top:0;left:0;right:0;padding:calc(env(safe-area-inset-top) + 4vh) 16px 0;display:flex;flex-direction:column;align-items:center;text-align:center}
-#menu h1{margin:0;font-size:clamp(32px,8vw,60px);color:#fff;text-shadow:0 4px 0 #e23b3b,0 8px 16px #0003;line-height:1.05}
-#menu h1 span{display:block;font-size:.55em;text-shadow:0 3px 0 #1d3557}
-#menu .lead{margin:8px 0 12px;color:#fff;font-weight:800;text-shadow:0 2px 0 #1d3557}
-#menu button,#panel button{pointer-events:auto}
-.modes{display:flex;gap:8px;margin-bottom:10px}
-.modes button{pointer-events:auto;background:#ffffffcc;color:#1d3557;border-radius:999px;padding:10px 22px;font-size:20px;min-width:92px;box-shadow:0 4px 0 #0003}
-.modes button.on{background:linear-gradient(#ffe14a,#ffb703);color:#6a3b00;box-shadow:0 4px 0 #e09a00}
-#mode2.on{background:linear-gradient(#9be7ff,#3db7e8);color:#083044;box-shadow:0 4px 0 #1d7eab}
-#play{background:linear-gradient(#ffe14a,#ffb703);color:#6a3b00;border-radius:999px;padding:14px 28px;font-size:22px;box-shadow:0 6px 0 #e09a00;min-width:180px}
-#play:active{transform:translateY(4px);box-shadow:0 2px 0 #e09a00}
-.picks{flex-wrap:wrap;display:flex;gap:8px;margin-top:10px}
-.picks button{background:#fff;color:#1d3557;border-radius:16px;padding:10px 12px;min-width:76px;box-shadow:0 4px 0 #c9e6ff;font-size:15px}
-.picks button:active{transform:translateY(3px)}
-.keys{margin-top:8px;color:#fff;font-weight:800;font-size:13px;text-shadow:0 2px 0 #1d355788}
 #panel{inset:0;display:flex;align-items:center;justify-content:center;background:#0004}
 #panel .card{pointer-events:auto;background:#fff;border-radius:28px;padding:22px;text-align:center;width:min(92vw,360px);border:5px solid #ffd166;box-shadow:0 8px 0 #e09a00}
 #panel h2{margin:0 0 6px;color:#e23b3b;font-size:32px}
@@ -58,211 +42,82 @@ button{font:inherit;font-weight:900;border:0;cursor:pointer}
 #coopTouch .half:last-child button{background:#e7f4ff}
 #coopTouch button:active{transform:translateY(3px);box-shadow:0 2px 0 #0003}
 @media (orientation:landscape) and (max-height:460px){
-  #menu{width:48%;align-items:flex-start;text-align:left;padding-top:calc(env(safe-area-inset-top) + 12px);padding-left:18px}
-  #menu h1{font-size:34px}
-  #play{padding:10px 18px;font-size:18px}
   #touch button{width:74px;height:74px;font-size:16px}
   #coopTouch button{width:60px;height:60px;font-size:16px}
   #hint{top:52px}
 }
-
-/* —— 联网双人 UI —— */
-.modes{display:flex;gap:8px;margin-bottom:10px}
-.modes.hidden{display:none!important}
-.netRow{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center}
-.netRow button{pointer-events:auto;background:linear-gradient(#b8f2c8,#3ecf6e);color:#0d3b16;border-radius:999px;padding:12px 18px;font-size:16px;box-shadow:0 5px 0 #1f9d49;min-width:120px}
-.netRow button:active{transform:translateY(3px);box-shadow:0 2px 0 #1f9d49}
-#netJoin{background:linear-gradient(#9be7ff,#3db7e8);color:#083044;box-shadow:0 5px 0 #1d7eab}
-.netHint{margin:8px 0 0;color:#fff;font-weight:800;font-size:12px;text-shadow:0 2px 0 #1d355788;max-width:92vw}
-#roomPanel{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:#0006;padding:16px;pointer-events:auto}
-#roomPanel.hidden{display:none!important}
-.roomCard{background:#fff;border-radius:24px;padding:18px 16px;width:min(92vw,360px);text-align:center;border:5px solid #ffd166;box-shadow:0 8px 0 #e09a00;max-height:92vh;overflow:auto}
-.roomCard h2{margin:0 0 4px;color:#e23b3b;font-size:26px}
-#roomSub{margin:0 0 12px;font-weight:800;font-size:14px;opacity:.85}
-.roomCodeWrap{font-size:18px;font-weight:900;margin:6px 0 10px}
-.roomCodeWrap b{font-size:32px;letter-spacing:.18em;color:#1d4e38;background:#e8fff0;padding:4px 12px;border-radius:12px}
-#roomQr{display:block;margin:0 auto 8px;border-radius:12px;background:#fff}
-.roomWait{font-weight:800;font-size:14px;margin:6px 0 10px;color:#1d3557}
-.roomLv{display:flex;gap:6px;justify-content:center;margin-bottom:10px}
-.roomLv button{background:#fff;color:#1d3557;border-radius:14px;padding:8px 10px;min-width:64px;box-shadow:0 3px 0 #c9e6ff;font-size:14px;border:3px solid #e8f4ff}
-.roomLv button.on{background:linear-gradient(#ffe14a,#ffb703);box-shadow:0 3px 0 #e09a00;border-color:#fff}
-#roomStart,#roomJoinGo{background:linear-gradient(#ffe14a,#ffb703);color:#6a3b00;border-radius:999px;padding:12px 22px;font-size:18px;box-shadow:0 5px 0 #e09a00;width:100%;margin-top:4px}
-#roomStart:disabled{opacity:.45;box-shadow:0 5px 0 #bbb;background:#ddd;color:#666}
-.roomLab{display:block;font-weight:900;text-align:left;margin:8px 0}
-.roomLab input{display:block;width:100%;margin-top:6px;font:inherit;font-weight:900;font-size:22px;letter-spacing:.2em;text-align:center;text-transform:uppercase;padding:12px;border-radius:14px;border:3px solid #c9e6ff;box-sizing:border-box}
-.roomClose{margin-top:12px;background:#eee;color:#555;border-radius:999px;padding:10px 18px;box-shadow:0 3px 0 #bbb;width:100%}
-@media (orientation:landscape) and (max-height:460px){
-  .netRow button{padding:8px 14px;font-size:14px;min-width:96px}
-  .roomCard{padding:12px;width:min(70vw,420px)}
-  #roomQr{width:110px;height:110px}
-}
-
-.castRow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0 6px;pointer-events:auto;max-width:96vw}
-.cast{pointer-events:auto;background:#ffffffee;border:3px solid #fff;border-radius:16px;padding:6px;width:104px;box-shadow:0 4px 0 #0002;color:#1d3557;font-weight:800;font-size:12px}
-.cast img{display:block;width:100%;height:88px;object-fit:cover;border-radius:10px;margin-bottom:4px}
-.cast.on{border-color:#3ecf6e;box-shadow:0 4px 0 #1f9d49}
-.cast[data-color="blue"].on{border-color:#3aa6ff;box-shadow:0 4px 0 #1868c4}
-.cast[data-color="red"].on{border-color:#ff5a5a;box-shadow:0 4px 0 #c62828}
-
-.netCast{gap:10px;align-items:stretch}
-.netCastBtn{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:108px;padding:8px 10px 10px!important;border-radius:18px!important;font-size:15px!important;line-height:1.15}
-.netCastBtn img{width:72px;height:72px;object-fit:cover;object-position:center top;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 0 #0002;background:#dff5e8}
-#netHost.netCastBtn{background:linear-gradient(#b8f2c8,#3ecf6e);color:#0d3b16;box-shadow:0 5px 0 #1f9d49}
-#netJoin.netCastBtn{background:linear-gradient(#9be7ff,#3db7e8);color:#083044;box-shadow:0 5px 0 #1d7eab}
-#netJoinC.netCastBtn{background:linear-gradient(#ffb4b4,#e53935);color:#4a0000;box-shadow:0 5px 0 #c62828}
-.netCastBtn small{font-size:11px;font-weight:800;opacity:.9}
-.cast img{object-position:center top}
-
-/* two-player mode: hide C */
-.picks button{min-width:64px}
-.netHint{max-width:92vw;line-height:1.35}
-
-#bar3.hidden{display:none!important}
-#netJoinC.on{outline:3px solid #fff;filter:brightness(1.05)}
-#castC.on{border-color:#ff5a5a;box-shadow:0 4px 0 #c62828}
-
-.backClassroom{pointer-events:auto;display:inline-block;margin:0 0 10px;padding:8px 14px;border-radius:999px;background:#ffffffcc;color:#1d3557;font-weight:900;font-size:14px;text-decoration:none;box-shadow:0 3px 0 #0002}
-.backClassroom:active{transform:translateY(2px)}
-/* local ready / auto-pair panels removed — 同机双人 uses silent PeerJS room */
-
-
 .netBanner{position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:5;background:#1d3557;color:#fff;font-weight:900;font-size:13px;padding:8px 14px;border-radius:999px;box-shadow:0 6px 18px #0004;pointer-events:none;max-width:92vw;text-align:center}
 .netBanner.hidden{display:none}
 .netBanner.ok{background:#1d4e38}
 .netBanner.warn{background:#9a3412}
 
-
-/* ===== ONLINE LOBBY (v3059) ===== */
-body{background:#0b1f2a}
-#menu{
-  top:0;left:0;right:0;bottom:0;
-  padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 12px);
-  display:flex;align-items:flex-start;justify-content:center;
-  overflow:auto;-webkit-overflow-scrolling:touch;
-  background:radial-gradient(120% 80% at 50% -10%,#1a5c4a 0%,#0b1f2a 55%,#07141c 100%);
-  pointer-events:auto;
-}
-#menu .lobby{
-  pointer-events:auto;
-  width:min(96vw,440px);
-  margin:0 auto;
-  background:linear-gradient(180deg,#14283aee,#0e1c28f2);
-  border:2px solid #2a6b7a;
-  border-radius:22px;
-  box-shadow:0 0 0 1px #ffffff14 inset,0 18px 40px #0008;
-  padding:14px 14px 16px;
-  text-align:center;
-  color:#e8f4ff;
-}
-.lobbyTop{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.onlinePill{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:11px;font-weight:900;letter-spacing:.12em;
-  color:#7dffb3;background:#0d3b28;border:1px solid #2f9e6a;
-  border-radius:999px;padding:5px 10px;
-}
-.onlinePill::before{content:"";width:7px;height:7px;border-radius:50%;background:#3ecf6e;box-shadow:0 0 8px #3ecf6e}
-.roomPill{margin:0 auto 8px}
-#menu h1{margin:4px 0 0;font-size:clamp(26px,7vw,40px);color:#fff;text-shadow:0 3px 0 #0a3d2e,0 8px 20px #0006;line-height:1.1}
-#menu h1 span{display:block;font-size:.42em;letter-spacing:.18em;color:#7ec8ff;text-shadow:none;margin-top:4px;font-weight:800}
-#menu .lead{margin:6px 0 12px;color:#a8c4d8;font-weight:800;font-size:13px;text-shadow:none}
-.backClassroom{
-  margin:0;padding:7px 12px;border-radius:999px;
-  background:#ffffff14;color:#d6e8f5;font-weight:900;font-size:13px;
-  text-decoration:none;border:1px solid #ffffff22;box-shadow:none
-}
-.backClassroom:active{transform:translateY(1px)}
-
-.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
-.modes button{
-  background:#0f2230;color:#9eb6c8;border-radius:14px;padding:12px 10px;font-size:15px;
-  min-width:0;box-shadow:none;border:2px solid #243c4e
-}
-.modes button.on{
-  background:linear-gradient(180deg,#3ecf6e,#1f9d49);color:#042814;
-  border-color:#7dffb3;box-shadow:0 4px 0 #0d5c30
-}
-#mode2.on{
-  background:linear-gradient(180deg,#4fc3ff,#1a7fd4);color:#031828;
-  border-color:#9be7ff;box-shadow:0 4px 0 #0d4f8a
-}
-
-.party{
-  background:#0a1822aa;border:1px solid #2a4a5c;border-radius:16px;
-  padding:10px 8px 12px;margin-bottom:12px;text-align:left
-}
-.partyHead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 4px 8px}
-.partyHead b{font-size:14px;color:#fff}
-.partyHead small{font-size:11px;color:#7f9bb0;font-weight:800}
-
-.castRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 10px;max-width:none}
-.cast{
-  width:auto;padding:8px 6px 10px;border-radius:14px;
-  background:#122636;border:2px solid #2a4a5c;box-shadow:none;
-  color:#dceaf5;font-size:11px;position:relative
-}
-.cast img{height:72px;border-radius:10px;margin-bottom:6px;border:1px solid #ffffff18}
-.cast .slotTag{
-  position:absolute;top:10px;left:10px;font-size:10px;font-weight:900;
-  padding:2px 6px;border-radius:6px;background:#0008;color:#fff
-}
-.cast .slotTag.host{background:#1f9d49}
-.cast .slotTag.join{background:#1a7fd4}
-.cast .slotTag.ai{background:#c62828}
-.cast .slotName{display:block;font-weight:900;font-size:12px;margin-bottom:2px}
-.cast .slotState{display:block;font-size:10px;font-weight:800;color:#7f9bb0}
-.cast .slotState[data-state="ready"]{color:#7dffb3}
-.cast .slotState[data-state="empty"]{color:#7f9bb0}
-.cast.on{border-color:#3ecf6e;background:#143528;box-shadow:0 0 0 1px #3ecf6e55}
-.cast[data-color="blue"].on{border-color:#3aa6ff;background:#123048;box-shadow:0 0 0 1px #3aa6ff55}
-.cast[data-color="red"].on{border-color:#ff5a5a;background:#3a1515;box-shadow:0 0 0 1px #ff5a5a55}
-
-.netCast{gap:8px;margin-top:0}
-.netCastBtn{
-  flex:1;min-width:0!important;padding:8px 6px 10px!important;border-radius:14px!important;
-  font-size:13px!important;border:2px solid transparent
-}
-.netCastBtn img{width:56px;height:56px}
-#netHost.netCastBtn{background:linear-gradient(180deg,#3ecf6e,#1f9d49);color:#042814;box-shadow:0 4px 0 #0d5c30;border-color:#7dffb3}
-#netJoin.netCastBtn{background:linear-gradient(180deg,#4fc3ff,#1a7fd4);color:#031828;box-shadow:0 4px 0 #0d4f8a;border-color:#9be7ff}
-#netJoinC.netCastBtn{background:linear-gradient(180deg,#ff8a80,#e53935);color:#3b0000;box-shadow:0 4px 0 #8e1c1c;border-color:#ffcdd2}
-#netJoinC.on{outline:2px solid #fff;filter:brightness(1.08)}
-
-#play{
-  width:100%;margin:0 0 12px;padding:16px 18px;font-size:20px;border-radius:16px;
-  background:linear-gradient(180deg,#ffe14a,#ff9f1a);color:#4a2a00;
-  border:2px solid #ffe9a0;box-shadow:0 6px 0 #c46a00,0 10px 24px #0005
-}
-#play:active{transform:translateY(4px);box-shadow:0 2px 0 #c46a00}
-
-.levelPick{margin:0 0 8px;text-align:left}
-.picks{margin-top:0;gap:6px}
-.picks button{
-  background:#122636;color:#d6e8f5;border-radius:12px;padding:9px 10px;min-width:58px;
-  box-shadow:none;border:1px solid #2a4a5c;font-size:13px
-}
-.picks button:active{transform:translateY(1px)}
-.keys,.netHint{color:#7f9bb0;text-shadow:none;font-size:12px;margin:6px 0 0;line-height:1.4}
-.netHint{opacity:.95}
-
-.lobbyRoom{
-  background:linear-gradient(180deg,#163044,#0e1c28)!important;
-  border:2px solid #2a6b7a!important;color:#e8f4ff;
-  box-shadow:0 18px 40px #0008!important
-}
-.lobbyRoom h2{color:#7dffb3!important}
-#roomSub,.roomWait{color:#a8c4d8!important}
-.roomClose{background:#1a2f3e!important;color:#d6e8f5!important;border:1px solid #2a4a5c;box-shadow:none!important}
-
-.netBanner{background:#0e1c28;border:1px solid #2a6b7a;font-size:12px;letter-spacing:.02em}
-.netBanner.ok{background:#0d3b28;border-color:#2f9e6a}
-.netBanner.warn{background:#4a1c0a;border-color:#c45c2a}
-
+/* ===== v3060 首页 / 联网房间 (H5 style) ===== */
+#menu{position:fixed;inset:0;z-index:3;display:flex;align-items:flex-start;justify-content:center;padding:calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 10px);
+  background:radial-gradient(circle at 20% 15%,#fff7 0 60px,transparent 61px),radial-gradient(circle at 85% 25%,#fff5 0 40px,transparent 41px),linear-gradient(#6fc8ff,#a8e6ff 60%,#8ee88a 60.2%,#5cc96f);overflow:auto}
+#menu button{pointer-events:auto}
+.view{margin:auto;width:min(96vw,720px);display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.logo{margin:0;font-size:clamp(40px,9vw,72px);color:#fff;line-height:1;letter-spacing:.06em;text-shadow:0 5px 0 #e23b3b,0 10px 18px #0004;transform:rotate(-2deg)}
+.logo small{display:block;font-size:.32em;letter-spacing:.3em;margin-top:6px;color:#ffe14a;text-shadow:0 3px 0 #1d3557}
+.heroRow{display:flex;gap:6px;justify-content:center}
+.heroRow img{width:58px;height:58px;border-radius:50%;border:4px solid #fff;box-shadow:0 4px 0 #0002;object-fit:cover;animation:bob 1.6s ease-in-out infinite}
+.heroRow img:nth-child(2){animation-delay:.2s}.heroRow img:nth-child(3){animation-delay:.4s}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.bigBtns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+.bigBtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:min(42vw,250px);min-height:110px;border-radius:28px;font-size:30px;color:#fff;border:5px solid #fff;letter-spacing:.08em}
+.bigBtn em{font-style:normal;font-size:40px;line-height:1}
+.bigBtn small{font-size:13px;letter-spacing:0;font-weight:800;opacity:.95}
+.bigBtn:active{transform:translateY(5px)}
+.btnSolo{background:linear-gradient(#ffd84a,#ff9f1c);color:#6a3b00;box-shadow:0 8px 0 #d97a00}
+.btnNet{background:linear-gradient(#7fd8ff,#2f8fe8);box-shadow:0 8px 0 #1b5fa8;text-shadow:0 2px 0 #1b5fa8}
+.subRow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.chip{background:#fffd;color:#1d3557;border-radius:999px;padding:8px 14px;font-size:15px;box-shadow:0 4px 0 #0002;text-decoration:none;font-weight:900}
+.chip.on{background:linear-gradient(#ff8a8a,#e23b3b);color:#fff;box-shadow:0 4px 0 #a3201f}
+.picks{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.picks button{background:#fff;color:#1d3557;border-radius:14px;padding:8px 10px;min-width:62px;box-shadow:0 4px 0 #c9e6ff;font-size:14px}
+.keys{margin:0;color:#fff;font-weight:800;font-size:12px;text-shadow:0 2px 0 #1d355788}
+#mode1{display:none}
+/* net view */
+.topBar{width:100%;display:flex;align-items:center;justify-content:space-between}
+.topBar h2{margin:0;color:#fff;font-size:28px;text-shadow:0 3px 0 #1b5fa8}
+.backBtn{background:#fff;color:#1d3557;border-radius:999px;padding:8px 16px;font-size:16px;box-shadow:0 4px 0 #0002}
+.card{background:#fff;border-radius:24px;padding:14px 16px;border:5px solid #ffd166;box-shadow:0 8px 0 #e09a00;width:100%}
+.netChoice{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.netChoice .bigBtn{min-height:96px;font-size:26px}
+.btnCreate{background:linear-gradient(#8ee88a,#2fb35a);box-shadow:0 8px 0 #1f7d3d;text-shadow:0 2px 0 #1f7d3d}
+.btnJoin{background:linear-gradient(#7fd8ff,#2f8fe8);box-shadow:0 8px 0 #1b5fa8;text-shadow:0 2px 0 #1b5fa8}
+.joinBox{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:4px}
+#roomInput{font:inherit;font-size:28px;font-weight:900;width:150px;text-align:center;letter-spacing:.2em;border:4px solid #2f8fe8;border-radius:16px;padding:6px;color:#1d3557;user-select:text;-webkit-user-select:text}
+#roomJoinGo,#roomStart{background:linear-gradient(#ffd84a,#ff9f1c);color:#6a3b00;border-radius:999px;padding:12px 24px;font-size:20px;box-shadow:0 5px 0 #d97a00}
+#roomStart:disabled{background:#ddd;color:#888;box-shadow:0 5px 0 #aaa}
+#roomPanel{display:flex;flex-direction:column;gap:8px;align-items:center}
+.codeRow{display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;font-weight:900}
+#roomCode{font-size:36px;letter-spacing:.2em;color:#1d4e38;background:#e8fff0;padding:2px 14px;border-radius:14px;border:3px dashed #3ecf6e}
+#roomCopy{background:#e7f4ff;color:#1d3557;border-radius:999px;padding:8px 14px;font-size:15px;box-shadow:0 3px 0 #b7d8f5}
+.slots{display:flex;gap:14px;justify-content:center}
+.slot{width:150px;border-radius:20px;padding:8px;background:#f4f8ff;border:4px solid #dbe8f5;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:900}
+.slot img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:4px solid #fff;filter:grayscale(1) opacity(.45)}
+.slot.filled img{filter:none}
+.slot.a.filled{border-color:#3ecf6e;background:#e8fff0}
+.slot.b.filled{border-color:#3aa6ff;background:#e7f4ff}
+.slot .st{font-size:13px;padding:2px 10px;border-radius:999px;background:#ddd;color:#555}
+.slot.filled .st{background:#3ecf6e;color:#fff}
+.slot .me{font-size:11px;color:#e23b3b}
+.roomWait{margin:0;font-weight:800;font-size:14px;color:#1d3557}
+.roomLv{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
+.roomLv button{background:#fff;color:#1d3557;border-radius:12px;padding:6px 8px;min-width:54px;box-shadow:0 3px 0 #c9e6ff;font-size:13px;border:2px solid #e8f4ff}
+.roomLv button.on{background:linear-gradient(#ffe14a,#ffb703);box-shadow:0 3px 0 #e09a00}
+.tip{margin:0;font-size:12px;color:#fff;font-weight:800;text-shadow:0 2px 0 #1d355788}
 @media (orientation:landscape) and (max-height:460px){
-  #menu{width:100%;align-items:stretch;padding-top:8px}
-  #menu .lobby{width:min(92vw,640px)}
-  #menu h1{font-size:28px}
-  .cast img{height:56px}
-  .netCastBtn img{width:44px;height:44px}
-  #play{padding:12px;font-size:17px}
+  .view{gap:6px}
+  .logo{font-size:44px}
+  .heroRow img{width:44px;height:44px}
+  .bigBtn{min-height:84px;font-size:24px}.bigBtn em{font-size:30px}
+  .slot img{width:46px;height:46px}
+  #roomCode{font-size:28px}
+  .card{padding:8px 12px}
+  .slot{padding:4px}
+  #netView .tip{display:none}
+  .topBar h2{font-size:22px}
 }
+#panel{position:fixed;z-index:3}
+#panel button{pointer-events:auto}

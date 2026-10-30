@@ -78,6 +78,7 @@
   let netMatchAbort = false;
   let netTransport = null; // 'peer' | 'bc'
   let netBcSession = '';
+  let netRoomOverride = ''; // v3060: 房间号 (4 digits) from 创建/加入房间 or ?room=
   // Same-browser / same-profile: BroadcastChannel is the reliable link (PeerJS ICE often fails same-machine)
   let netBC = null;
   try { netBC = new BroadcastChannel('xygo-coop-v5'); } catch (e) { netBC = null; }
@@ -96,7 +97,7 @@
       try { netSend(netBuildSnap()); } catch (e) {}
       syncChrome();
     } else {
-      setTimeout(() => { if (netRole === 'host' && netLinked) netHostStart(); }, 400);
+      netSyncRoom();
     }
   }
   function netLinkViaBC(asHost, session, code) {
@@ -115,7 +116,8 @@
       setTimeout(() => netHostPushGuestIn(), 250);
       setTimeout(() => netHostPushGuestIn(), 700);
     } else {
-      netSetWait('配对成功！马上进关');
+      netSetWait('已准备！等房主点「开始游戏」');
+      netSyncRoom();
       toast('已连上玩家A（同机直连）');
       netSetBanner('已连上·同机', 'ok');
       // Ask host to (re)send go+snap — first push often raced before we were linked
@@ -151,6 +153,7 @@
     }
     // Guest sees host offer → accept via BC (skip PeerJS)
     if ((m.t === 'host' || m.t === 'bc-offer') && netRole === 'guest' && !netLinked && m.id) {
+      if (netRoomOverride && String(m.id) !== netCustomRoom()) return; // other room
       const sess = m.session || netMakeSession();
       netBcSession = sess;
       netCode = String(m.id);
@@ -3815,6 +3818,7 @@
    *  ?room=xxx → single custom id. Guest probes current+previous minute slots. */
   function netCustomRoom() {
     try {
+      if (netRoomOverride) return NET_PREFIX + '-c-' + netRoomOverride;
       const q = new URLSearchParams(location.search);
       const custom = (q.get('room') || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 24);
       if (custom) return NET_PREFIX + '-c-' + custom;
@@ -3857,6 +3861,7 @@
   function netSetWait(text) {
     const el = document.getElementById('roomWait');
     if (el) el.textContent = text;
+    netSyncRoom();
   }
   function netSend(obj) {
     if (!netLinked) return;
@@ -3879,21 +3884,58 @@
     netTransport = null;
     netBcSession = '';
   }
+  function netRoomShortCode() {
+    if (netRoomOverride) return netRoomOverride;
+    return String(netCode || '').slice(-4) || '----';
+  }
+  function netInviteUrl() {
+    return netJoinUrl() + '?room=' + encodeURIComponent(netRoomShortCode());
+  }
+  function netShowView(which) {
+    const home = document.getElementById('homeView');
+    const nv = document.getElementById('netView');
+    if (home) home.classList.toggle('hidden', which !== 'home');
+    if (nv) nv.classList.toggle('hidden', which !== 'net');
+  }
+  function netSyncRoom() {
+    const panel = document.getElementById('roomPanel');
+    if (!panel || panel.classList.contains('hidden')) return;
+    const host = netRole === 'host';
+    const linked = !!netLinked;
+    document.getElementById('roomCode').textContent = netRoomShortCode();
+    const a = document.getElementById('slotA');
+    const b = document.getElementById('slotB');
+    a.classList.toggle('filled', host || linked);
+    b.classList.toggle('filled', linked || netRole === 'guest');
+    document.getElementById('slotAst').textContent = (host || linked) ? '房主' : '等待房主…';
+    document.getElementById('slotBst').textContent = linked ? '已准备' : (netRole === 'guest' ? '连接中…' : '等待加入…');
+    document.getElementById('slotAme').textContent = host ? '（我）' : '';
+    document.getElementById('slotBme').textContent = netRole === 'guest' ? '（我）' : '';
+    const st = document.getElementById('roomStart');
+    st.classList.toggle('hidden', !host);
+    st.disabled = !(host && linked);
+    st.textContent = linked ? '开始游戏' : '等好友加入…';
+    if (host && linked) { const w = document.getElementById('roomWait'); if (w && !/开始游戏/.test(w.textContent)) w.textContent = '玩家B已准备！点「开始游戏」'; }
+    document.getElementById('roomLv').classList.toggle('hidden', !host);
+    document.querySelectorAll('.roomLv button').forEach((x) => x.classList.toggle('on', Number(x.dataset.nlv) === (netPickLv | 0)));
+  }
   function netShowRoom(kind) {
+    if (mode !== 'title') return;
+    netShowView('net');
     const panel = document.getElementById('roomPanel');
     panel.classList.remove('hidden');
     panel.setAttribute('aria-hidden', 'false');
-    document.getElementById('roomTitle').textContent = kind === 'host' ? '玩家A · 芃芃' : '玩家B · 爸爸';
-    document.getElementById('roomSub').textContent = kind === 'host'
-      ? '双人联网 · 绿忍者 · 等待玩家B（另一浏览器点玩家B）'
-      : '双人联网 · 蓝忍者 · 正在寻找玩家A';
-    document.getElementById('roomWait').textContent = kind === 'host' ? '等待玩家B…请对方开第二窗口点玩家B' : '正在配对…请确认玩家A已点好';
+    document.getElementById('netChoice').classList.add('hidden');
+    document.getElementById('roomWait').textContent = kind === 'host' ? '房间已开，等好友输入房间号加入' : '正在进入房间…';
     document.getElementById('joinWait').textContent = '';
+    netSyncRoom();
   }
   function netHideRoom() {
     const panel = document.getElementById('roomPanel');
     panel.classList.add('hidden');
     panel.setAttribute('aria-hidden', 'true');
+    const ch = document.getElementById('netChoice');
+    if (ch) ch.classList.remove('hidden');
   }
   function netDrawQr(code) {
     const canvas = document.getElementById('roomQr');
@@ -3932,11 +3974,12 @@
           try { netSend(netBuildSnap()); } catch (e) {}
           syncChrome();
         } else {
-          netSetWait('配对成功！马上开始');
-          setTimeout(() => { if (netRole === 'host' && netLinked) netHostStart(); }, 500);
+          netSetWait('玩家B已准备！点「开始游戏」');
+          netSyncRoom();
         }
       } else {
-        netSetWait('配对成功！等一下就开打');
+        netSetWait('已准备！等房主点「开始游戏」');
+        netSyncRoom();
         toast('已连上玩家A');
       }
     };
@@ -4216,7 +4259,7 @@
     }
     // guest
     if (msg.t === 'hello') {
-      document.getElementById('joinWait').textContent = '已连上房间 ' + (msg.code || netCode) + '，等房主开始';
+      netSetWait('已准备！等房主点「开始游戏」');
     } else if (msg.t === 'go') {
       netHideRoom();
       unlock();
@@ -4402,7 +4445,7 @@
         prepareCoopCast();
         start(netPickLv | 0, true);
       }
-      if (!silent) netSetWait('已准备好，请对方点玩家B');
+      if (!silent) netSetWait(netLinked ? '玩家B已准备！点「开始游戏」' : '房间已开，把房间号告诉好友');
       const short = String(won.id || '').slice(-6);
       netSetBanner('房间已开·等玩家B·' + short, 'ok');
       toast('房间已开·对方点「玩家B」加入');
@@ -4467,7 +4510,7 @@
     const onBCHint = (ev) => {
       const m = ev && ev.data;
       if (!m || !m.id) return;
-      if (m.t === 'host' || m.t === 'bc-offer') bcHostId = String(m.id);
+      if ((m.t === 'host' || m.t === 'bc-offer') && (!netRoomOverride || String(m.id) === netCustomRoom())) bcHostId = String(m.id);
     };
     try { if (netBC) netBC.addEventListener('message', onBCHint); } catch (e) {}
     netBCPost({ t: 'need', want: 1 });
@@ -4552,9 +4595,13 @@
     netDestroy();
     netHideRoom();
     netSetBanner('');
+    netRoomOverride = '';
     mode = 'title';
     coop = false;
     wantCoop = false;
+    netShowView('home');
+    const jb = document.getElementById('roomJoinBox');
+    if (jb) jb.classList.add('hidden');
     mode1.classList.add('on');
     mode2.classList.remove('on');
     syncChrome();
@@ -4656,14 +4703,16 @@
   });
   mode2.addEventListener('click', () => {
     if (netRole) return;
-    wantCoop = true;
-    wantCompanion = true; // 同机双人默认带红小宇AI跟班
-    mode2.classList.add('on');
-    mode1.classList.remove('on');
-    syncCompanionUi();
-    toast('创建房间=主机开房；对方点「加入·玩家B」');
+    wantCoop = false; // 联网 is separate from solo
+    netShowView('net');
+    netHideRoom();
+  });
+  const levelToggle = document.getElementById('levelToggle');
+  if (levelToggle) levelToggle.addEventListener('click', () => {
+    document.getElementById('picks').classList.toggle('hidden');
   });
   document.getElementById('play').addEventListener('click', () => {
+    wantCoop = false;
     requestLocalOrSoloStart(0);
   });
   document.querySelectorAll('.picks button').forEach((b) => {
@@ -4696,8 +4745,51 @@
       if (netRole === 'host') netSend({ t: 'cmd', a: 'again', lv: 0 });
     }
   });
-  document.getElementById('netHost').addEventListener('click', () => { pickColor = 'green'; netOpenHost({ silent: false }); });
-  document.getElementById('netJoin').addEventListener('click', () => { pickColor = 'blue'; wantCoop = true; mode2.classList.add('on'); mode1.classList.remove('on'); netOpenJoin({ silent: true }); });
+  function netMakeShortCode() { return String(1000 + Math.floor(Math.random() * 9000)); }
+  function netCleanCode(v) { return String(v || '').replace(/[^0-9a-zA-Z]/g, '').toLowerCase().slice(0, 6); }
+  document.getElementById('netHost').addEventListener('click', () => {
+    pickColor = 'green';
+    wantCompanion = false;
+    syncCompanionUi();
+    netRoomOverride = netMakeShortCode();
+    netOpenHost({ silent: false });
+  });
+  document.getElementById('netJoin').addEventListener('click', () => {
+    document.getElementById('roomJoinBox').classList.remove('hidden');
+    const inp = document.getElementById('roomInput');
+    try { inp.focus(); } catch (e) {}
+  });
+  function netJoinByCode(code) {
+    code = netCleanCode(code);
+    if (!code) { toast('请输入房间号'); return; }
+    pickColor = 'blue';
+    wantCoop = true;
+    netRoomOverride = code;
+    netOpenJoin({ silent: false });
+  }
+  document.getElementById('roomJoinGo').addEventListener('click', () => netJoinByCode(document.getElementById('roomInput').value));
+  document.getElementById('roomInput').addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') netJoinByCode(e.target.value);
+  });
+  document.getElementById('roomCopy').addEventListener('click', () => {
+    const url = netInviteUrl();
+    const done = () => toast('邀请链接已复制！发给好友吧');
+    try {
+      if (navigator.share && /Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+        navigator.share({ title: '小雨闯关 · 来我房间', text: '房间号 ' + netRoomShortCode(), url }).catch(() => {});
+        return;
+      }
+      navigator.clipboard.writeText(url).then(done, () => toast(url));
+    } catch (e) { toast(url); }
+  });
+  document.querySelectorAll('.roomLv button').forEach((b) => {
+    b.addEventListener('click', () => {
+      if (netRole !== 'host') return;
+      netPickLv = Number(b.dataset.nlv) | 0;
+      netSyncRoom();
+    });
+  });
   function syncCompanionUi() {
     const btn = document.getElementById('netJoinC');
     const cast = document.getElementById('castC');
@@ -4737,7 +4829,7 @@
     KeyF: 'throw', KeyJ: 'throw', KeyK: 'throw',
   };
   addEventListener('keydown', (e) => {
-    if (mode === 'title' && (e.code === 'Space' || e.code === 'Enter') && !netRole) {
+    if (mode === 'title' && (e.code === 'Space' || e.code === 'Enter') && !netRole && !document.getElementById('homeView').classList.contains('hidden')) {
       e.preventDefault();
       requestLocalOrSoloStart(0);
       return;
@@ -4758,7 +4850,13 @@
   try {
     // Fixed-day room (or ?room=xxx). Optional ?b=1 / ?a=1 opens as B/A.
     const q = new URLSearchParams(location.search);
-    if (q.get('b') === '1' || q.get('as') === 'b') {
+    const linkRoom = netCleanCode(q.get('room'));
+    if (linkRoom && q.get('a') !== '1' && q.get('as') !== 'a' && q.get('b') !== '1') {
+      // 邀请链接 ?room=1234 → 联网对战 page, auto join as 玩家B
+      netShowView('net');
+      document.getElementById('roomInput').value = linkRoom;
+      setTimeout(() => netJoinByCode(linkRoom), 200);
+    } else if (q.get('b') === '1' || q.get('as') === 'b') {
       setTimeout(() => netOpenJoin({ silent: true }), 200);
     } else if (q.get('a') === '1' || q.get('as') === 'a') {
       setTimeout(() => netOpenHost({ silent: false }), 200);

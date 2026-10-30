@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b1f2a">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>小雨闯关 · 联网大厅</title>
-<link rel="stylesheet" href="style.css?v=3059">
+<title>小雨闯关</title>
+<link rel="stylesheet" href="style.css?v=3060">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -31,112 +31,69 @@
 <div id="toast"></div>
 
 <div id="menu">
-  <div class="lobby">
-    <div class="lobbyTop">
-      <a id="backClassroom" class="backClassroom" href="../shuyang-ai/classroom/">← 教室</a>
-      <span class="onlinePill" title="在线">ONLINE</span>
+  <!-- 首页：只有单机 / 联网两个入口 -->
+  <div class="view" id="homeView">
+    <h1 class="logo">小雨闯关<small>忍者公园大冒险</small></h1>
+    <div class="heroRow">
+      <img src="ninjas/ninja-green.jpg" alt="绿忍者"><img src="ninjas/ninja-blue.jpg" alt="蓝忍者"><img src="ninjas/ninja-red.jpg" alt="红忍者">
     </div>
-    <h1>小雨闯关 <span>ONLINE LOBBY</span></h1>
-    <p class="lead">忍者公园 · 单人 / 开房 / 加入</p>
-
-    <div class="modes" id="modes" role="tablist" aria-label="对战模式">
-      <button id="mode1" class="on" type="button">单人闯关</button>
-      <button id="mode2" type="button">创建房间</button>
+    <div class="bigBtns">
+      <button id="play" class="bigBtn btnSolo" type="button"><em>🥷</em>单机模式<small>一个人闯关</small></button>
+      <button id="mode2" class="bigBtn btnNet" type="button"><em>🤝</em>联网对战<small>和好友一起玩</small></button>
     </div>
-
-    <section class="party" aria-label="队伍席位">
-      <header class="partyHead">
-        <b>队伍席位</b>
-        <small>点头像选角色 · 点「玩家B」加入房间</small>
-      </header>
-      <div class="castRow" id="castRow">
-        <button type="button" class="cast on" data-color="green" aria-label="绿色忍者">
-          <img src="ninjas/ninja-green.jpg" alt="绿忍者">
-          <span class="slotTag host">房主</span>
-          <span class="slotName">芃芃 · 绿</span>
-          <span class="slotState" data-state="ready">已选</span>
-        </button>
-        <button type="button" class="cast" data-color="blue" aria-label="蓝色忍者">
-          <img src="ninjas/ninja-blue.jpg" alt="蓝忍者">
-          <span class="slotTag join">加入</span>
-          <span class="slotName">爸爸 · 蓝</span>
-          <span class="slotState" data-state="empty">点我加入</span>
-        </button>
-        <button type="button" class="cast" data-color="red" id="castC" aria-label="红色忍者跟班">
-          <img src="ninjas/ninja-red.jpg" alt="红忍者">
-          <span class="slotTag ai">AI</span>
-          <span class="slotName">小宇 · 红</span>
-          <span class="slotState" data-state="empty">跟班关</span>
-        </button>
-      </div>
-      <div class="netRow netCast" id="netRow">
-        <button id="netHost" type="button" class="netCastBtn" aria-label="玩家A 绿色忍者">
-          <img src="ninjas/ninja-green.jpg" alt="绿忍者">
-          <span>开房 · 玩家A</span>
-          <small>芃芃主机</small>
-        </button>
-        <button id="netJoin" type="button" class="netCastBtn" aria-label="玩家B 蓝色忍者">
-          <img src="ninjas/ninja-blue.jpg" alt="蓝忍者">
-          <span>加入 · 玩家B</span>
-          <small>爸爸进房</small>
-        </button>
-        <button id="netJoinC" type="button" class="netCastBtn" aria-label="玩家C 小宇跟班AI" aria-pressed="false">
-          <img src="ninjas/ninja-red.jpg" alt="红忍者">
-          <span>跟班 · 玩家C</span>
-          <small>小宇 AI</small>
-        </button>
-      </div>
-    </section>
-
-    <button id="play" type="button">开始游戏</button>
-
-    <section class="levelPick" aria-label="选关">
-      <header class="partyHead"><b>选关</b><small>房主可选起始关卡</small></header>
-      <div class="picks">
-        <button type="button" data-lv="0">第1关</button>
-        <button type="button" data-lv="1">第2关</button>
-        <button type="button" data-lv="2">第3关</button>
-        <button type="button" data-lv="3">第4关</button>
-        <button type="button" data-lv="4">第5关</button>
-        <button type="button" data-lv="5">第6关</button>
-        <button type="button" data-lv="6">第7关</button>
-        <button type="button" data-lv="7">第8关</button>
-      </div>
-    </section>
-
+    <button id="mode1" type="button" class="on" aria-hidden="true" tabindex="-1">单机</button>
+    <div class="subRow">
+      <button id="netJoinC" class="chip" type="button" aria-pressed="false">🔴 小宇AI跟班</button>
+      <button id="levelToggle" class="chip" type="button">🗺️ 选关</button>
+      <a id="backClassroom" class="chip" href="../shuyang-ai/classroom/">← 教室</a>
+    </div>
+    <div class="picks hidden" id="picks">
+      <button type="button" data-lv="0">第1关</button><button type="button" data-lv="1">第2关</button>
+      <button type="button" data-lv="2">第3关</button><button type="button" data-lv="3">第4关</button>
+      <button type="button" data-lv="4">第5关</button><button type="button" data-lv="5">第6关</button>
+      <button type="button" data-lv="6">第7关</button><button type="button" data-lv="7">第8关</button>
+    </div>
     <p class="keys">方向键 / AD 移动 · 空格跳 · F / J 投掷</p>
-    <p class="netHint">联网：主机选「创建房间」再点「开始游戏」开房；另一台点「加入·玩家B」或蓝忍者进房。点「跟班」开关小宇 AI。</p>
+  </div>
+
+  <!-- 联网对战：独立房间页 -->
+  <div class="view hidden" id="netView">
+    <div class="topBar">
+      <button id="roomClose" class="backBtn" type="button">← 返回</button>
+      <h2>联网对战</h2>
+      <span style="width:80px"></span>
+    </div>
+    <div class="card" id="netChoice">
+      <div class="netChoice">
+        <button id="netHost" class="bigBtn btnCreate" type="button"><em>🏠</em>创建房间<small>我当房主 · 绿忍者</small></button>
+        <button id="netJoin" class="bigBtn btnJoin" type="button"><em>🔑</em>加入房间<small>输入房间号 · 蓝忍者</small></button>
+      </div>
+      <div class="joinBox hidden" id="roomJoinBox">
+        <input id="roomInput" inputmode="numeric" maxlength="6" placeholder="房间号" autocomplete="off">
+        <button id="roomJoinGo" type="button">进入房间</button>
+      </div>
+    </div>
+    <div class="card hidden" id="roomPanel" aria-hidden="true">
+      <div class="codeRow">房间号 <b id="roomCode">----</b><button id="roomCopy" type="button">📋 复制邀请链接</button></div>
+      <div class="slots">
+        <div class="slot a" id="slotA"><img src="ninjas/ninja-green.jpg" alt=""><span>玩家A · 绿</span><span class="st" id="slotAst">等待</span><span class="me" id="slotAme"></span></div>
+        <div class="slot b" id="slotB"><img src="ninjas/ninja-blue.jpg" alt=""><span>玩家B · 蓝</span><span class="st" id="slotBst">等待加入…</span><span class="me" id="slotBme"></span></div>
+      </div>
+      <p class="roomWait" id="roomWait">请稍等…</p>
+      <p class="roomWait hidden" id="joinWait"></p>
+      <div class="roomLv" id="roomLv">
+        <button type="button" data-nlv="0" class="on">第1关</button><button type="button" data-nlv="1">第2关</button>
+        <button type="button" data-nlv="2">第3关</button><button type="button" data-nlv="3">第4关</button>
+        <button type="button" data-nlv="4">第5关</button><button type="button" data-nlv="5">第6关</button>
+        <button type="button" data-nlv="6">第7关</button><button type="button" data-nlv="7">第8关</button>
+      </div>
+      <button id="roomStart" type="button" disabled>开始游戏</button>
+      <span id="roomTitle" class="hidden"></span><span id="roomSub" class="hidden"></span>
+    </div>
+    <p class="tip">把房间号告诉好友，或复制链接发给他，打开就能进房间</p>
   </div>
 </div>
 
-<div id="roomPanel" class="hidden" aria-hidden="true">
-  <div class="roomCard lobbyRoom">
-    <div class="onlinePill roomPill">ROOM</div>
-    <h2 id="roomTitle">联网配对</h2>
-    <p id="roomSub">自动寻找搭档</p>
-    <p class="roomWait" id="roomWait">请稍等…</p>
-    <p class="roomWait hidden" id="joinWait"></p>
-    <div id="roomHostBox" class="hidden"></div>
-    <div id="roomJoinBox" class="hidden">
-      <input id="roomInput" class="hidden" aria-hidden="true" tabindex="-1">
-      <button id="roomJoinGo" class="hidden" type="button" aria-hidden="true">加入</button>
-    </div>
-    <canvas id="roomQr" class="hidden" width="1" height="1" aria-hidden="true"></canvas>
-    <b id="roomCode" class="hidden" aria-hidden="true"></b>
-    <button id="roomStart" class="hidden" type="button" aria-hidden="true">开始</button>
-    <div class="roomLv hidden" aria-hidden="true">
-      <button type="button" data-nlv="0">第1关</button>
-      <button type="button" data-nlv="1">第2关</button>
-      <button type="button" data-nlv="2">第3关</button>
-      <button type="button" data-nlv="3">第4关</button>
-      <button type="button" data-nlv="4">第5关</button>
-      <button type="button" data-nlv="5">第6关</button>
-      <button type="button" data-nlv="6">第7关</button>
-      <button type="button" data-nlv="7">第8关</button>
-    </div>
-    <button id="roomClose" class="roomClose" type="button">返回大厅</button>
-  </div>
-</div>
 <div id="panel" class="hidden">
   <div class="card">
     <h2 id="panelTitle">过关了!</h2>
@@ -171,6 +128,6 @@
   </div>
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="game.js?v=3059"></script>
+<script src="game.js?v=3060"></script>
 </body>
 </html>
