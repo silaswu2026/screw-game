@@ -1,21 +1,15 @@
 /**
- * 频率刺 teaching stage on Cocos2d-JS Lite (Cocos2d-html5 lineage).
- * Mirrors ld27 canvas ② 频率: interval → spike count → HP, 练/变/考.
- * Green ninja from xy-go/sprites/green/. Does NOT modify level-design.html (ld27).
- * Lite has no DrawNode — uses LayerColor + LabelTTF + Sprite only.
+ * 频率刺 — Cocos2d-JS Lite teaching stage (P0 product polish).
  */
 (function () {
   var SP = '../../../xy-go/sprites/green/';
   var RES = [
-    { type: 'image', src: SP + 'walk_0.png' },
-    { type: 'image', src: SP + 'walk_1.png' },
-    { type: 'image', src: SP + 'walk_2.png' },
-    { type: 'image', src: SP + 'walk_3.png' },
-    { type: 'image', src: SP + 'idle.png' },
-    { type: 'image', src: SP + 'knock_0.png' }
+    SP + 'walk_0.png', SP + 'walk_1.png', SP + 'walk_2.png', SP + 'walk_3.png',
+    SP + 'idle.png', SP + 'knock_0.png'
   ];
   var W = 960, H = 360, DUR = 12, PAD = [2, 4, 6, 9];
   var fStep = 1, fLast = null, sceneRef = null;
+  var spikeTex = null, spikeSmTex = null;
 
   function $(id) { return document.getElementById(id); }
   function fCnt(I) { return Math.floor(12 / I); }
@@ -26,13 +20,61 @@
         ['①', '②', '③', '④'][j] + ' ' + w + '</span>';
     }).join('');
   }
+  function setAct(step) {
+    ['fRun', 'fTw', 'fEx'].forEach(function (id, j) {
+      var el = $(id);
+      if (el) el.classList.toggle('on', step === j + 1);
+    });
+  }
   function updHP(lose) {
     var M = 6, left = Math.max(0, M - lose);
     $('hp').innerHTML = '❤'.repeat(left) + '🤍'.repeat(M - left) +
-      ' <span style="font-size:12px;color:#c9c3ef">频率 → 掉' + lose + '❤</span>';
+      ' <span style="font-size:13px;color:#c9c3ef">掉' + lose + '❤</span>';
+  }
+  function liveMsg(I, n, lose, prefix) {
+    $('msg').innerHTML = (prefix || '') + '每 <b style="color:#ffe7a0">' + I + '</b> 秒 → <b>' + n +
+      '</b> 次刺 → 掉 <b style="color:#ffb4b4">' + lose + '❤</b>';
+  }
+  function bootErr(m) {
+    var b = $('boot');
+    if (!b) return;
+    b.textContent = m;
+    b.className = 'err';
   }
   function mkColor(w, h, r, g, b, a) {
     return new cc.LayerColor(cc.color(r, g, b, a == null ? 255 : a), w, h);
+  }
+  function texFromCanvas(cv) {
+    var tex = new cc.Texture2D();
+    tex.initWithElement(cv);
+    tex.handleLoadedTexture();
+    return tex;
+  }
+  function buildSpikeTex(wide) {
+    var c = document.createElement('canvas');
+    var w = wide ? 72 : 28, h = wide ? 40 : 26;
+    c.width = w; c.height = h;
+    var g = c.getContext('2d');
+    var n = wide ? 4 : 1;
+    for (var k = 0; k < n; k++) {
+      var sx = wide ? 4 + k * ((w - 8) / n) : 2;
+      var sw = wide ? (w - 8) / n : w - 4;
+      g.fillStyle = '#c5d0dc';
+      g.beginPath();
+      g.moveTo(sx, h);
+      g.lineTo(sx + sw / 2, 2);
+      g.lineTo(sx + sw, h);
+      g.closePath();
+      g.fill();
+      g.strokeStyle = '#7a8794';
+      g.lineWidth = 1.5;
+      g.stroke();
+    }
+    if (wide) {
+      g.fillStyle = '#3a3a42';
+      g.fillRect(2, h - 5, w - 4, 5);
+    }
+    return texFromCanvas(c);
   }
 
   var FreqLayer = cc.Layer.extend({
@@ -46,7 +88,6 @@
       this.frameT = 0;
       this.cells = [];
       this.marks = [];
-      this.pads = [];
       this.padSpikes = [];
       this.hitLabs = [];
       this._build();
@@ -54,30 +95,33 @@
       return true;
     },
     _build: function () {
-      this.addChild(mkColor(W, H, 26, 32, 64), 0);
+      this.addChild(mkColor(W, H, 22, 28, 58), 0);
+      /* soft sky band */
+      var sky = mkColor(W, 90, 40, 55, 100, 90);
+      sky.setPosition(0, H - 90);
+      this.addChild(sky, 0);
 
-      var ground = mkColor(W - 180, 30, 107, 79, 47);
+      var ground = mkColor(W - 170, 34, 107, 79, 47);
       ground.setPosition(0, 0);
       this.addChild(ground, 1);
-      var grass = mkColor(W - 180, 6, 78, 168, 92);
-      grass.setPosition(0, 24);
+      var grass = mkColor(W - 170, 8, 78, 168, 92);
+      grass.setPosition(0, 26);
       this.addChild(grass, 2);
 
-      var L = 20, cw = (W - 200) / 12;
-      this.L = L; this.cw = cw; this.gy = 30;
+      var L = 16, cw = (W - 190) / 12;
+      this.L = L; this.cw = cw; this.gy = 34;
 
       for (var s = 1; s <= 12; s++) {
-        var cell = mkColor(cw - 4, 64, 255, 255, 255, 20);
-        cell.setPosition(L + (s - 1) * cw + 2, H - 80);
+        var cell = mkColor(cw - 4, 58, 255, 255, 255, 18);
+        cell.setPosition(L + (s - 1) * cw + 2, H - 74);
         this.addChild(cell, 3);
         this.cells.push(cell);
-        var lab = new cc.LabelTTF(s + '秒', 'Arial', 14);
+        var lab = new cc.LabelTTF(s + '″', 'Arial', 13);
         lab.setFontFillColor(cc.color(201, 195, 239));
-        lab.setPosition(L + (s - 1) * cw + cw / 2, H - 28);
+        lab.setPosition(L + (s - 1) * cw + cw / 2, H - 24);
         this.addChild(lab, 4);
-        var mk = new cc.LabelTTF('▲', 'Arial', 22);
-        mk.setFontFillColor(cc.color(197, 208, 220));
-        mk.setPosition(L + (s - 1) * cw + cw / 2, H - 55);
+        var mk = new cc.Sprite(spikeSmTex);
+        mk.setPosition(L + (s - 1) * cw + cw / 2, H - 48);
         mk.setVisible(false);
         this.addChild(mk, 5);
         this.marks.push(mk);
@@ -85,51 +129,50 @@
 
       for (var i = 0; i < PAD.length; i++) {
         var p = PAD[i];
-        var px = L + p * cw - cw * 0.5;
-        var base = mkColor(cw * 0.9 + 8, 8, 58, 58, 66);
+        var px = L + p * cw - cw * 0.45;
+        var base = mkColor(cw * 0.85 + 8, 8, 58, 58, 66);
         base.setPosition(px - 4, this.gy - 4);
         this.addChild(base, 3);
-        this.pads.push(base);
-        var sp = new cc.LabelTTF('▲▲▲', 'Arial', 28);
-        sp.setFontFillColor(cc.color(197, 208, 220));
+        var sp = new cc.Sprite(spikeTex);
         sp.setAnchorPoint(0.5, 0);
-        sp.setPosition(px + cw * 0.45, this.gy);
+        sp.setPosition(px + cw * 0.4, this.gy - 2);
+        sp.setScale(Math.max(0.85, (cw * 0.9) / 72));
         sp.setVisible(false);
         this.addChild(sp, 6);
         this.padSpikes.push(sp);
-        var hl = new cc.LabelTTF('', 'Arial', 18);
+        var hl = new cc.LabelTTF('', 'Arial', 20);
         hl.setFontFillColor(cc.color(255, 107, 107));
-        hl.setPosition(px + 20, this.gy + 70);
+        hl.setPosition(px + cw * 0.35, this.gy + 78);
         this.addChild(hl, 7);
         this.hitLabs.push(hl);
       }
 
-      this.countLab = new cc.LabelTTF('4 次', 'Arial', 32);
+      this.countLab = new cc.LabelTTF('4 次', 'Arial', 34);
       this.countLab.setFontFillColor(cc.color(255, 231, 160));
-      this.countLab.setPosition(W - 90, H - 50);
+      this.countLab.setPosition(W - 85, H - 46);
       this.addChild(this.countLab, 10);
 
-      this.side = new cc.LabelTTF('-2❤', 'Arial', 36);
+      this.side = new cc.LabelTTF('-2❤', 'Arial', 40);
       this.side.setFontFillColor(cc.color(255, 107, 107));
-      this.side.setPosition(W - 90, 120);
+      this.side.setPosition(W - 85, 128);
       this.addChild(this.side, 10);
 
-      this.hint = new cc.LabelTTF('越常冒越疼', 'Arial', 14);
+      this.hint = new cc.LabelTTF('越常越疼', 'Arial', 14);
       this.hint.setFontFillColor(cc.color(201, 195, 239));
-      this.hint.setPosition(W - 90, 80);
+      this.hint.setPosition(W - 85, 88);
       this.addChild(this.hint, 10);
 
-      this.title = new cc.LabelTTF('教：频率刺', 'Arial', 18);
+      this.title = new cc.LabelTTF('教：拖滑条看刺变密', 'Arial', 18);
       this.title.setFontFillColor(cc.color(255, 231, 160));
       this.title.setAnchorPoint(0, 1);
-      this.title.setPosition(16, H - 88);
+      this.title.setPosition(16, H - 82);
       this.addChild(this.title, 10);
 
       this.ninja = new cc.Sprite(SP + 'walk_0.png');
       this.ninja.setAnchorPoint(0.5, 0);
       var sz = this.ninja.getContentSize();
-      this.ninja.setScale(100 / Math.max(sz.width || 100, 1));
-      this.ninja.setPosition(40, this.gy);
+      this.ninja.setScale(118 / Math.max(sz.width || 100, 1));
+      this.ninja.setPosition(48, this.gy);
       this.addChild(this.ninja, 8);
       this.walk = [SP + 'walk_0.png', SP + 'walk_1.png', SP + 'walk_2.png', SP + 'walk_3.png'];
     },
@@ -140,7 +183,9 @@
       this.I = +$('fI').value || 3;
       fStep = step || fStep;
       n4(preview ? fStep : 0);
-      $('msg').textContent = '';
+      setAct(preview ? fStep : 0);
+      var I = this.I, n = fCnt(I), lose = fHit(I);
+      liveMsg(I, n, lose, preview ? (['', '🏃 ', '🔀 ', '🏁 '][fStep] || '') + '跑！ ' : '');
     },
     update: function (dt) {
       try {
@@ -160,16 +205,20 @@
 
       for (var s2 = 1; s2 <= 12; s2++) {
         var cell = this.cells[s2 - 1];
-        if (tt >= s2) cell.setColor(cc.color(59, 69, 144));
-        else cell.setColor(cc.color(255, 255, 255));
-        cell.setOpacity(tt >= s2 ? 255 : 20);
+        if (tt >= s2) { cell.setColor(cc.color(59, 69, 144)); cell.setOpacity(255); }
+        else { cell.setColor(cc.color(255, 255, 255)); cell.setOpacity(18); }
         this.marks[s2 - 1].setVisible(!!drops[s2]);
       }
 
       var hurt = false;
       for (var pi = 0; pi < PAD.length; pi++) {
         var p = PAD[pi];
-        this.padSpikes[pi].setVisible(raised);
+        var spk = this.padSpikes[pi];
+        spk.setVisible(raised);
+        if (raised) {
+          var pulse = 1 + 0.08 * Math.sin(tt * 18);
+          spk.setScale(Math.max(0.85, (cw * 0.9) / 72) * pulse);
+        }
         if (tt >= p && up(p)) {
           if (tt - p < 1) {
             hurt = true;
@@ -179,15 +228,17 @@
             this.hitLabs[pi].setString('✓');
             this.hitLabs[pi].setFontFillColor(cc.color(159, 240, 168));
           }
-        } else if (tt >= p + 0.3 && !(tt >= p && up(p))) {
-          this.hitLabs[pi].setString('✓');
+        } else if (tt >= p + 0.3) {
+          this.hitLabs[pi].setString(up(p) ? '' : '✓');
           this.hitLabs[pi].setFontFillColor(cc.color(159, 240, 168));
+          if (!up(p) && tt >= p) this.hitLabs[pi].setString('✓');
+          else if (!(tt >= p && up(p))) this.hitLabs[pi].setString('');
         } else {
           this.hitLabs[pi].setString('');
         }
       }
 
-      var nx = Math.min(W - 240, L + tt / DUR * 12 * cw);
+      var nx = Math.min(W - 220, L + tt / DUR * 12 * cw);
       this.ninja.setPosition(nx, gy);
       this.frameT += dt;
       if (this.frameT > 0.1) {
@@ -196,33 +247,36 @@
         var path = hurt ? SP + 'knock_0.png' : (tt >= DUR ? SP + 'idle.png' : this.walk[this.frame]);
         this.ninja.setTexture(cc.textureCache.addImage(path));
       }
-      this.ninja.setOpacity(hurt && Math.floor(tt * 10) % 2 ? 120 : 255);
+      this.ninja.setOpacity(hurt && Math.floor(tt * 10) % 2 ? 130 : 255);
+      if (hurt) this.ninja.setPosition(nx, gy + 6 * Math.abs(Math.sin(tt * 20)));
 
       this.countLab.setString(n + ' 次');
       this.side.setString('-' + lose + '❤');
       this.title.setString(this.preview
-        ? ('频率 · 每' + I + '秒 · ' + n + '次刺')
-        : ('教：每' + I + '秒冒刺 → ' + n + '次'));
+        ? (['', '练', '变', '考'][fStep] || '跑') + '：每' + I + '秒 · ' + n + '次刺'
+        : '教：每' + I + '秒冒刺 → ' + n + '次');
       updHP(lose);
 
       if (!this.preview) {
-        $('msg').innerHTML = '每 <b style="color:#ffe7a0">' + I + '</b> 秒 → <b>' + n +
-          '</b> 次刺 → 掉 <b style="color:#ffb4b4">' + lose + '❤</b>';
+        liveMsg(I, n, lose, '');
         return;
       }
-      if (t < DUR + 0.3) return;
+      /* keep formula visible while running */
+      if (t < DUR + 0.3) {
+        liveMsg(I, n, lose, (['', '🏃 ', '🔀 ', '🏁 '][fStep] || '') + '跑！ ');
+        return;
+      }
       if (this.done) return;
       this.done = true;
       var pv = fLast;
       fLast = { I: I, h: lose };
       var label = ['', '🏃 练', '🔀 变', '🏁 考'][fStep] || '跑';
-      var extra = fStep === 3 ? (lose <= 1 ? ' ✅ 过关' : ' 😵 太难，回去调慢') : '';
-      var cmp = pv ? ' （上次 每' + pv.I + '秒 掉' + pv.h + '❤ → 这次 ' + lose + '❤）' : '';
+      var extra = fStep === 3 ? (lose <= 1 ? ' ✅ 过关！' : ' 😵 太难，回去调慢') : '';
+      var cmp = pv ? ' <span style="font-size:13px;color:#c9c3ef">（上次掉' + pv.h + '❤ → 这次' + lose + '❤）</span>' : '';
       $('msg').innerHTML = label + '：每 <b style="color:#ffe7a0">' + I + '</b> 秒 → <b>' + n +
-        '</b> 次刺 → 掉 <b style="color:#ffb4b4">' + lose + '❤</b>' + extra +
-        '<span style="font-size:13px;color:#c9c3ef">' + cmp + '</span>';
+        '</b> 次刺 → 掉 <b style="color:#ffb4b4">' + lose + '❤</b>' + extra + cmp;
       } catch (eu) {
-        try { $('boot').textContent = 'update err: ' + eu; } catch (e2) {}
+        bootErr('画面出错：' + eu);
       }
     }
   });
@@ -237,16 +291,15 @@
   });
 
   function boot() {
-    function setBoot(m) { try { $('boot').textContent = m; } catch (e) {} }
-    window.__ldBoot = setBoot;
-    window.addEventListener('error', function (e) {
-      setBoot('JS error: ' + (e.message || e));
-    });
-    if (typeof cc === 'undefined') { setBoot('cc missing — engine failed to load'); return; }
-    setBoot('cc ok · renderMode=' + (cc.game && cc.game.config && cc.game.config.renderMode));
+    if (typeof cc === 'undefined') { bootErr('引擎没加载上，请刷新'); return; }
+    window.addEventListener('error', function (e) { bootErr(e.message || String(e)); });
     n4(0);
+    setAct(0);
     $('fI').oninput = function (e) {
       $('fIv').textContent = e.target.value;
+      if (sceneRef && !sceneRef.preview) {
+        /* teach mode reacts instantly via update */
+      }
     };
     $('fRun').onclick = function () { fStep = 1; if (sceneRef) sceneRef.resetRun(true, 1); };
     $('fTw').onclick = function () {
@@ -257,47 +310,30 @@
 
     cc.game.onStart = function () {
       try {
-        setBoot('onStart…');
         cc.view.enableRetina(false);
         cc.view.adjustViewPort(true);
         cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
         cc.view.resizeWithBrowserSize(true);
-        /* LoaderScene.preload hung in some embeds; warm textures then run */
+        spikeTex = buildSpikeTex(true);
+        spikeSmTex = buildSpikeTex(false);
         var left = RES.length;
         function tick() {
           left--;
           if (left > 0) return;
-          setBoot('assets ready · FreqScene');
           cc.director.runScene(new FreqScene());
-          setTimeout(function () {
-            setBoot(sceneRef ? 'FreqScene live · I=' + sceneRef.I : 'sceneRef null');
-          }, 300);
         }
-        RES.forEach(function (r) {
-          try {
-            var img = new Image();
-            img.onload = function () {
-              try { cc.textureCache.addImage(r.src); } catch (e1) {}
-              tick();
-            };
-            img.onerror = function () { setBoot('asset fail: ' + r.src); tick(); };
-            img.src = r.src;
-          } catch (e2) { tick(); }
+        RES.forEach(function (src) {
+          var img = new Image();
+          img.onload = function () { try { cc.textureCache.addImage(src); } catch (e1) {} tick(); };
+          img.onerror = function () { bootErr('图片加载失败'); tick(); };
+          img.src = src;
         });
-        if (!RES.length) tick();
       } catch (e) {
-        setBoot('onStart throw: ' + e + (e.stack || ''));
-        console.error(e);
+        bootErr('启动失败：' + e);
       }
     };
-    try {
-      cc.game.run('gameCanvas');
-      if ($('boot').textContent.indexOf('onStart') < 0 && $('boot').textContent.indexOf('FreqScene') < 0 && $('boot').textContent.indexOf('assets') < 0) {
-        setBoot('cc.game.run returned (waiting onStart) prepared=' + cc.game._prepared + ' loaded=' + cc._engineLoaded);
-      }
-    } catch (e) {
-      setBoot('cc.game.run throw: ' + e + (e.stack || ''));
-    }
+    try { cc.game.run('gameCanvas'); }
+    catch (e) { bootErr('启动失败：' + e); }
   }
 
   if (document.readyState === 'complete') boot();
