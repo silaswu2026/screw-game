@@ -677,7 +677,7 @@
   const LEVELS = [
     {
       name: '林间晨跑', en: 'Forest Jog',
-      hint: '第1关·热身：跳过小尖刺，打史莱姆',
+      hint: '第1关·热身：跳过小尖刺，打野猪',
       cols: 70, rows: 14, spawn: [2, 11], goal: [66, 11],
       checks: [[34, 11]],
       slimes: [[22, 11]], crates: [[16, 11]],
@@ -691,7 +691,7 @@
       rocks: [],
       mists: [],
       simple: true,
-      boss: { c: 58, name: '史莱姆王', kind: 'slime', hp: 4 },
+      boss: { c: 58, name: '熊大王', kind: 'slime', hp: 4 },
       coins: [[4, 9], [6, 9], [12, 9], [18, 9], [24, 9], [30, 7], [38, 9], [44, 9], [52, 9], [62, 9]],
       stars: [[30, 6]],
       build(box) {
@@ -1316,7 +1316,7 @@
       checks: [], slimes: [], crates: [], walls: [], springs: [], spikes: [], bombs: [], fires: [],
       bolts: [], sands: [], rocks: [], mists: [], coins: [], stars: [], waves: [], lowgs: [],
       dmg: {}, rockKinds: {}, rockP: {}, mistKinds: {}, mistEvery: {}, slimeKinds: {},
-      boss: { c: cols - 9, name: '史莱姆王', kind: 'slime', hp: 3 },
+      boss: { c: cols - 9, name: '鳄鱼王', kind: 'slime', hp: 3 },
       build(box) {
         box(0, PAD - 1, 11, 13);
         box(cols - PAD - 10, cols - 1, 11, 13);
