@@ -74,7 +74,7 @@ body.teach #hp{visibility:hidden}
 <div class="msg" style="font-size:15px">同一个小雨，换姿势 → 脸、衣服、颜色都不变（这样才能认出他）</div></section>
 <section class="stage" id="s0"><h2 class="keep"><button class="back sl" id="slp" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-size:16px;padding:3px 12px">◀</button> <span id="slt">好关卡：先简单，再变难</span> <span id="sld" style="font-size:13px"></span> <button class="sl" id="sln" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-size:16px;padding:3px 12px">▶</button> <button class="go" id="play0" style="font-size:15px;padding:4px 14px">▶ 播放</button></h2>
 <div class="cvwrap"><canvas id="cv0" width="960" height="380" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas></div>
-<div class="msg" style="font-size:14px">🧠 做游戏的人故意这样 → 让你想「再来一次」· 我们要 ⏰ 适度玩</div></section>
+<div class="msg" style="font-size:14px">🎣 进游戏＝上钩 · ⏰ 自己决定停</div></section>
 
 <section class="stage" id="s1"><h2 class="s1h" id="s1t">点陷阱，拉数字</h2><div class="n4" id="n4a"></div>
 <canvas id="strip" width="960" height="150" style="width:100%;flex:none;background:#0006;border-radius:12px;cursor:pointer"></canvas>
@@ -321,8 +321,8 @@ function reward(PT){cancelAnimationFrame(a0);const cv=$('cv0'),g=cv.getContext('
 const SL=[
   '🍬 先甜一口',
   '📶 难一点 · 奖大一点',
-  '🎣 钩子：咬到的是自己',
-  '📱 生活里的钩子',
+  '🎣 上钩＝鱼被钓上钩',
+  '🎮 上钩以后会怎样',
   '🛠️ 我们设计钩子',
   '✋ 我自己决定停',
   '🎮 下一步：动手调'
@@ -361,29 +361,45 @@ const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);const cv=$('cv0'),g=
     if(ct>.9){g.fillStyle='#5a1e00';g.font='bold 48px sans-serif';g.fillText('超级大奖！！',cx-150,H-16);}
    }}
 
-  // 2 钩子：咬到的是自己（只讲钩子）
-  if(sl===2){g.fillStyle='#1a2744';g.fillRect(0,0,W,H);
-   // water
-   g.fillStyle='#2a6aaa';g.fillRect(0,H*.55,W,H*.45);g.fillStyle='#3a8acc88';for(let i=0;i<8;i++){g.beginPath();g.ellipse(80+i*120,H*.58+Math.sin(t*2+i)*6,70,12,0,0,7);g.fill();}
-   const ph=t<2.2?0:t<4?1:2, hy=ph<2?H*.42:H*.42-Math.min(H*.22,(t-4)*55);
-   g.strokeStyle='#e8e8e8';g.lineWidth=3;g.beginPath();g.moveTo(W*.72,0);g.lineTo(W*.72,hy);g.stroke();
-   g.strokeStyle='#c5d0dc';g.lineWidth=8;g.beginPath();g.arc(W*.72-6,hy,22,0,Math.PI);g.stroke();
-   if(ph<1){g.font='56px sans-serif';g.fillStyle='#fff';g.fillText('🪱',W*.72-28,hy+60);}
-   const fx=ph===0?W*.2+t/2.2*W*.4:W*.72-30, fy=ph<2?H*.62:hy+20;
-   g.save();g.translate(fx,fy);if(ph===2)g.rotate(Math.sin(t*18)*.45);g.font='120px sans-serif';g.fillText('🐟',-60,40);g.restore();
-   const tip=[['① 看见鱼饵','好想咬！'],['② 咬一口','真甜…'],['③ 被钩住！','受伤的是自己']][ph];
-   g.fillStyle='#0009';g.fillRect(24,18,360,100);g.fillStyle='#ffe7a0';g.font='bold 32px sans-serif';g.fillText(tip[0],40,58);g.fillStyle=ph===2?'#ff6b6b':'#fff';g.font='bold 28px sans-serif';g.fillText(tip[1],40,98);
-   if(ph===2&&t>5.2){g.fillStyle='#000c';g.fillRect(0,H-70,W,70);g.fillStyle='#ff8a8a';g.font='bold 30px sans-serif';g.fillText('钩子看起来甜，咬到却会伤到自己',W/2-260,H-28);}
+  // 2 上钩＝鱼被钓上钩 → 进游戏＝被设计师钓上钩（少字·大图）
+  if(sl===2){g.fillStyle='#0e1e34';g.fillRect(0,0,W,H);
+   g.fillStyle='#1e5a96';g.fillRect(0,H*.5,W,H*.5);
+   g.fillStyle='#3a8acc55';for(let i=0;i<10;i++){g.beginPath();g.ellipse(40+i*100,H*.53+Math.sin(t*2+i)*6,55,11,0,0,7);g.fill();}
+   const ph=t<2.2?0:t<4?1:2;
+   const hy=ph<2?H*.36:H*.18+Math.sin(t*12)*5;
+   g.strokeStyle='#eee';g.lineWidth=4;g.beginPath();g.moveTo(W*.72,0);g.lineTo(W*.72,hy);g.stroke();
+   g.strokeStyle='#c5d0dc';g.lineWidth=12;g.beginPath();g.arc(W*.72-10,hy,30,0,Math.PI);g.stroke();
+   if(ph===0){g.font='70px sans-serif';g.fillText('🪱',W*.72-34,hy+70);}
+   const fx=ph===0?W*.12+(t/2.2)*W*.48:(ph===1?W*.72-55:W*.72-60);
+   const fy=ph===0?H*.62:(ph===1?H*.48:hy+36);
+   g.save();g.translate(fx,fy);if(ph===2)g.rotate(.6+Math.sin(t*18)*.4);g.font='160px sans-serif';g.fillText('🐟',-80,55);g.restore();
+   if(ph===0){g.fillStyle='#ffe07a';g.font='bold 44px sans-serif';g.fillText('上钩＝鱼被钓上钩',W/2-200,56);}
+   if(ph===1){g.fillStyle='#fff';g.font='bold 64px sans-serif';g.fillText('🐟 上钩了！',W/2-160,70);}
+   if(ph===2){
+    // left: fish on hook (already drawn). right: kid+game hooked
+    g.fillStyle='#000a';g.fillRect(20,8,W*.42,120);
+    g.font='90px sans-serif';g.fillText('🎮',40,95);
+    const im=LDART.IDLE;if(im&&im.complete)g.drawImage(im,140,10,100,100);
+    // big hook connecting to kid
+    g.strokeStyle='#ffd166';g.lineWidth=5;g.beginPath();g.moveTo(240,60);g.lineTo(W*.55,60);g.stroke();
+    g.font='56px sans-serif';g.fillText('🎣',W*.52,80);
+    g.fillStyle='#9ff0a8';g.font='bold 36px sans-serif';g.fillText('进游戏＝被钓上钩',W/2-20,100);
+    if(t>5.2){const bits=[['🔁',''],['🧠',''],['⏱️',''],['💰','']];
+     bits.forEach(([e],i)=>{const x=W*.08+i*(W*.22);g.font='72px sans-serif';g.fillText(e,x,H-28);});
+     g.fillStyle='#ffe7a0';g.font='bold 22px sans-serif';
+     [['一直玩',W*.08],['忘了事',W*.30],['花时间',W*.52],['以后花钱',W*.72]].forEach(([w,x])=>g.fillText(w,x,H-8));}
+   }
   }
 
-  // 3 生活里的钩子
-  if(sl===3){const IT=[['🃏','盲盒抽卡','再来一抽…'],['📱','短视频','下一个更好？'],['🎰','游乐场','差一点点大奖'],['🛍️','集章送礼','集满就有']];
-   IT.forEach(([e,a,b],i)=>{const x=18+i*(W/4),on=t>i*.7,bob=on?Math.sin(t*3.5+i)*8:0;
-    g.fillStyle=on?'#ffffff18':'#ffffff08';g.fillRect(x+6,30,W/4-20,H-100);
-    g.globalAlpha=on?1:.25;g.font='90px sans-serif';g.fillStyle='#fff';g.fillText(e,x+(W/4)/2-48,160+bob);
-    g.font='bold 26px sans-serif';g.fillText(a,x+(W/4)/2-a.length*13,230);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText(b,x+(W/4)/2-b.length*10,270);g.globalAlpha=1;
-    if(on&&t>i*.7+.4){g.font='42px sans-serif';g.fillText('🪝',x+(W/4)/2-18,H-40);}});
-   if(t>3.5){g.fillStyle='#000a';g.fillRect(0,0,W,56);g.fillStyle='#fff';g.font='bold 28px sans-serif';g.fillText('这些，都是同一种钩子',W/2-150,38);}
+  // 3 上钩以后会怎样 — 大图标，极少字
+  if(sl===3){g.fillStyle='#141c38';g.fillRect(0,0,W,H);
+   const C=[['🔁','一直玩'],['🧠','忘了事'],['⏱️','花时间'],['💰','以后花钱']];
+   C.forEach(([e,a],i)=>{const x=20+i*((W-16)/4),on=t>i*.55,bob=on?Math.sin(t*3+i)*10:0;
+    g.fillStyle=on?'#ffffff1c':'#ffffff08';g.fillRect(x,40,(W-40)/4-12,H-120);
+    g.globalAlpha=on?1:.2;g.font='120px sans-serif';g.fillStyle='#fff';g.fillText(e,x+((W-40)/4)/2-60,H*.45+bob);
+    g.font='bold 32px sans-serif';g.fillStyle='#ffe7a0';g.fillText(a,x+((W-40)/4)/2-a.length*16,H*.72);g.globalAlpha=1;
+    if(on){g.font='48px sans-serif';g.fillText('🎣',x+((W-40)/4)/2-24,H-40);}});
+   if(t>2.8){g.fillStyle='#000b';g.fillRect(0,0,W,58);g.fillStyle='#9ff0a8';g.font='bold 32px sans-serif';g.fillText('进游戏 ＝ 被钓上钩',W/2-150,40);}
   }
 
   // 4 我们设计钩子 = 关卡配方
@@ -400,9 +416,9 @@ const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);const cv=$('cv0'),g=
   if(sl===5){g.fillStyle='#141c38';g.fillRect(0,0,W,H);
    // two paths
    g.fillStyle='#ffffff10';g.fillRect(40,40,W/2-60,H-80);g.fillStyle='#ffffff10';g.fillRect(W/2+20,40,W/2-60,H-80);
-   g.fillStyle='#ff8a8a';g.font='bold 28px sans-serif';g.fillText('❌ 被钩子拖着走',70,90);
-   g.fillStyle='#9ff0a8';g.font='bold 28px sans-serif';g.fillText('✅ 看懂钩子的人',W/2+50,90);
-   const left=['再看一条…','再抽一发…','停不下来'],right=['我看见钩子了','玩够了就停','我自己决定'];
+   g.fillStyle='#ff8a8a';g.font='bold 32px sans-serif';g.fillText('❌ 被钓住了',70,90);
+   g.fillStyle='#9ff0a8';g.font='bold 32px sans-serif';g.fillText('✅ 看懂上钩',W/2+50,90);
+   const left=['一直玩不停…','忘了别的事…','花时间花钱…'],right=['我看见钩子了','玩够了就停','我自己决定'];
    left.forEach((w,i)=>{if(t>1+i*.6){g.fillStyle='#ffb4b4';g.font='bold 24px sans-serif';g.fillText('🪝 '+w,70,160+i*55);}});
    right.forEach((w,i)=>{if(t>1+i*.6){g.fillStyle='#c8ffd0';g.font='bold 24px sans-serif';g.fillText('🛡️ '+w,W/2+50,160+i*55);}});
    if(t>4){g.fillStyle='#ffe07a';g.font='bold 34px sans-serif';g.fillText('⏰ 什么时候停，我自己决定',W/2-220,H-36);}
