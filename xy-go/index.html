@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0b1f2a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>小雨闯关</title>
-<link rel="stylesheet" href="style.css?v=3060">
+<link rel="stylesheet" href="style.css?v=3061">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -38,8 +38,8 @@
       <img src="ninjas/ninja-green.jpg" alt="绿忍者"><img src="ninjas/ninja-blue.jpg" alt="蓝忍者"><img src="ninjas/ninja-red.jpg" alt="红忍者">
     </div>
     <div class="bigBtns">
-      <button id="play" class="bigBtn btnSolo" type="button"><em>🥷</em>单机模式<small>一个人闯关</small></button>
-      <button id="mode2" class="bigBtn btnNet" type="button"><em>🤝</em>联网对战<small>和好友一起玩</small></button>
+      <button id="play" class="bigBtn btnSolo" type="button">🥷 单机游玩</button>
+      <button id="mode2" class="bigBtn btnNet" type="button">🤝 联机游玩</button>
     </div>
     <button id="mode1" type="button" class="on" aria-hidden="true" tabindex="-1">单机</button>
     <div class="subRow">
@@ -60,37 +60,29 @@
   <div class="view hidden" id="netView">
     <div class="topBar">
       <button id="roomClose" class="backBtn" type="button">← 返回</button>
-      <h2>联网对战</h2>
-      <span style="width:80px"></span>
+      <h2>联机游玩<small>自动匹配队友</small></h2>
+      <b id="matchTimer" class="timer">00:00</b>
     </div>
-    <div class="card" id="netChoice">
-      <div class="netChoice">
-        <button id="netHost" class="bigBtn btnCreate" type="button"><em>🏠</em>创建房间<small>我当房主 · 绿忍者</small></button>
-        <button id="netJoin" class="bigBtn btnJoin" type="button"><em>🔑</em>加入房间<small>输入房间号 · 蓝忍者</small></button>
-      </div>
-      <div class="joinBox hidden" id="roomJoinBox">
-        <input id="roomInput" inputmode="numeric" maxlength="6" placeholder="房间号" autocomplete="off">
-        <button id="roomJoinGo" type="button">进入房间</button>
-      </div>
+    <div class="hidden" id="netChoice">
+      <button id="netHost" type="button" tabindex="-1">创建房间</button>
+      <button id="netJoin" type="button" tabindex="-1">加入房间</button>
+      <div class="hidden" id="roomJoinBox"><input id="roomInput" tabindex="-1"><button id="roomJoinGo" type="button" tabindex="-1">进入</button></div>
     </div>
     <div class="card hidden" id="roomPanel" aria-hidden="true">
-      <div class="codeRow">房间号 <b id="roomCode">----</b><button id="roomCopy" type="button">📋 复制邀请链接</button></div>
+      <div class="matchHead"><span class="spinner" id="spinner"></span><b id="matchTitle">正在寻找队友…</b></div>
       <div class="slots">
-        <div class="slot a" id="slotA"><img src="ninjas/ninja-green.jpg" alt=""><span>玩家A · 绿</span><span class="st" id="slotAst">等待</span><span class="me" id="slotAme"></span></div>
-        <div class="slot b" id="slotB"><img src="ninjas/ninja-blue.jpg" alt=""><span>玩家B · 蓝</span><span class="st" id="slotBst">等待加入…</span><span class="me" id="slotBme"></span></div>
+        <div class="slot a" id="slotA"><img src="ninjas/ninja-green.jpg" alt=""><span id="slotAname">玩家A · 绿</span><span class="st" id="slotAst">等待</span><span class="me" id="slotAme"></span></div>
+        <div class="vs">VS</div>
+        <div class="slot b" id="slotB"><img src="ninjas/ninja-blue.jpg" alt=""><span id="slotBname">玩家B · 蓝</span><span class="st" id="slotBst">等待加入…</span><span class="me" id="slotBme"></span></div>
       </div>
       <p class="roomWait" id="roomWait">请稍等…</p>
       <p class="roomWait hidden" id="joinWait"></p>
-      <div class="roomLv" id="roomLv">
-        <button type="button" data-nlv="0" class="on">第1关</button><button type="button" data-nlv="1">第2关</button>
-        <button type="button" data-nlv="2">第3关</button><button type="button" data-nlv="3">第4关</button>
-        <button type="button" data-nlv="4">第5关</button><button type="button" data-nlv="5">第6关</button>
-        <button type="button" data-nlv="6">第7关</button><button type="button" data-nlv="7">第8关</button>
-      </div>
-      <button id="roomStart" type="button" disabled>开始游戏</button>
+      <b id="roomCode" class="hidden"></b>
+      <div class="roomLv hidden" id="roomLv"></div>
+      <button id="roomStart" type="button" class="hidden" disabled>开始游戏</button>
       <span id="roomTitle" class="hidden"></span><span id="roomSub" class="hidden"></span>
     </div>
-    <p class="tip">把房间号告诉好友，或复制链接发给他，打开就能进房间</p>
+    <p class="tip">另一位玩家也点「联机游玩」就会自动匹配</p>
   </div>
 </div>
 
@@ -128,6 +120,6 @@
   </div>
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="game.js?v=3060"></script>
+<script src="game.js?v=3061"></script>
 </body>
 </html>

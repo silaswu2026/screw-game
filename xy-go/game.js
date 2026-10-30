@@ -3910,14 +3910,36 @@
     document.getElementById('slotAst').textContent = (host || linked) ? '房主' : '等待房主…';
     document.getElementById('slotBst').textContent = linked ? '已准备' : (netRole === 'guest' ? '连接中…' : '等待加入…');
     document.getElementById('slotAme').textContent = host ? '（我）' : '';
+    document.getElementById('slotAname').textContent = host ? '你 · 绿' : (netRole === 'guest' ? '对手 · 绿' : '玩家A · 绿');
+    document.getElementById('slotBname').textContent = netRole === 'guest' ? '你 · 蓝' : (host ? '对手 · 蓝' : '玩家B · 蓝');
     document.getElementById('slotBme').textContent = netRole === 'guest' ? '（我）' : '';
     const st = document.getElementById('roomStart');
     st.classList.toggle('hidden', !host);
     st.disabled = !(host && linked);
     st.textContent = linked ? '开始游戏' : '等好友加入…';
-    if (host && linked) { const w = document.getElementById('roomWait'); if (w && !/开始游戏/.test(w.textContent)) w.textContent = '玩家B已准备！点「开始游戏」'; }
-    document.getElementById('roomLv').classList.toggle('hidden', !host);
+    if (linked) { const w = document.getElementById('roomWait'); if (w) w.textContent = host ? '队友已准备！马上开始' : '已准备！马上开始'; }
+    document.getElementById('roomLv').classList.add('hidden');
+    st.classList.add('hidden');
+    const sp = document.getElementById('spinner');
+    if (sp) sp.classList.toggle('done', linked);
+    const mt = document.getElementById('matchTitle');
+    if (mt && !netCountdownT) mt.textContent = linked ? '匹配成功！' : '正在寻找队友…';
+    if (host && linked && mode === 'title' && !netCountdownT) netStartCountdown();
     document.querySelectorAll('.roomLv button').forEach((x) => x.classList.toggle('on', Number(x.dataset.nlv) === (netPickLv | 0)));
+  }
+  let netCountdownT = 0;
+  function netStartCountdown() {
+    let n = 3;
+    const mt = document.getElementById('matchTitle');
+    const tick = () => {
+      if (netRole !== 'host' || !netLinked || mode !== 'title') { clearInterval(netCountdownT); netCountdownT = 0; return; }
+      if (n <= 0) { clearInterval(netCountdownT); netCountdownT = 0; netHostStart(); return; }
+      if (mt) mt.textContent = '匹配成功！' + n + '…';
+      try { netSend({ t: 'cd', n }); } catch (e) {}
+      n -= 1;
+    };
+    netCountdownT = setInterval(tick, 1000);
+    tick();
   }
   function netShowRoom(kind) {
     if (mode !== 'title') return;
@@ -3926,7 +3948,7 @@
     panel.classList.remove('hidden');
     panel.setAttribute('aria-hidden', 'false');
     document.getElementById('netChoice').classList.add('hidden');
-    document.getElementById('roomWait').textContent = kind === 'host' ? '房间已开，等好友输入房间号加入' : '正在进入房间…';
+    document.getElementById('roomWait').textContent = kind === 'host' ? '等另一位玩家也点「联机游玩」' : '发现队友，正在连接…';
     document.getElementById('joinWait').textContent = '';
     netSyncRoom();
   }
@@ -3935,7 +3957,7 @@
     panel.classList.add('hidden');
     panel.setAttribute('aria-hidden', 'true');
     const ch = document.getElementById('netChoice');
-    if (ch) ch.classList.remove('hidden');
+    if (ch) ch.classList.add('hidden');
   }
   function netDrawQr(code) {
     const canvas = document.getElementById('roomQr');
@@ -4258,7 +4280,10 @@
       return;
     }
     // guest
-    if (msg.t === 'hello') {
+    if (msg.t === 'cd') {
+      const mt = document.getElementById('matchTitle');
+      if (mt) mt.textContent = '匹配成功！' + (msg.n | 0) + '…';
+    } else if (msg.t === 'hello') {
       netSetWait('已准备！等房主点「开始游戏」');
     } else if (msg.t === 'go') {
       netHideRoom();
@@ -4445,10 +4470,10 @@
         prepareCoopCast();
         start(netPickLv | 0, true);
       }
-      if (!silent) netSetWait(netLinked ? '玩家B已准备！点「开始游戏」' : '房间已开，把房间号告诉好友');
+      if (!silent) netSetWait(netLinked ? '队友已准备！马上开始' : '等另一位玩家也点「联机游玩」');
       const short = String(won.id || '').slice(-6);
-      netSetBanner('房间已开·等玩家B·' + short, 'ok');
-      toast('房间已开·对方点「玩家B」加入');
+      netSetBanner(netRoomOverride === 'match-lobby' ? '匹配中·等队友' : '房间已开·等玩家B·' + short, 'ok');
+      toast(netRoomOverride === 'match-lobby' ? '正在等队友…' : '房间已开·对方点「玩家B」加入');
     })();
   }
   function netProbeId(peer, id) {
@@ -4701,12 +4726,48 @@
     mode1.classList.add('on');
     mode2.classList.remove('on');
   });
-  mode2.addEventListener('click', () => {
-    if (netRole) return;
-    wantCoop = false; // 联网 is separate from solo
+  const NET_LOBBY = 'match-lobby';
+  let netMatchClock = 0;
+  function netAutoMatch() {
+    if (netRole || netRoomOverride === NET_LOBBY) return;
+    wantCoop = true;
+    wantCompanion = false;
+    syncCompanionUi();
+    netRoomOverride = NET_LOBBY;
     netShowView('net');
-    netHideRoom();
-  });
+    netShowRoom('join');
+    netSetWait('正在寻找队友…');
+    const t0 = Date.now();
+    clearInterval(netMatchClock);
+    netMatchClock = setInterval(() => {
+      const el = document.getElementById('matchTimer');
+      if (!el || mode !== 'title' || netLinked) { clearInterval(netMatchClock); return; }
+      const sec = Math.floor((Date.now() - t0) / 1000);
+      el.textContent = String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
+    }, 500);
+    // Same browser: a waiting host answers 'need' on BroadcastChannel within ~0.6s
+    const want = netCustomRoom();
+    let found = false;
+    const onHint = (ev) => {
+      const m = ev && ev.data;
+      if (m && (m.t === 'host' || m.t === 'bc-offer') && String(m.id) === want) found = true;
+    };
+    try { if (netBC) netBC.addEventListener('message', onHint); } catch (e) {}
+    netBCPost({ t: 'need', want: 1 });
+    netMatchAbort = false;
+    setTimeout(() => {
+      try { if (netBC) netBC.removeEventListener('message', onHint); } catch (e) {}
+      if (netMatchAbort || netRole || mode !== 'title' || netRoomOverride !== NET_LOBBY) return;
+      if (found) { pickColor = 'blue'; netOpenJoin({ silent: false }); }
+      else {
+        // netOpenHost probes the lobby id first (join if a host exists), else claims it
+        pickColor = 'green';
+        netOpenHost({ silent: false });
+      }
+    }, 700);
+  }
+  mode2.addEventListener('click', () => netAutoMatch());
+  addEventListener('pagehide', () => { try { netDestroy(); } catch (e) {} });
   const levelToggle = document.getElementById('levelToggle');
   if (levelToggle) levelToggle.addEventListener('click', () => {
     document.getElementById('picks').classList.toggle('hidden');
@@ -4772,7 +4833,7 @@
     e.stopPropagation();
     if (e.key === 'Enter') netJoinByCode(e.target.value);
   });
-  document.getElementById('roomCopy').addEventListener('click', () => {
+  if (document.getElementById('roomCopy')) document.getElementById('roomCopy').addEventListener('click', () => {
     const url = netInviteUrl();
     const done = () => toast('邀请链接已复制！发给好友吧');
     try {
@@ -4851,7 +4912,12 @@
     // Fixed-day room (or ?room=xxx). Optional ?b=1 / ?a=1 opens as B/A.
     const q = new URLSearchParams(location.search);
     const linkRoom = netCleanCode(q.get('room'));
-    if (linkRoom && q.get('a') !== '1' && q.get('as') !== 'a' && q.get('b') !== '1') {
+    const autoNet = q.get('net') === '1';
+    if (autoNet && !linkRoom) {
+      // 课程页链接 ?net=1 → 直接进入联机自动匹配
+      netShowView('net');
+      setTimeout(() => netAutoMatch(), 150);
+    } else if (linkRoom && q.get('a') !== '1' && q.get('as') !== 'a' && q.get('b') !== '1') {
       // 邀请链接 ?room=1234 → 联网对战 page, auto join as 玩家B
       netShowView('net');
       document.getElementById('roomInput').value = linkRoom;

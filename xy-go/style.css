@@ -121,3 +121,32 @@ button{font:inherit;font-weight:900;border:0;cursor:pointer}
 }
 #panel{position:fixed;z-index:3}
 #panel button{pointer-events:auto}
+
+/* v3061 自动匹配 */
+.matchHead{display:flex;align-items:center;gap:10px;font-size:22px;color:#1b5fa8}
+.spinner{width:26px;height:26px;border-radius:50%;border:5px solid #cfe6ff;border-top-color:#2f8fe8;animation:spin .8s linear infinite}
+.spinner.done{animation:none;border-color:#3ecf6e}
+@keyframes spin{to{transform:rotate(360deg)}}
+.vs{align-self:center;font-size:28px;font-weight:900;color:#e23b3b;text-shadow:0 3px 0 #ffd166}
+#roomPanel{gap:6px}
+@media (orientation:landscape) and (max-height:460px){
+  .slot{width:130px}
+  .matchHead{font-size:18px}
+}
+
+/* v3061: mirror reference (冰球对战) — stacked main buttons, small row, match top bar */
+.bigBtns{flex-direction:column;align-items:center;gap:12px}
+.bigBtn{width:min(80vw,330px);min-height:0;height:56px;flex-direction:row;font-size:24px;border-width:3px;border-radius:18px}
+.btnSolo{background:linear-gradient(#4cb0ff,#1677e6);color:#fff;box-shadow:0 6px 0 #0f4fa3;text-shadow:0 2px 0 #0f4fa3}
+.btnNet{background:linear-gradient(#ffd24a,#ff9f1c);color:#6a3b00;box-shadow:0 6px 0 #d97a00;text-shadow:none}
+.chip{background:#1d3557cc;color:#fff;box-shadow:0 4px 0 #0003}
+.topBar h2{display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.topBar h2 small{font-size:13px;color:#ffe14a;text-shadow:0 2px 0 #1b5fa8}
+.timer{background:#1d3557;color:#fff;border-radius:12px;padding:6px 12px;font-size:18px;min-width:80px}
+#netView .card{border-color:#9fd3ff;box-shadow:0 6px 0 #1b5fa8}
+@media (orientation:landscape) and (max-height:460px){
+  .logo{font-size:40px}
+  .bigBtn{height:48px;font-size:21px}
+  .bigBtns{gap:10px}
+}
+.topBar h2 small{margin-top:4px}
