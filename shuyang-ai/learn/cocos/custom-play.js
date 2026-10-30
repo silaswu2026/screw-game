@@ -79,7 +79,7 @@
       /* EXACT_FIT: stretch to fill — no black SHOW_ALL bars on widescreen */
       cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.EXACT_FIT);
       if (cc.director && cc.director.setClearColor) {
-        cc.director.setClearColor(cc.color(12, 26, 20, 255));
+        cc.director.setClearColor(cc.color(61, 42, 28, 255));
       }
       if (cc.view._resizeEvent) cc.view._resizeEvent();
     } catch (e) {}
@@ -98,19 +98,20 @@
     var tiles = [];
     var x;
     for (x = 0; x < DC; x++) tiles.push({ x: x, y: DR - 1, type: 'g' });
-    /* mid gaps (断坑) */
-    [Math.floor(DC * 0.35), Math.floor(DC * 0.72)].forEach(function (gx) {
+    /* 真断坑：挖掉连续 1 格地面（展开后 = EXP 列宽坑）*/
+    [Math.floor(DC * 0.34), Math.floor(DC * 0.70)].forEach(function (gx) {
       tiles = tiles.filter(function (t) { return !(t.x === gx && t.y === DR - 1); });
     });
     var at = function (f) { return Math.min(DC - 1, Math.round(f * DC)); };
-    tiles.push({ x: at(0.12), y: DR - 2, type: 'coin' });
-    tiles.push({ x: at(0.22), y: DR - 2, type: 'spike' });
-    tiles.push({ x: at(0.32), y: DR - 2, type: 'coin' });
-    tiles.push({ x: at(0.45), y: DR - 2, type: 'fire' });
-    tiles.push({ x: at(0.55), y: DR - 2, type: 'coin' });
-    tiles.push({ x: at(0.62), y: DR - 2, type: 'spike' });
-    tiles.push({ x: at(0.78), y: DR - 2, type: 'coin' });
-    tiles.push({ x: at(0.88), y: DR - 2, type: 'fire' });
+    tiles.push({ x: at(0.10), y: DR - 2, type: 'coin' });
+    tiles.push({ x: at(0.18), y: DR - 2, type: 'spike' });
+    tiles.push({ x: at(0.26), y: DR - 2, type: 'coin' });
+    tiles.push({ x: at(0.42), y: DR - 2, type: 'fire' });
+    tiles.push({ x: at(0.50), y: DR - 2, type: 'coin' });
+    tiles.push({ x: at(0.58), y: DR - 2, type: 'spike' });
+    tiles.push({ x: at(0.78), y: DR - 2, type: 'fire' });
+    tiles.push({ x: at(0.86), y: DR - 2, type: 'coin' });
+    tiles.push({ x: at(0.92), y: DR - 2, type: 'flag' });
     return {
       version: '1.1', theme: 'swamp', cols: DC, rows: DR, tiles: tiles,
       traps: { spike: { interval: 3, up: 1, damage: 1 }, fire: { damage: 1, dur: 2, burn: 2 } },
@@ -158,6 +159,24 @@
       if ((tt.y | 0) >= DR - 1) return;
       items.push({ type: tt.type, c: gx(tt.x | 0), designX: tt.x | 0 });
     });
+    /* 小岩 FAIL：老版沼泽必有真断坑 + 火 + 旗；编辑器关缺则补 */
+    var holeN = groundCols.filter(function (g) { return !g; }).length;
+    if (holeN === 0 && DC >= 6) {
+      groundCols[Math.floor(DC * 0.34)] = false;
+      groundCols[Math.floor(DC * 0.70)] = false;
+    }
+    var hasFire = items.some(function (it) { return it.type === 'fire'; });
+    var hasFlag = items.some(function (it) { return it.type === 'flag'; });
+    if (!hasFire) {
+      items.push({ type: 'fire', c: gx(Math.floor(DC * 0.42)), designX: Math.floor(DC * 0.42) });
+      items.push({ type: 'fire', c: gx(Math.floor(DC * 0.78)), designX: Math.floor(DC * 0.78) });
+    }
+    if (!hasFlag) {
+      items.push({ type: 'flag', c: gx(Math.floor(DC * 0.92)), designX: Math.floor(DC * 0.92) });
+    }
+    if (!traps.fire) traps.fire = { damage: 1, dur: 2, burn: 2 };
+    if (!traps.spike) traps.spike = { interval: 3, up: 1, damage: 1 };
+
     return {
       version: d.version || '1.1',
       theme: d.theme || 'swamp',
@@ -408,43 +427,46 @@
     _buildGround: function () {
       var cols = level.cols;
       var gy = this.gy;
-      var c, x0;
-      /* Fill entire strip under ground to canvas bottom — no black void / letterbox look */
-      var deep = mkColor(this.worldW + 80, Math.max(gy + 4, 80), 28, 36, 32);
-      deep.setPosition(-40, 0);
-      this.world.addChild(deep, 0);
-      /* swamp water under gaps */
+      var c, x0, row, nRows;
+      /* 泥土铺满画布底→草皮：多行 dirt，颜色像老版土层（忌近黑） */
+      nRows = Math.max(3, Math.ceil(gy / T) + 1);
+      var bed = mkColor(this.worldW + 120, gy + T * 2, 90, 58, 36);
+      bed.setPosition(-60, 0);
+      this.world.addChild(bed, 0);
       for (c = 0; c < cols; c++) {
-        if (this._solidAt(c)) continue;
-        var water = mkColor(T + 1, 18, 36, 130, 110, 210);
-        water.setPosition(c * T, gy - 18);
-        this.world.addChild(water, 1);
-      }
-      for (c = 0; c < cols; c++) {
-        if (!this._solidAt(c)) continue;
         x0 = c * T;
+        if (!this._solidAt(c)) {
+          /* 断坑：深绿沼泽水填到坑底，两侧可见土层剖面 */
+          var pit = mkColor(T + 1, gy, 28, 110, 96, 230);
+          pit.setPosition(x0, 0);
+          this.world.addChild(pit, 1);
+          var gloss = mkColor(T + 1, 10, 60, 180, 150, 120);
+          gloss.setPosition(x0, gy - 14);
+          this.world.addChild(gloss, 2);
+          continue;
+        }
+        for (row = 0; row < nRows; row++) {
+          try {
+            var dirt = new cc.Sprite(SC + 'dirt-tile.png');
+            dirt.setAnchorPoint(0, 1);
+            dirt.setPosition(x0, gy - row * T);
+            dirt.setScale(T / 40);
+            this.world.addChild(dirt, 2);
+          } catch (eD) {
+            var blk = mkColor(T + 1, T + 1, 107, 79, 47);
+            blk.setPosition(x0, gy - (row + 1) * T);
+            this.world.addChild(blk, 2);
+          }
+        }
         try {
-          var dirt = new cc.Sprite(SC + 'dirt-tile.png');
-          dirt.setAnchorPoint(0, 1);
-          dirt.setPosition(x0, gy);
-          dirt.setScale(T / 40);
-          this.world.addChild(dirt, 2);
-          var dirt2 = new cc.Sprite(SC + 'dirt-tile.png');
-          dirt2.setAnchorPoint(0, 1);
-          dirt2.setPosition(x0, gy - T);
-          dirt2.setScale(T / 40);
-          this.world.addChild(dirt2, 2);
           var cap = new cc.Sprite(SC + 'grass-cap.png');
           cap.setAnchorPoint(0, 0);
           cap.setPosition(x0, gy - 2);
           cap.setScaleX((T + 0.6) / 40);
           cap.setScaleY(16 / 18);
           this.world.addChild(cap, 3);
-        } catch (e) {
-          var strip = mkColor(T + 1, T, 61, 42, 28);
-          strip.setPosition(x0, gy - T);
-          this.world.addChild(strip, 2);
-          var grass = mkColor(T + 1, 10, 63, 143, 74);
+        } catch (eC) {
+          var grass = mkColor(T + 1, 12, 63, 143, 74);
           grass.setPosition(x0, gy - 2);
           this.world.addChild(grass, 3);
         }
@@ -453,9 +475,9 @@
     _build: function () {
       level = loadLevel();
       this.worldW = level.cols * T;
-      /* Ground near lower third — same framing H/V via TILES_VIS. */
-      this.gy = Math.round(H * 0.34);
-      this.gy = Math.max(90, Math.min(this.gy, H - 120));
+      /* Grass ~42% up — thick dirt bed fills bottom (kills 18% black band under controls). */
+      this.gy = Math.round(H * 0.42);
+      this.gy = Math.max(110, Math.min(this.gy, H - 100));
 
       this._addNightBg();
       this._buildGround();
@@ -474,7 +496,7 @@
           var sp = new cc.Sprite(it.type === 'fire' ? fireTex : spikeTex);
           sp.setAnchorPoint(0.5, 0);
           sp.setPosition(px, this.gy - 2);
-          sp.setScale(it.type === 'fire' ? 1.15 : 1.05);
+          sp.setScale(it.type === 'fire' ? 1.55 : 1.15);
           sp.setVisible(it.type === 'fire');
           this.world.addChild(sp, 6);
           this.traps.push({ kind: it.type, x: px, sp: sp, w: T * 0.7 });
@@ -488,6 +510,12 @@
           st.setPosition(px, this.gy + T * 0.95);
           this.world.addChild(st, 5);
           this.coinNodes.push({ x: px, sp: st, got: false, star: true });
+        } else if (it.type === 'flag') {
+          var midF = new cc.Sprite(flagTex);
+          midF.setAnchorPoint(0.5, 0);
+          midF.setPosition(px, this.gy);
+          midF.setScale(1.1);
+          this.world.addChild(midF, 5);
         }
       }
 
@@ -495,7 +523,7 @@
       flag.setAnchorPoint(0.5, 0);
       this.goalX = level.goalC * T + T * 0.5;
       flag.setPosition(this.goalX, this.gy);
-      flag.setScale(0.9);
+      flag.setScale(1.35);
       this.world.addChild(flag, 5);
 
       /* 鳄鱼王 */
@@ -507,7 +535,7 @@
       this.bossSp = new cc.Sprite(crocTex);
       this.bossSp.setAnchorPoint(0.5, 0);
       this.bossSp.setPosition(this.boss.x, this.boss.y);
-      this.bossSp.setScale(DRAW_H * 1.15 / 64);
+      this.bossSp.setScale(Math.max(1.6, DRAW_H * 1.35 / 64));
       this.world.addChild(this.bossSp, 8);
 
       this.ninja = new cc.Sprite(SP + 'idle.png');
@@ -701,7 +729,7 @@
           this.boss.hurtT = Math.max(0, this.boss.hurtT - dt);
           var bx = this.boss.x + Math.sin(elapsed * 0.7) * 18;
           this.bossSp.setPosition(bx, this.boss.y);
-          this.bossSp.setScaleX((this.px < bx ? -1 : 1) * (DRAW_H * 1.15 / 64));
+          this.bossSp.setScaleX((this.px < bx ? -1 : 1) * Math.max(1.6, DRAW_H * 1.35 / 64));
           if (this.boss.hurtT > 0) this.bossSp.setOpacity(120 + (Math.floor(this.boss.hurtT * 20) % 2) * 100);
           else this.bossSp.setOpacity(255);
           if (this.invuln <= 0 && Math.abs(this.px - bx) < T * 1.2 && this.py < this.gy + DRAW_H) {
@@ -791,7 +819,13 @@
   function netPanel(on, wait) {
     var p = $('netPanel');
     if (!p) return;
-    p.classList.toggle('on', !!on);
+    if (on) {
+      p.classList.add('on');
+      p.style.display = 'flex';
+    } else {
+      p.classList.remove('on');
+      p.style.display = 'none';
+    }
     if (wait && $('netWait')) $('netWait').textContent = wait;
     var st = $('netStart');
     if (st) st.style.display = (netRole === 'host' && netLinked) ? 'inline-flex' : 'none';
@@ -898,7 +932,13 @@
   }
   function netBindUI() {
     var btn = $('btnNet');
-    if (btn) btn.onclick = function () { netStartMatch(); };
+    if (btn) {
+      btn.onclick = function (ev) {
+        if (ev) ev.preventDefault();
+        netPanel(true, '正在打开联机…');
+        netStartMatch();
+      };
+    }
     var cancel = $('netCancel');
     if (cancel) cancel.onclick = function () {
       netPanel(false); netBanner('', false);
