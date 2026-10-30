@@ -98,19 +98,19 @@
     var tiles = [];
     var x;
     for (x = 0; x < DC; x++) tiles.push({ x: x, y: DR - 1, type: 'g' });
-    /* 真断坑：两处设计列挖空（世界侧仅正中3格，可跳）——靠前，死前可见 */
-    [Math.max(2, Math.floor(DC * 0.22)), Math.max(4, Math.floor(DC * 0.48))].forEach(function (gx) {
+    /* 断坑放展示区之后（约 40%/70%），开局镜头先看火/旗/鳄 */
+    [Math.max(5, Math.floor(DC * 0.42)), Math.max(7, Math.floor(DC * 0.72))].forEach(function (gx) {
       tiles = tiles.filter(function (t) { return !(t.x === gx && t.y === DR - 1); });
     });
     var at = function (f) { return Math.min(DC - 1, Math.max(0, Math.round(f * DC))); };
-    tiles.push({ x: at(0.08), y: DR - 2, type: 'coin' });
-    tiles.push({ x: at(0.14), y: DR - 2, type: 'spike' });
-    tiles.push({ x: at(0.28), y: DR - 2, type: 'fire' }); /* 火1 坑后不久 */
-    tiles.push({ x: at(0.34), y: DR - 2, type: 'coin' });
-    tiles.push({ x: at(0.40), y: DR - 2, type: 'spike' });
-    tiles.push({ x: at(0.55), y: DR - 2, type: 'fire' }); /* 火2 */
-    tiles.push({ x: at(0.60), y: DR - 2, type: 'flag' }); /* 中段旗，死前可见 */
-    tiles.push({ x: at(0.68), y: DR - 2, type: 'coin' });
+    /* 设计列仅作补充；真正开局可见位由 loadLevel earlyShowcase 钉死 */
+    tiles.push({ x: at(0.06), y: DR - 2, type: 'coin' });
+    tiles.push({ x: at(0.10), y: DR - 2, type: 'fire' });
+    tiles.push({ x: at(0.16), y: DR - 2, type: 'fire' });
+    tiles.push({ x: at(0.22), y: DR - 2, type: 'flag' });
+    tiles.push({ x: at(0.50), y: DR - 2, type: 'spike' });
+    tiles.push({ x: at(0.58), y: DR - 2, type: 'coin' });
+    tiles.push({ x: at(0.78), y: DR - 2, type: 'spike' });
     return {
       version: '1.1', theme: 'swamp', cols: DC, rows: DR, tiles: tiles,
       traps: { spike: { interval: 3, up: 1, damage: 1 }, fire: { damage: 1, dur: 2, burn: 2 } },
@@ -158,29 +158,39 @@
       if ((tt.y | 0) >= DR - 1) return;
       items.push({ type: tt.type, c: gx(tt.x | 0), designX: tt.x | 0 });
     });
-    /* 小岩：缺断坑/火/旗则补；位置靠前，进关死前能看见 */
+    /* 断坑：缺则补在展示区之后，避免开局掉坑 */
     var holeN = groundCols.filter(function (g) { return !g; }).length;
     if (holeN === 0 && DC >= 6) {
-      groundCols[Math.max(2, Math.floor(DC * 0.22))] = false;
-      groundCols[Math.max(4, Math.floor(DC * 0.48))] = false;
-    }
-    var fireItems = items.filter(function (it) { return it.type === 'fire'; });
-    if (fireItems.length < 2) {
-      if (!fireItems.length) {
-        items.push({ type: 'fire', c: gx(Math.max(1, Math.floor(DC * 0.28))), designX: Math.floor(DC * 0.28) });
-      }
-      items.push({ type: 'fire', c: gx(Math.max(2, Math.floor(DC * 0.55))), designX: Math.floor(DC * 0.55) });
-    }
-    var hasFlag = items.some(function (it) { return it.type === 'flag'; });
-    if (!hasFlag) {
-      items.push({ type: 'flag', c: gx(Math.max(3, Math.floor(DC * 0.60))), designX: Math.floor(DC * 0.60) });
+      groundCols[Math.max(5, Math.floor(DC * 0.42))] = false;
+      groundCols[Math.max(7, Math.floor(DC * 0.72))] = false;
     }
     if (!traps.fire) traps.fire = { damage: 1, dur: 2, burn: 2 };
     if (!traps.spike) traps.spike = { interval: 3, up: 1, damage: 1 };
 
-    /* 鳄王放中段偏后（约 62%），终点紧随其后 —— 死前可见鳄精灵+旗 */
-    var bossC = PAD + Math.floor(DC * 0.62) * EXP + 2;
-    var goalC = Math.min(cols - 5, bossC + 8);
+    /*
+     * c17 营销一眼成片：开局镜头（约 world 0..13）内钉死火×2、旗、鳄精灵。
+     * 世界列（T=40）：spawn≈2；火1=5、火2=8、旗=10、鳄=12 —— 全在首屏。
+     * 刺挪到展示之后，避免「先刺死才见血条」。
+     */
+    var earlyFire1 = 5, earlyFire2 = 8, earlyFlag = 10, earlyBoss = 12;
+    var earlyCut = 18; /* 展示带右界：此前不要刺 */
+    items = items.filter(function (it) {
+      if (it.type === 'fire' || it.type === 'flag') return false;
+      if (it.type === 'spike' && (it.c | 0) < earlyCut) return false;
+      return true;
+    });
+    items.push({ type: 'fire', c: earlyFire1, designX: -1 });
+    items.push({ type: 'fire', c: earlyFire2, designX: -1 });
+    items.push({ type: 'flag', c: earlyFlag, designX: -1 });
+    /* 展示后再给刺，保证可玩压力仍在 */
+    var hasLateSpike = items.some(function (it) { return it.type === 'spike'; });
+    if (!hasLateSpike) {
+      items.push({ type: 'spike', c: Math.max(earlyCut + 2, gx(Math.floor(DC * 0.50))), designX: -1 });
+      items.push({ type: 'spike', c: Math.max(earlyCut + 8, gx(Math.floor(DC * 0.78))), designX: -1 });
+    }
+
+    var bossC = earlyBoss;
+    var goalC = Math.min(cols - 5, Math.max(bossC + 14, gx(Math.floor(DC * 0.85))));
 
     return {
       version: d.version || '1.1',
@@ -284,7 +294,13 @@
     var bossBar = $('bossBar');
     if (bossBar && sceneRef && sceneRef.boss) {
       var b = sceneRef.boss;
-      if (b.alive) {
+      /* 血条仅在鳄精灵进入镜头时亮 —— 避免「只见血条不见鳄」 */
+      var onScreen = false;
+      if (b.alive && typeof sceneRef.camX === 'number') {
+        var bx = b.x;
+        onScreen = bx > sceneRef.camX - 40 && bx < sceneRef.camX + W + 40;
+      }
+      if (b.alive && onScreen) {
         bossBar.classList.add('on');
         bossBar.querySelector('.bn').textContent = b.name;
         bossBar.querySelector('i').style.width = Math.round((b.hp / b.max) * 100) + '%';
@@ -504,7 +520,7 @@
           var sp = new cc.Sprite(it.type === 'fire' ? fireTex : spikeTex);
           sp.setAnchorPoint(0.5, 0);
           sp.setPosition(px, this.gy - 2);
-          sp.setScale(it.type === 'fire' ? 1.55 : 1.15);
+          sp.setScale(it.type === 'fire' ? 1.85 : 1.15);
           sp.setVisible(it.type === 'fire');
           this.world.addChild(sp, 6);
           this.traps.push({ kind: it.type, x: px, sp: sp, w: T * 0.7 });
@@ -522,7 +538,7 @@
           var midF = new cc.Sprite(flagTex);
           midF.setAnchorPoint(0.5, 0);
           midF.setPosition(px, this.gy);
-          midF.setScale(1.1);
+          midF.setScale(1.55);
           this.world.addChild(midF, 5);
         }
       }
@@ -543,7 +559,7 @@
       this.bossSp = new cc.Sprite(crocTex);
       this.bossSp.setAnchorPoint(0.5, 0);
       this.bossSp.setPosition(this.boss.x, this.boss.y);
-      this.bossSp.setScale(Math.max(1.6, DRAW_H * 1.35 / 64));
+      this.bossSp.setScale(Math.max(1.85, DRAW_H * 1.5 / 64));
       this.world.addChild(this.bossSp, 8);
       this.bossSp.setVisible(true);
 
@@ -739,7 +755,7 @@
           this.boss.hurtT = Math.max(0, this.boss.hurtT - dt);
           var bx = this.boss.x + Math.sin(elapsed * 0.7) * 18;
           this.bossSp.setPosition(bx, this.boss.y);
-          this.bossSp.setScaleX((this.px < bx ? -1 : 1) * Math.max(1.6, DRAW_H * 1.35 / 64));
+          this.bossSp.setScaleX((this.px < bx ? -1 : 1) * Math.max(1.85, DRAW_H * 1.5 / 64));
           if (this.boss.hurtT > 0) this.bossSp.setOpacity(120 + (Math.floor(this.boss.hurtT * 20) % 2) * 100);
           else this.bossSp.setOpacity(255);
           if (this.invuln <= 0 && Math.abs(this.px - bx) < T * 1.2 && this.py < this.gy + DRAW_H) {
