@@ -30,19 +30,19 @@ svg{width:100%;height:100%;min-height:0}
 .foot button,.go{border:0;border-radius:999px;padding:10px 26px;font-size:20px;font-weight:800;color:#fff;background:linear-gradient(180deg,#78d484,#4ea85c);box-shadow:0 3px 0 #2f6d3a;text-decoration:none;cursor:pointer}
 .foot .back{background:#3b4590;box-shadow:none}
 .ok{color:#9ff0a8}.bad{color:#ffb4b4}.chk{font-size:15px}
-@media (max-height:500px){.cell{aspect-ratio:2.4}.bar img{width:40px;height:40px}.st{font-size:13px}h2{font-size:17px}}
+@media (max-height:500px){.s1h{display:none}.dim input{margin:0}.dim{gap:0!important}.cell{aspect-ratio:2.4}.bar img{width:40px;height:40px}.st{font-size:13px}h2{font-size:17px}}
 </style></head><body>
 <div class="bar"><figure class="pp"><img src="../avatars/xiaoyu.jpg" alt="小雨" style="object-position:32% 34%"><figcaption>小雨</figcaption></figure>
 <div class="st" data-s="0">① 看图学习</div><div class="st" data-s="1">② 动手</div><div class="st" data-s="2">③ 预览</div><div class="st" data-s="3">④ 设计·摆位置</div><div class="st" data-s="4">⑤ 实验·单机玩</div>
 <figure class="pp"><img src="../avatars/dad-wuxin.jpg" alt="爸爸"><figcaption>爸爸</figcaption></figure><figure class="pp"><img src="../avatars/mom-chunyan.jpg" alt="妈妈"><figcaption>妈妈</figcaption></figure></div>
 <main>
-<section class="stage" id="s0"><h2>好关卡：先简单，再变难 <button class="go" id="play0" style="font-size:15px;padding:4px 14px">▶ 播放</button></h2>
+<section class="stage" id="s0"><h2><button class="back sl" id="slp" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-size:16px;padding:3px 12px">◀</button> <span id="slt">好关卡：先简单，再变难</span> <span id="sld" style="font-size:13px"></span> <button class="sl" id="sln" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-size:16px;padding:3px 12px">▶</button> <button class="go" id="play0" style="font-size:15px;padding:4px 14px">▶ 播放</button></h2>
 <canvas id="cv0" width="960" height="300" style="width:100%;flex:1;min-height:0;background:#0006;border-radius:12px"></canvas>
 <div class="msg" style="font-size:14px">🧠 策划故意这样设计 → 让人想「再来一次」· 我们要 ⏰ 适度玩</div></section>
 
-<section class="stage" id="s1"><h2>点关卡里的陷阱，拉数字</h2>
-<canvas id="strip" width="960" height="150" style="width:100%;height:30%;min-height:70px;background:#0006;border-radius:12px;cursor:pointer"></canvas>
-<div class="row" id="traps" style="flex-wrap:wrap"></div></section>
+<section class="stage" id="s1"><h2 class="s1h">点关卡里的陷阱，拉数字</h2>
+<canvas id="strip" width="960" height="150" style="width:100%;height:56px;flex:none;background:#0006;border-radius:12px;cursor:pointer"></canvas>
+<div class="row" id="traps" style="flex-wrap:wrap;gap:4px;align-content:flex-start"></div></section>
 
 <section class="stage" id="sP"><h2>👀 忍者自动闯关</h2>
 <canvas id="cv" width="960" height="220" style="width:100%;flex:1;min-height:0;background:#0006;border-radius:12px"></canvas>
@@ -58,47 +58,64 @@ svg{width:100%;height:100%;min-height:0}
 <div class="row"><div class="card"><div class="msg" id="sumt"></div><div id="sumseg" style="display:flex;gap:4px;width:100%"></div><div class="msg" id="sumtot"></div></div>
 <div class="card"><a class="go" id="play" href="../../xy-go/?custom=1">🎮 单机玩「我的关卡」</a><div class="msg" id="saved" style="color:#9ff0a8"></div><div class="msg" style="font-size:13px">玩完说：和预计一样吗？</div></div></div></section>
 </main>
-<div class="foot"><button class="back" id="back">上一步</button><button id="next">下一步 ▶</button></div>
+<div class="foot"><button class="back" id="back">上一步</button><div id="hp" style="align-self:center;font-weight:800;font-size:16px;text-align:center"></div><button id="next">下一步 ▶</button></div>
 <script>
 (function(){
 let COLS=12;const SW=()=>COLS/6,SEG=x=>Math.min(5,Math.floor(x/SW()));const KEY='xygo-custom-level',ROWS=4,$=id=>document.getElementById(id);
 const CURVE=[1,2,1,3,2,4];
 const E={mud:'🟫',bubble:'🫧',sand:'⏳',mist:'☠️',wave:'🌊',shark:'🦈',rock:'🪨',meteor:'☄️',fire:'🔥',lowg:'🌙',spring:'🌀',shield:'🛡️',coin:'⭐',flag:'🚩'};
 const TH={swamp:['沼泽',['mud','bubble','sand']],ocean:['海洋',['wave','shark','rock']],space:['太空',['meteor','lowg','fire']]};
-const NUM={rock:['落石',{speed:[3,1,6,'速度'],interval:[2,1,5,'间隔秒']}],fire:['火',{burn:[5,1,10,'烧几秒']}],sand:['流沙',{sink:[2,1,5,'陷几秒']}],
- meteor:['陨石',{speed:[3,1,6,'速度'],interval:[3,1,5,'间隔秒']}],shark:['鲨鱼',{speed:[3,1,6,'速度']}],wave:['浪',{height:[2,1,4,'浪高']}],
- mud:['淤泥',{slow:[50,10,90,'变慢%']}],bubble:['毒泡',{interval:[2,1,5,'间隔秒']}],lowg:['低重力',{gravity:[40,10,90,'重力%']}]};
+const NUM={rock:['落石'],fire:['火'],sand:['流沙'],meteor:['陨石'],shark:['鲨鱼'],wave:['浪'],mud:['淤泥'],bubble:['毒泡'],lowg:['低重力']};
+const DEF={interval:2,speed:3,damage:1,dur:3};
+const DIMS=[['interval','⏱️ 频率','每几秒',1,5],['speed','💨 速度','',1,6],['damage','💥 伤害','',1,3],['dur','⏳ 持续','几秒',1,10],['gap','📏 间距','离前一个',1,5]];
 let st={theme:'swamp',tiles:[],traps:{},curve:CURVE.slice()};
-for(const k in NUM){st.traps[k]={};for(const f in NUM[k][1])st.traps[k][f]=NUM[k][1][f][0];}
+for(const k in NUM)st.traps[k]=Object.assign({},DEF);
 function preset(th){const [a,b,c]=TH[th][1],t=[];for(let x=0;x<COLS;x++)t.push({x,y:ROWS-1,type:'g'});
  const at=f=>Math.min(COLS-1,Math.round(f*COLS));
  // 4 traps easy→hard, rest gap in the middle with 2 props
  [[.2,a],[.4,b],[.55,'flag'],[.65,'shield'],[.8,c],[.93,c]].forEach(([f,ty])=>t.push({x:at(f),y:ROWS-2,type:ty}));return t;}
 {const q=new URLSearchParams(location.search);if([8,12,16].includes(+q.get('len')))COLS=+q.get('len');}st.tiles=preset('swamp');
 // stage 2 trap cards (show current theme + rock/fire)
-const RISK={rock:p=>p.speed/6*.5+.4/p.interval,meteor:p=>p.speed/6*.5+.4/p.interval,fire:p=>p.burn/10*.7,sand:p=>p.sink/5*.7,
- shark:p=>p.speed/6*.8,wave:p=>p.height/4*.8,mud:p=>p.slow/90*.6,bubble:p=>.8/p.interval,lowg:p=>(100-p.gravity)/100*.5,mist:()=>.4};
+function trapHits(p){return ((p.interval<=1?2:p.interval<=2?1:0)+(p.speed>=5?1:0)+(p.dur>=7?1:0))*p.damage;}
+const RISK={};
 let sel=null,stripAnim=null;
 const trapTiles=()=>st.tiles.filter(t=>NUM[t.type]).sort((a,b)=>a.x-b.x);
-function segDiff(){const d=[0,0,0,0,0,0];for(const t of trapTiles())d[SEG(t.x)]+=RISK[t.type](st.traps[t.type]);return d.map(v=>Math.max(1,Math.min(5,1+Math.round(v*3))));}
-function traps(){const ks=[...new Set(trapTiles().map(t=>t.type))];if(!ks.includes(sel))sel=ks[0];
- $('traps').innerHTML=ks.map(k=>`<div class="card trap" data-c="${k}" style="flex:1 1 30%;${k===sel?'border-color:#ffe7a0;background:#2f7a4566':''}"><span class="e">${E[k]}</span><div style="flex:1">${Object.entries(NUM[k][1]).map(([f,d])=>`<label>${NUM[k][0]} · ${d[3]} <b id="v-${k}-${f}">${st.traps[k][f]}</b><input type="range" min="${d[1]}" max="${d[2]}" value="${st.traps[k][f]}" data-k="${k}" data-f="${f}"></label>`).join('')}</div></div>`).join('');
- cancelAnimationFrame(stripAnim);const t0=performance.now();(function f(now){drawStrip((now-t0)/1000);stripAnim=requestAnimationFrame(f);})(t0);}
-function drawStrip(t){const cv=$('strip'),g=cv.getContext('2d'),W=cv.width,H=cv.height,cw=W/COLS,gy=H-28,sd=segDiff();g.clearRect(0,0,W,H);
+function segDiff(){const d=[0,0,0,0,0,0];for(const r of simulate())d[SEG(r.x)]+=r.h;return d.map(v=>Math.max(1,Math.min(5,1+v)));}
+const totalHits=()=>simulate().reduce((a,b)=>a+b.h,0);
+let selI=0;
+function selTile(){const tt=trapTiles();selI=Math.min(selI,tt.length-1);return tt[selI];}
+function gapOf(t){const tt=trapTiles(),i=tt.indexOf(t);return i>0?t.x-tt[i-1].x:t.x+1;}
+function dimVal(t,k){return k==='gap'?gapOf(t):st.traps[t.type][k];}
+function traps(){const t=selTile();if(!t){$('traps').innerHTML='';return;}
+ $('traps').innerHTML=DIMS.map(([k,n,u,mn,mx])=>`<div class="card dim" style="flex:1 1 18%;padding:4px"><div style="font-size:14px">${n}</div><canvas id="m-${k}" width="120" height="44" style="width:100%;height:26px"></canvas><b id="v-${k}" style="font-size:18px;color:#ffe7a0">${dimVal(t,k)}</b><input type="range" min="${mn}" max="${mx}" value="${dimVal(t,k)}" data-f="${k}" style="width:100%"><div id="h-${k}" style="font-size:14px"></div></div>`).join('')+'<div id="sumtab" style="flex:1 1 100%;font-size:12px"></div>';
+ dimRes();cancelAnimationFrame(stripAnim);const t0=performance.now();(function f(now){drawStrip((now-t0)/1000);stripAnim=requestAnimationFrame(f);})(t0);}
+let base0=null;
+function dimRes(){const t=selTile();if(!t)return;const p=st.traps[t.type],now=totalHits();if(!base0)base0={traps:JSON.parse(JSON.stringify(st.traps)),tiles:JSON.parse(JSON.stringify(st.tiles))};
+ const rows=DIMS.map(([k,n])=>{let before,after=dimVal(t,k),dl;
+  if(k==='gap'){const sv=t.x,b=base0.tiles.find(b=>b.type===t.type&&b.y===t.y&&Math.abs(b.x-sv)<=5);before=b?(()=>{const keep=t.x;t.x=b.x;const g=gapOf(t);t.x=keep;return g;})():after;
+   const keep=t.x;if(b)t.x=b.x;const h0=totalHits();t.x=keep;dl=now-h0;}
+  else{before=base0.traps[t.type][k];const keep=p[k];p[k]=before;const h0=totalHits();p[k]=keep;dl=now-h0;}
+  const el=$('h-'+k);if(el)el.innerHTML=dl>0?`<span class="bad">-${dl}❤</span>`:dl<0?`<span class="ok">+${-dl}❤</span>`:'—';
+  return [n,before===after?'—':before+'→'+after,dl?(dl>0?'-'+dl+'❤':'+'+(-dl)+'❤'):'—'];});
+ $('sumtab').innerHTML='<table style="width:100%;text-align:center"><tr><th>维度</th>'+rows.map(r=>`<th>${r[0]}</th>`).join('')+'</tr><tr><td>调了</td>'+rows.map(r=>`<td>${r[1]}</td>`).join('')+'</tr><tr><td>结果</td>'+rows.map(r=>`<td>${r[2]}</td>`).join('')+`</tr></table>`;}
+function mini(t){const tl=selTile();if(!tl)return;const p=st.traps[tl.type],e=E[tl.type];
+ for(const [k] of DIMS){const c=$('m-'+k);if(!c)continue;const g=c.getContext('2d');g.clearRect(0,0,120,44);g.font='22px sans-serif';
+  if(k==='interval'){const ph=(t%p.interval)/p.interval;g.fillText(e,50,8+ph*34);g.fillStyle='#c9c3ef';g.font='11px sans-serif';g.fillText('每'+p.interval+'秒',2,42);}
+  if(k==='speed'){g.fillText(e,((t*p.speed*20)%140)-20,32);}
+  if(k==='damage'){for(let i=0;i<3;i++)g.fillText(i<p.damage&&(t%1)<.6?'💔':'❤',4+i*38,32);}
+  if(k==='dur'){g.fillText(e,2,32);g.fillStyle='#ffffff22';g.fillRect(34,16,80,12);g.fillStyle='#ff9f5a';g.fillRect(34,16,80*p.dur/10*((t%2)<1.5?1:0),12);}
+  if(k==='gap'){const gp=gapOf(tl);g.fillText('🪤',4,32);g.fillText(e,4+gp*20,32);g.fillStyle=gp<=2?'#ff6b6b':'#9ff0a8';g.font='bold 11px sans-serif';g.fillText(gp<=2?'挤!':'有喘气',70,42);}}}
+function drawStrip(t){mini(t);const cv=$('strip'),g=cv.getContext('2d'),W=cv.width,H=cv.height,cw=W/COLS,gy=H-28,sd=segDiff(),stl=selTile();g.clearRect(0,0,W,H);
  for(let s=0;s<6;s++){g.fillStyle=s%2?'#ffffff08':'#ffffff14';g.fillRect(s*SW()*cw,0,SW()*cw,H);const v=sd[s];g.fillStyle=['','#78d484','#b6e07a','#ffe07a','#ffb06b','#ff6b6b'][v];g.font='bold 22px sans-serif';g.fillText('难'+v,s*SW()*cw+6,24);}
  g.fillStyle='#6b4f2f';g.fillRect(0,gy,W,28);const fs=Math.min(40,cw*.8);
- for(const it of st.tiles.filter(t=>t.y===ROWS-2)){const x=it.x*cw+cw*.1,p=st.traps[it.type];let y=gy-6,sc=1,al=1;
-  if(p&&(it.type==='rock'||it.type==='meteor')){const ph=(t%p.interval)/p.interval,fall=Math.min(1,ph*p.speed);y=30+fall*(gy-36);}
-  else if(it.type==='fire'){const on=(t%(p.burn+2))<p.burn;sc=on?1+.15*Math.sin(t*12):.5;al=on?1:.35;}
-  else if(it.type==='sand'||it.type==='mud'){y=gy-6+((t*(it.type==='sand'?1/p.sink:p.slow/90))%1)*14;}
-  else if(p&&p.interval){al=(t%p.interval)<p.interval/2?1:.3;}
-  else if(it.type==='shark'||it.type==='wave'){y=gy-6-Math.abs(Math.sin(t*(p.speed||p.height)))*(p.height?p.height*10:20);}
-  else if(it.type==='lowg'){y=gy-6-Math.abs(Math.sin(t*p.gravity/30))*30;}
-  g.globalAlpha=al;g.font=fs*sc+'px sans-serif';g.fillText(E[it.type]||'',x,y);g.globalAlpha=1;
-  if(it.type===sel){g.strokeStyle='#ffe7a0';g.lineWidth=4;g.strokeRect(it.x*cw+2,30,cw-4,gy-30);}}}
-$('strip').onclick=e=>{const r=e.target.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*COLS);const t=trapTiles().find(t=>t.x===x)||trapTiles().reduce((a,b)=>Math.abs(b.x-x)<Math.abs(a.x-x)?b:a);if(t){sel=t.type;traps();}};
-$('traps').onclick=e=>{const c=e.target.closest('[data-c]');if(c&&e.target.tagName!=='INPUT'&&c.dataset.c!==sel){sel=c.dataset.c;traps();}};
-$('traps').oninput=e=>{const i=e.target;sel=i.dataset.k;st.traps[i.dataset.k][i.dataset.f]=+i.value;$('v-'+i.dataset.k+'-'+i.dataset.f).textContent=i.value;document.querySelectorAll('#traps [data-c]').forEach(c=>c.style.cssText=`flex:1 1 30%;${c.dataset.c===sel?'border-color:#ffe7a0;background:#2f7a4566':''}`);};
+ for(const it of st.tiles.filter(t=>t.y===ROWS-2)){const x=it.x*cw+cw*.1,p=st.traps[it.type];let y=gy-6,al=1;
+  if(p){const ph=(t%p.interval)/p.interval;if(it.type==='rock'||it.type==='meteor')y=30+Math.min(1,ph*p.speed)*(gy-36);else al=ph<Math.min(.9,p.dur/10+.2)?1:.3;}
+  g.globalAlpha=al;g.font=fs+'px sans-serif';g.fillText(E[it.type]||'',x,y);g.globalAlpha=1;
+  if(it===stl){g.strokeStyle='#ffe7a0';g.lineWidth=4;g.strokeRect(it.x*cw+2,30,cw-4,gy-30);}}}
+$('strip').onclick=e=>{const r=e.target.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*COLS);const tt=trapTiles();let bi=0;tt.forEach((t,i)=>{if(Math.abs(t.x-x)<Math.abs(tt[bi].x-x))bi=i;});selI=bi;traps();};
+$('traps').oninput=e=>{const i=e.target,k=i.dataset.f,t=selTile();if(!k||!t)return;const v=+i.value;
+ if(k==='gap'){const tt=trapTiles(),ix=tt.indexOf(t),px=ix>0?tt[ix-1].x:-1,nx=Math.min(COLS-1,px+v);if(!st.tiles.some(o=>o!==t&&o.x===nx&&o.y===t.y))t.x=nx;}
+ else st.traps[t.type][k]=v;$('v-'+k).textContent=dimVal(t,k);dimRes();};
 let brush='g';
 function design(){
  $('th').innerHTML=Object.entries(TH).map(([k,v])=>`<button data-t="${k}" class="${k===st.theme?'on':''}">${v[0]}</button>`).join('');
@@ -126,7 +143,7 @@ $('pal').onclick=e=>{const b=e.target.dataset.b;if(b){brush=b;design();}};
 $('grid').onclick=e=>{const c=e.target.closest('.cell');if(!c)return;const x=+c.dataset.x,y=+c.dataset.y,terr=brush==='g';
  st.tiles=st.tiles.filter(t=>!(t.x===x&&t.y===y&&(brush==='x'||(terr?t.type==='g'||t.type==='p':t.type!=='g'&&t.type!=='p'))));
  if(brush!=='x')st.tiles.push({x,y,type:brush});design();};
-function save(){const used=new Set(st.tiles.map(t=>t.type)),tr={};for(const k in st.traps)if(used.has(k))tr[k]=st.traps[k];
+function save(){const used=new Set(st.tiles.map(t=>t.type)),tr={};for(const k in st.traps)if(used.has(k)){const q=st.traps[k];tr[k]=Object.assign({},q,{burn:q.dur,sink:q.dur,slow:Math.min(90,q.dur*10),height:q.speed>4?3:2});}
  localStorage.setItem(KEY,JSON.stringify({theme:st.theme,cols:COLS,rows:ROWS,tiles:st.tiles,traps:tr,curve:st.curve,savedAt:new Date().toISOString(),by:'伍澍暘'}));
  const r=simulate(),sh=[0,0,0,0,0,0];r.forEach(x=>sh[SEG(x.x)]+=x.h);const tot=sh.reduce((a,b)=>a+b,0);
  $('sumt').textContent=TH[st.theme][0]+'关 · '+COLS+'格 · 预计掉血';
@@ -139,7 +156,7 @@ let anim=null;
 let last=null;
 function simulate(){const tr=trapTiles();let shield=0;const out=[];
  const props=st.tiles.filter(t=>t.type==='shield').map(t=>t.x);
- tr.forEach((t,i)=>{let h=Math.max(0,Math.round(RISK[t.type](st.traps[t.type])*3));const why=[];
+ tr.forEach((t,i)=>{let h=trapHits(st.traps[t.type]);const why=[];
   const prev=tr[i-1];if(prev&&t.x-prev.x<=2){h+=1;why.push('挤');}
   if(props.some(x=>x<t.x&&(!prev||x>prev.x))){if(h>0){h-=1;why.push('🛡️');}}
   out.push({x:t.x,type:t.type,h,why});});return out;}
@@ -187,15 +204,31 @@ function play0(PT){cancelAnimationFrame(a0);const cv=$('cv0'),g=cv.getContext('2
    g.fillStyle=i===k?'#4ea85c':'#ffffff22';g.beginPath();g.arc(cx,cy,30,0,7);g.fill();g.fillStyle='#fff';g.font='bold 13px sans-serif';g.fillText(w,cx-(w.length*6.5),cy+5);});
   g.fillStyle='#ffe7a0';g.font='bold 15px sans-serif';g.fillText('🔁 上瘾圈',W-232,BOT+80);
   if(t<DUR+6)a0=requestAnimationFrame(f);})(performance.now());}
+const SL=['先简单，再变难','⏱️ 频率：多久来一次','📍 摆放：分开还是挤','🎮 任天堂四步：教→练→变→考'];let sl=0;
+function slide(n){sl=(n+SL.length)%SL.length;$('slt').textContent=SL[sl];$('sld').textContent=SL.map((_,i)=>i===sl?'●':'○').join('');play0(0);}
+$('slp').onclick=()=>slide(sl-1);$('sln').onclick=()=>slide(sl+1);
+const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);if(sl===0)return _p0(PT);const cv=$('cv0'),g=cv.getContext('2d'),W=cv.width,H=cv.height,start=performance.now()-(PT||0)*1000;
+ (function f(now){const t=(now-start)/1000;g.clearRect(0,0,W,H);g.font='bold 22px sans-serif';
+  if(sl===1||sl===2){const lanes=sl===1?[['落石 每3秒',[3,7,11],3,'掉 0❤','#9ff0a8'],['落石 每1秒',[3,7,11],1,'掉 2❤','#ff6b6b']]:[['分开 · 有喘气',[2,6,10],2,'掉 1❤','#9ff0a8'],['挤在一起',[6,7,8],2,'掉 3❤','#ff6b6b']];
+   lanes.forEach(([lab,xs,iv,res,col],li)=>{const y0=20+li*140,gy=y0+110,cw=(W-200)/13,T=Math.min(t,8),nx=60+T/8*13*cw;
+    g.fillStyle='#ffffff10';g.fillRect(10,y0,W-20,128);g.fillStyle='#6b4f2f';g.fillRect(60,gy,13*cw,14);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText(lab,16,y0+24);
+    g.font='34px sans-serif';xs.forEach(x=>{const ph=sl===1?((t%iv)/iv):1;g.fillText(sl===1?'🪨':'🔥',60+x*cw,sl===1?y0+30+ph*72:gy-4);});
+    const near=xs.find(x=>T*13/8>x-.5&&T*13/8<x+.8);g.fillText('🥷',nx-10,gy-4-(near!=null?40:0));
+    if(t>8){g.fillStyle=col;g.font='bold 30px sans-serif';g.fillText(res,W-170,y0+80);}});}
+  if(sl===3){const st4=[['① 教','🪨','安全地方先见到'],['② 练','🪨🪨','再来几次'],['③ 变','🪨🔥','加一点新花样'],['④ 考','🚩','全用上，过关！']];
+   st4.forEach(([a,e,b],i)=>{const x=20+i*(W-40)/4,on=t>i*1.5;g.fillStyle=on?'#2f7a4588':'#ffffff10';g.fillRect(x+6,30,(W-40)/4-12,230);
+    g.fillStyle='#ffe7a0';g.font='bold 30px sans-serif';g.fillText(a,x+30,80);g.font='54px sans-serif';g.fillText(e,x+30,170);g.fillStyle='#fff';g.font='bold 18px sans-serif';g.fillText(b,x+20,230);});}
+  if(t<12)a0=requestAnimationFrame(f);})(performance.now());};
 $('play0').onclick=()=>play0(0);
+const updHP=()=>{try{const h=totalHits(),M=6,left=Math.max(0,M-h);$('hp').innerHTML=`${'❤'.repeat(left)}${'🤍'.repeat(M-left)} <span style="font-size:12px;color:#c9c3ef">难度=频率×摆放 → 掉${h}❤</span>`;}catch(e){}};setInterval(updHP,300);setTimeout(updHP,0);
 let cur=0;const ORDER=['s0','s1','sP','s2','s3'];function go(n){cur=Math.max(0,Math.min(4,n));ORDER.forEach((id,i)=>$(id).classList.toggle('on',i===cur));document.querySelectorAll('.nostage').forEach((s,i)=>s.classList.toggle('on',i===cur));
  document.querySelectorAll('.st').forEach((s,i)=>{s.classList.toggle('on',i===cur);s.classList.toggle('done',i<cur);});
- cancelAnimationFrame(stripAnim);if(cur===0)play0(+(new URLSearchParams(location.search).get('pt0'))||0);if(cur===1)traps();if(cur===2)preview();if(cur===3)design();if(cur===4)save();
+ cancelAnimationFrame(stripAnim);if(cur===0)slide(+(new URLSearchParams(location.search).get('sl'))||0),play0(+(new URLSearchParams(location.search).get('pt0'))||0);if(cur===1)traps();if(cur===2)preview();if(cur===3)design();if(cur===4)save();
  $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<4?'visible':'hidden';}
 $('next').onclick=()=>go(cur+1);$('back').onclick=()=>go(cur-1);
 document.querySelector('.bar').onclick=e=>{const s=e.target.dataset.s;if(s!=null)go(+s);};
 {const q=new URLSearchParams(location.search);if(q.get('bump')||q.get('move')){preview();cancelAnimationFrame(anim);
- const tt=trapTiles();if(q.get('bump')){const k=tt[tt.length-1].type,f=Object.keys(NUM[k][1])[0];st.traps[k][f]=NUM[k][1][f][2];}
+ const tt=trapTiles();if(q.get('bump')){const k=tt[tt.length-1].type;st.traps[k].interval=1;}
  if(q.get('move')){tt[1].x=Math.max(0,tt[2].x-1);}}}
 go(+(new URLSearchParams(location.search).get("s"))||0);})();
 </script></body></html>
