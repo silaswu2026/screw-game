@@ -64,9 +64,13 @@ svg{width:100%;height:100%;min-height:0}
 .go.sm{font-size:15px!important;padding:4px 14px!important}
 .kidsub{text-align:center;font-size:14px;font-weight:800;color:#c9c3ef;margin:-2px 0 2px;opacity:.95}
 body.teach #hp{visibility:hidden}
-</style><script src="ld-art.js?v=ld29"></script></head><body>
+
+.pathhint{display:none;text-align:center;font-size:13px;font-weight:800;color:#ffe7a0;padding:2px 10px 0;letter-spacing:.02em}
+body.tonight .pathhint{display:block}
+body.tonight .st.full-only{display:none!important}
+</style><script src="ld-art.js?v=ld30"></script></head><body>
 <div class="bar"><figure class="pp"><img src="../avatars/xiaoyu.jpg" alt="小雨" style="object-position:32% 34%"><figcaption>小雨</figcaption></figure>
-<div class="st" data-s="0">⓪ 上节课回顾</div><div class="st" data-s="1">① 看图学习</div><div class="st" data-s="2">② 关卡频率 <i class="sd" data-s="2">●</i><i class="sd" data-s="3">●</i></div><div class="st" data-s="4">③ 关卡位置 <i class="sd" data-s="4">●</i><i class="sd" data-s="5">●</i></div><div class="st" data-s="6">④ 关卡难度 <i class="sd" data-s="6">●</i><i class="sd" data-s="7">●</i></div><div class="st" data-s="8">⑤ 设计关卡</div><div class="st" data-s="9">⑥ 单机玩</div>
+<div class="st full-only" data-s="0">⓪ 上节课回顾</div><div class="st" data-s="1">① 看图学习</div><div class="st" data-s="2">② 关卡频率 <i class="sd" data-s="2">●</i><i class="sd" data-s="3">●</i></div><div class="st full-only" data-s="4">③ 关卡位置 <i class="sd" data-s="4">●</i><i class="sd" data-s="5">●</i></div><div class="st full-only" data-s="6">④ 关卡难度 <i class="sd" data-s="6">●</i><i class="sd" data-s="7">●</i></div><div class="st" data-s="8">⑤ 设计关卡</div><div class="st" data-s="9">⑥ 单机玩</div>
 <figure class="pp"><img src="../avatars/dad-wuxin.jpg" alt="爸爸"><figcaption>爸爸</figcaption></figure><figure class="pp"><img src="../avatars/mom-chunyan.jpg" alt="妈妈"><figcaption>妈妈</figcaption></figure></div>
 <main>
 <section class="stage" id="sR"><h2 class="keep">⓪ 动画帧 · 帧速 <input type="range" id="fps" min="1" max="12" value="4" style="width:100px;vertical-align:middle"> <b id="fpsv">4</b> <button class="go sm" id="rPl">⏸</button> <button class="go sm" id="rSt" style="background:linear-gradient(180deg,#ffb06b,#e2793b)">⏭ 一帧</button></h2>
@@ -80,7 +84,7 @@ body.teach #hp{visibility:hidden}
 <canvas id="strip" width="960" height="150" style="width:100%;flex:none;background:#0006;border-radius:12px;cursor:pointer"></canvas>
 <div class="row" id="traps" style="flex-wrap:wrap;gap:4px;align-content:flex-start"></div></section>
 
-<section class="stage" id="sF"><h2 class="s1h" id="sFt">⏱️ 频率：地刺每几秒冒一次</h2><div class="kidsub">频率=节奏多久来一次 · 好关卡用「节奏组」</div><div style="text-align:center;margin:0 0 2px"><a class="go sm" href="cocos/freq-spike.html" style="display:inline-block;font-size:14px;padding:4px 14px;background:linear-gradient(180deg,#7ab0ff,#3b6fd4);box-shadow:0 2px 0 #274a8a;text-decoration:none">🎮 Cocos 版再看</a></div><div class="n4" id="n4f"></div>
+<section class="stage" id="sF"><h2 class="s1h" id="sFt">⏱️ 频率：地刺每几秒冒一次</h2><div class="kidsub">频率=节奏多久来一次 · 好关卡用「节奏组」</div><div class="n4" id="n4f"></div>
 <div id="fSl" style="text-align:center;font-size:24px;font-weight:800">每 <input type="range" id="fI" min="1" max="5" value="3" style="width:240px;height:28px;vertical-align:middle"> <b id="fIv" style="font-size:40px;color:#ffe7a0">3</b> 秒冒一次刺</div>
 <div class="cvwrap"><canvas id="cvF" width="960" height="360" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas></div>
 <div class="msg" id="fRes" style="font-size:22px;font-weight:800"></div>
@@ -651,8 +655,37 @@ function freqView(prev){cancelAnimationFrame(aF);$('fSl').style.display=prev?'no
   if(done===1){done=2;}
   if(!done){done=1;setTimeout(()=>aF=requestAnimationFrame(f),400);const pv=fLast;fLast={I,h:fHit(I)};$('fRes').innerHTML=`${['','🏃 练','🔀 变','🏁 考'][fStep]}：每 <b>${I}</b> 秒 → <b>${n}</b> 次刺 → 掉 <b class="bad">${fHit(I)}❤</b>`+(fStep===3?(fHit(I)<=1?' ✅ 过关':' 😵 太难，回去调慢'):'')+(pv?` <span style="font-size:15px;color:#c9c3ef">（上次 每${pv.I}秒 掉${pv.h}❤ → 这次 ${fHit(I)}❤）</span>`:'');}})(performance.now());}
 $('fRun').onclick=()=>{fStep=1;freqView(true);};$('fTw').onclick=()=>{$('fI').value=1;$('fIv').textContent=1;fStep=2;freqView(true);};$('fEx').onclick=()=>{fStep=3;freqView(true);};
-let cur=0;const SCR=[['sR'],['s0'],['sF','freq'],['sF','freq'],['sQ','pos'],['sQ','pos'],['sD','diff'],['sD','diff'],['sM'],['s3']],BLK=[0,1,2,2,3,3,4,4,5,6];
+let cur=0;
+const TONIGHT=new URLSearchParams(location.search).get('path')==='tonight';
+const SCR=TONIGHT
+  ?[['s0'],['sF','freq'],['sF','freq'],['sM'],['s3']]
+  :[['sR'],['s0'],['sF','freq'],['sF','freq'],['sQ','pos'],['sQ','pos'],['sD','diff'],['sD','diff'],['sM'],['s3']];
+const BLK=TONIGHT?[0,1,1,2,3]:[0,1,2,2,3,3,4,4,5,6];
+const MAX=SCR.length-1;
 const TIT={freq:'⏱️ 频率：多久来一次',pos:'📍 位置：分开还是挤',diff:'💥 难度：速度·伤害·持续'};const taught={};
+if(TONIGHT){
+  document.body.classList.add('tonight');
+  /* slim top bar: 看图一句 → 频率 → 设计一小关 → 玩完觉察 */
+  const bar=document.querySelector('.bar');
+  const figs=[...bar.querySelectorAll('figure.pp')];
+  [...bar.querySelectorAll('.st')].forEach(el=>el.remove());
+  const tabs=[
+    ['0','① 看图一句'],
+    ['1','② 频率 <i class="sd" data-s="1">●</i><i class="sd" data-s="2">●</i>'],
+    ['3','③ 设计一小关'],
+    ['4','④ 玩完觉察']
+  ];
+  const insertAt=figs[0]?figs[0].nextSibling:bar.firstChild;
+  tabs.forEach(([s,html])=>{
+    const d=document.createElement('div');d.className='st';d.dataset.s=s;d.innerHTML=html;
+    bar.insertBefore(d, figs[1]||null);
+  });
+  const hint=document.createElement('div');
+  hint.className='pathhint';
+  hint.textContent='今晚主路径：看图一句 → 频率 → 设计一小关 → 玩完觉察';
+  document.querySelector('main').before(hint);
+}
+
 function teach(m){if(taught[m])return;taught[m]=1;const tt=trapTiles();
  if(m==='freq')tt.forEach(t=>st.traps[t.type].interval=3);
  if(m==='diff')tt.forEach(t=>Object.assign(st.traps[t.type],{speed:2,damage:1,dur:2}));}
@@ -662,7 +695,7 @@ function footLabel(){
   if(cur===1){$('next').textContent=sl<SL.length-1?'下一页 ▶':'下一步 ▶';$('back').textContent=sl>0?'◀ 上一页':'上一步';}
   else{$('next').textContent='下一步 ▶';$('back').textContent='上一步';}
 }
-function go(n){cur=Math.max(0,Math.min(9,n));const [id,m]=SCR[cur];if(m)MODE=m;
+function go(n){cur=Math.max(0,Math.min(MAX,n));const [id,m]=SCR[cur];if(m)MODE=m;
  ['sR','s0','sF','s1','sP','s2','s3','sQ','sD','sM'].forEach(x=>$(x).classList.toggle('on',x===id));crispAll();
  document.body.classList.toggle('teach',id==='sR'||id==='s0');
  document.querySelectorAll('.st').forEach((s,i)=>{s.classList.toggle('on',i===BLK[cur]);s.classList.toggle('done',i<BLK[cur]);});
@@ -676,9 +709,9 @@ function go(n){cur=Math.max(0,Math.min(9,n));const [id,m]=SCR[cur];if(m)MODE=m;
  if(id==='s1'){teach(m);$('s1t').textContent=TIT[m]+' · 教：先安全，再拉数字';n4('n4a',0);traps();}
  if(id==='s2'){n4('n4c',0);design();}
  if(id==='sP'){$('sPt').textContent=TIT[m]+' · 忍者匀速跑';pstep=1;n4('n4b',1);preview();}
- if(id==='sM')mView();else cancelAnimationFrame(aM);
- if(cur===9){mSave(true);if(!mPreviewDone&&$('saved'))$('saved').textContent='提示：先回⑤ ▶跑一次，再单机玩';}
- $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<9?'visible':'hidden';footLabel();if(typeof updHP==='function')updHP();}
+ if(id==='sM'){mView();if(TONIGHT){const h=$('sM').querySelector('h2');if(h)h.textContent='🛠️ 设计一小关：摆几个刺 · 调一下频率';}}else cancelAnimationFrame(aM);
+ if(cur===MAX&&id==='s3'){mSave(true);if(!mPreviewDone&&$('saved'))$('saved').textContent=TONIGHT?'提示：先回③ ▶跑一次，再单机玩':'提示：先回⑤ ▶跑一次，再单机玩';}
+ $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<MAX?'visible':'hidden';footLabel();if(typeof updHP==='function')updHP();}
 function twist(){const tt=trapTiles();if(!tt.length)return;const t=tt[tt.length-1];
  if(MODE==='freq')st.traps[t.type].interval=1;
  if(MODE==='diff')st.traps[t.type].speed=5;
