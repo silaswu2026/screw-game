@@ -1,16 +1,16 @@
 /**
- * 玩我的关 — landscape side-view (960×600)
- * Letterbox lock AR: maximize stage inside black shell (contain). No squash.
- * Portrait: still playable + tip; landscape/desktop fill wider.
+ * 玩我的关 — landscape side-view (960×600 base)
+ * Landscape/desktop: contain letterbox at 16:10 (no squash, full height).
+ * Portrait: full-bleed tall design (same width world, extended sky) so no dwarf strip / void bottom.
  */
 (function () {
   var KEY = 'xygo-custom-level';
   var SP = '../../../xy-go/sprites/green/';
   var RES = [SP + 'walk_0.png', SP + 'walk_1.png', SP + 'walk_2.png', SP + 'walk_3.png',
     SP + 'idle.png', SP + 'knock_0.png', SP + 'jump_0.png'];
-  var W = 960, H = 600, T = 80, MAX_HP = 6;
+  var W = 960, BASE_H = 600, H = 600, T = 80, MAX_HP = 6;
   var sceneRef = null, spikeTex = null, cloudTex = null, hillTex = null, fireTex = null, coinTex = null, flagTex = null;
-  var level = null;
+  var level = null, lastFitKey = '', rebuilding = false;
   var inp = { left: false, right: false, jump: false, jumpPressed: false };
 
   function $(id) { return document.getElementById(id); }
@@ -24,28 +24,56 @@
     tip.classList.toggle('on', window.innerHeight > window.innerWidth);
   }
 
-  /** Maximize locked-AR stage in shell (cinema letterbox). */
+  function isPortrait() { return window.innerHeight > window.innerWidth; }
+
+  /** Size stage: landscape = 16:10 contain letterbox; portrait = full-bleed tall design (no void strip). */
   function fitStage() {
     updateOrientTip();
     var wrap = $('cvwrap');
     var shell = $('shell');
     if (!wrap || !shell) return;
+    var portrait = isPortrait();
     var aw = Math.max(2, shell.clientWidth || window.innerWidth);
     var ah = Math.max(2, shell.clientHeight || Math.max(160, window.innerHeight - 40));
-    var ar = W / H;
-    var dw, dh;
-    if (aw / ah > ar) { dh = ah; dw = Math.round(ah * ar); }
-    else { dw = aw; dh = Math.round(aw / ar); }
+    var dw, dh, nextH;
+    if (portrait) {
+      /* Full-bleed: design height matches shell AR so SHOW_ALL fills with extended sky */
+      dw = aw; dh = ah;
+      nextH = Math.max(BASE_H, Math.round(W * ah / aw));
+    } else {
+      nextH = BASE_H;
+      var ar = W / BASE_H;
+      if (aw / ah > ar) { dh = ah; dw = Math.round(ah * ar); }
+      else { dw = aw; dh = Math.round(aw / ar); }
+    }
     wrap.style.width = dw + 'px';
     wrap.style.height = dh + 'px';
     var cv = $('gameCanvas');
-    if (cv) { cv.style.width = dw + 'px'; cv.style.height = dh + 'px'; }
-    if (typeof cc === 'undefined' || !cc.view) return;
+    if (cv) {
+      cv.style.width = dw + 'px'; cv.style.height = dh + 'px';
+      cv.width = W; cv.height = nextH; /* buffer matches design */
+    }
+    var fitKey = (portrait ? 'p' : 'l') + ':' + nextH + ':' + dw + 'x' + dh;
+    var hChanged = nextH !== H;
+    H = nextH;
+    try {
+      var dbg = $('msg');
+      if (dbg) dbg.setAttribute('data-fit', fitKey + ' shell=' + aw + 'x' + ah);
+    } catch (e0) {}
+    if (typeof cc === 'undefined' || !cc.view) { lastFitKey = fitKey; return; }
     try {
       if (cc.view.setFrameSize) cc.view.setFrameSize(dw, dh);
       cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
       if (cc.view._resizeEvent) cc.view._resizeEvent();
     } catch (e) { /* ignore */ }
+    lastFitKey = fitKey;
+    if (hChanged && sceneRef && !rebuilding && window.__playSceneCtor) {
+      rebuilding = true;
+      setTimeout(function () {
+        try { cc.director.runScene(new window.__playSceneCtor()); } catch (e2) {}
+        rebuilding = false;
+      }, 0);
+    }
   }
 
   function loadLevel() {
@@ -211,7 +239,8 @@
       level = loadLevel();
       var cols = level.cols;
       this.worldW = (cols + 4) * T;
-      this.gy = 150;
+      /* Portrait tall view: lift ground above touch dock; landscape keeps classic 150 */
+      this.gy = (H > BASE_H + 10) ? Math.max(260, Math.min(560, Math.round(H * 0.28))) : 150;
 
       this.bg = mkColor(W * 2, H, 58, 92, 150);
       this.addChild(this.bg, -2);
@@ -422,6 +451,7 @@
         this.addChild(sceneRef);
       }
     });
+    window.__playSceneCtor = PlayScene;
 
     $('retry').onclick = function () { if (sceneRef) sceneRef.reset(); };
     $('again').onclick = function () { if (sceneRef) sceneRef.reset(); };

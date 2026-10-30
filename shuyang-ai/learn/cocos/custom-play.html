@@ -16,8 +16,8 @@ h1{margin:0;font-size:14px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 .badge{font-size:10px;font-weight:800;color:#1a2040;background:linear-gradient(180deg,#9ff0a8,#4ea85c);border-radius:999px;padding:3px 8px}
 #orientTip{display:none;position:absolute;left:50%;transform:translateX(-50%);top:36px;z-index:12;font-size:11px;font-weight:800;color:#ffe7a0;background:#1a2048cc;padding:3px 10px;border-radius:999px;pointer-events:none;white-space:nowrap}
 #orientTip.on{display:block}
-/* Black letterbox host — stage centered & maximized at locked landscape AR */
-.shell{flex:1 1 auto;min-height:0;width:100%;position:relative;background:#000;display:flex;align-items:center;justify-content:center}
+/* Black letterbox host — maximize locked landscape AR (contain, never squash) */
+.shell{flex:1 1 auto;min-height:0;width:100%;position:relative;background:#3a5c96;display:flex;align-items:center;justify-content:center}
 .cvwrap{position:relative;flex:0 0 auto;background:#000;overflow:hidden;line-height:0;box-shadow:0 0 0 1px #ffffff18}
 #gameCanvas{width:100%!important;height:100%!important;display:block;background:#3a5c96;touch-action:none}
 .hud{position:absolute;top:6px;left:8px;right:8px;z-index:6;display:flex;justify-content:space-between;align-items:center;pointer-events:none;text-shadow:0 1px 3px #000a}
@@ -26,7 +26,8 @@ h1{margin:0;font-size:14px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 #msg{position:absolute;top:32px;left:0;right:0;z-index:6;text-align:center;font-weight:800;font-size:13px;color:#fff;text-shadow:0 1px 4px #000c;pointer-events:none;padding:0 8px}
 #boot{display:none;position:absolute;inset:0;z-index:15;align-items:center;justify-content:center;text-align:center;font-size:13px;color:#ffb4b4;font-weight:800;background:#05070fcc;padding:16px}
 #boot.err{display:flex}
-.touch{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-between;gap:10px;padding:8px 12px;user-select:none;pointer-events:none;background:linear-gradient(180deg,transparent,#0008 45%,#000b)}
+/* Touch lives on shell letterbox (esp. portrait bottom), not covering gameplay */
+.touch{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-between;gap:10px;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));user-select:none;pointer-events:none;background:linear-gradient(180deg,transparent,#000a 35%,#000d)}
 .touch .cluster{display:flex;gap:10px;pointer-events:auto}
 .touch button{border:0;border-radius:18px;width:68px;height:68px;font-size:26px;font-weight:900;color:#fff;background:linear-gradient(180deg,#5a6ab0dd,#3b4590ee);box-shadow:0 4px 0 #2a3268;touch-action:none}
 .touch button:active,.touch button.on{transform:translateY(3px);box-shadow:none;background:linear-gradient(180deg,#78d484,#4ea85c)}
@@ -38,15 +39,19 @@ h1{margin:0;font-size:14px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 #result.show{display:flex}
 #result .card{background:linear-gradient(180deg,#2a3360,#1a2048);border:2px solid #ffe7a066;border-radius:18px;padding:14px 18px;text-align:center;max-width:92%}
 #result .big{font-size:28px;font-weight:900;margin:0 0 6px}
-#result .sub{font-size:13px;font-weight:800;color:#c9c3ef;margin:0 0 10px}
+#result .sub{font-size:13px;color:#c9c3ef;font-weight:800;margin:0 0 10px}
 #result .ctl{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 @media (orientation:portrait){
   #orientTip.on{display:block}
-  .touch button{width:72px;height:72px}.touch #btnJ{width:90px}
+  .shell{align-items:flex-start;background:#5c8cc8} /* sky letterbox, not void */
+  body{background:#5c8cc8}
+  .touch button{width:78px;height:78px}.touch #btnJ{width:98px}
   .dock .go.sec{display:none}
 }
 @media (orientation:landscape),(max-height:480px){
   #orientTip{display:none!important}
+  .shell{background:#000;align-items:center}
+  body{background:#000}
   .bar{min-height:28px;padding:2px 8px}h1{font-size:12px}.badge{display:none}
   .touch button{width:56px;height:56px;font-size:20px}.touch #btnJ{width:70px;font-size:15px}
   #hp{font-size:15px}#msg{font-size:11px;top:28px}
@@ -73,15 +78,6 @@ h1{margin:0;font-size:14px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
     <div class="hud"><div id="hp">❤❤❤❤❤❤</div><div id="coins">🪙 0</div></div>
     <div id="msg">← → 移动 · 跳 · 躲刺</div>
     <div id="boot"></div>
-    <div class="touch" id="touch">
-      <div class="cluster">
-        <button type="button" id="btnL" aria-label="左">◀</button>
-        <button type="button" id="btnR" aria-label="右">▶</button>
-      </div>
-      <div class="cluster">
-        <button type="button" id="btnJ" aria-label="跳">跳</button>
-      </div>
-    </div>
     <div class="dock">
       <button class="go" id="retry" type="button">重来</button>
       <a class="go sec" href="../../xy-go/?custom=1">旧版 xy-go</a>
@@ -97,7 +93,16 @@ h1{margin:0;font-size:14px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
       </div>
     </div>
   </div>
+  <div class="touch" id="touch">
+    <div class="cluster">
+      <button type="button" id="btnL" aria-label="左">◀</button>
+      <button type="button" id="btnR" aria-label="右">▶</button>
+    </div>
+    <div class="cluster">
+      <button type="button" id="btnJ" aria-label="跳">跳</button>
+    </div>
+  </div>
 </div>
-<script src="custom-play.js?v=c10"></script>
+<script src="custom-play.js?v=c11"></script>
 </body>
 </html>
