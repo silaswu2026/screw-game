@@ -16,9 +16,9 @@ main{flex:1;display:flex;flex-direction:column;gap:6px;padding:0 12px 10px;max-w
 .ctl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;font-weight:800}
 .ctl input[type=range]{width:min(280px,58vw);height:32px;vertical-align:middle;accent-color:#7ab0ff}
 .ctl b#fIv{font-size:36px;color:#ffe7a0;min-width:1.2em;display:inline-block;text-align:center}
-.n4{display:flex;gap:4px;justify-content:center;font-size:13px;font-weight:800}
-.n4 span{padding:3px 10px;border-radius:999px;background:#ffffff14;color:#c9c3ef}
-.n4 span.on{background:#e23b3b;color:#fff;box-shadow:0 0 0 2px #ffb4b466}.n4 span.done{background:#2f7a45;color:#fff}
+.n4{display:flex;gap:6px;justify-content:center;font-size:12px;font-weight:800;pointer-events:none;user-select:none}
+.n4 span{padding:2px 0;color:#8e87b8;border-bottom:2px solid transparent}
+.n4 span.on{color:#ffe7a0;border-bottom-color:#ffe7a0}.n4 span.done{color:#78d484}
 .go{border:0;border-radius:999px;padding:12px 20px;font-size:17px;font-weight:800;color:#fff;background:linear-gradient(180deg,#78d484,#4ea85c);box-shadow:0 3px 0 #2f6d3a;cursor:pointer;transition:transform .08s}
 .go:active{transform:translateY(2px);box-shadow:none}
 .go.tw{background:linear-gradient(180deg,#ffb06b,#e2793b);box-shadow:0 3px 0 #a35a20}
@@ -67,6 +67,6 @@ document.ccConfig = {
     <button class="go ex" id="fEx" type="button">🏁 考：最后一跑</button>
   </div>
 </main>
-<script src="freq-spike.js?v=p0"></script>
+<script src="freq-spike.js?v=p0b"></script>
 </body>
 </html>

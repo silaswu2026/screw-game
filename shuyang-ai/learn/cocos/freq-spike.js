@@ -26,8 +26,11 @@
       if (el) el.classList.toggle('on', step === j + 1);
     });
   }
+  var _lastLose = 0;
   function updHP(lose) {
     var M = 6, left = Math.max(0, M - lose);
+    if (lose > _lastLose) flashHit();
+    _lastLose = lose;
     $('hp').innerHTML = '❤'.repeat(left) + '🤍'.repeat(M - left) +
       ' <span style="font-size:13px;color:#c9c3ef">掉' + lose + '❤</span>';
   }
@@ -35,7 +38,13 @@
     $('msg').innerHTML = (prefix || '') + '每 <b style="color:#ffe7a0">' + I + '</b> 秒 → <b>' + n +
       '</b> 次刺 → 掉 <b style="color:#ffb4b4">' + lose + '❤</b>';
   }
-  function bootErr(m) {
+  function flashHit() {
+    var wrap = document.querySelector('.cvwrap');
+    if (!wrap) return;
+    wrap.style.boxShadow = '0 0 0 3px #ff4d4d, 0 0 24px #ff4d4d88';
+    setTimeout(function () { wrap.style.boxShadow = ''; }, 180);
+  }
+    function bootErr(m) {
     var b = $('boot');
     if (!b) return;
     b.textContent = m;
