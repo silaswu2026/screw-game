@@ -1,14 +1,14 @@
 /**
- * 玩我的关 — Cocos2d-JS Lite playable runner (xy-go feel)
+ * 玩我的关 — Cocos2d-JS Lite landscape side-view runner (xy-go feel)
+ * Design: 960×380 landscape. Portrait: letterbox + tip, still playable.
  * Reads localStorage xygo-custom-level (JSON v1.1).
- * Green ninja + left/right/jump + pop spikes/fire/coins + HP.
  */
 (function () {
   var KEY = 'xygo-custom-level';
   var SP = '../../../xy-go/sprites/green/';
   var RES = [SP + 'walk_0.png', SP + 'walk_1.png', SP + 'walk_2.png', SP + 'walk_3.png',
     SP + 'idle.png', SP + 'knock_0.png', SP + 'jump_0.png'];
-  var W = 960, H = 420, T = 80, MAX_HP = 6;
+  var W = 960, H = 380, T = 80, MAX_HP = 6;
   var sceneRef = null, spikeTex = null, cloudTex = null, hillTex = null, fireTex = null, coinTex = null, flagTex = null;
   var level = null;
   var inp = { left: false, right: false, jump: false, jumpPressed: false };
@@ -17,6 +17,49 @@
   function bootErr(m) { var b = $('boot'); if (!b) return; b.textContent = m; b.className = 'err'; }
   function mkColor(w, h, r, g, b, a) { return new cc.LayerColor(cc.color(r, g, b, a == null ? 255 : a), w, h); }
   function texFromCanvas(cv) { var tex = new cc.Texture2D(); tex.initWithElement(cv); tex.handleLoadedTexture(); return tex; }
+
+  function updateOrientTip() {
+    var tip = $('orientTip');
+    if (!tip) return;
+    var portrait = window.innerHeight > window.innerWidth;
+    tip.classList.toggle('on', portrait);
+  }
+
+  /** Fit landscape stage into shell; drive Cocos frame from wrap (not tall window). */
+  function fitStage() {
+    updateOrientTip();
+    var wrap = $('cvwrap');
+    var shell = document.querySelector('.shell');
+    if (!wrap || !shell) return;
+    var aw = shell.clientWidth || window.innerWidth;
+    var ah = shell.clientHeight || Math.max(120, window.innerHeight - 90);
+    if (aw < 2 || ah < 2) return;
+    var ar = W / H;
+    var dw, dh;
+    if (aw / ah > ar) { dh = ah; dw = Math.round(ah * ar); }
+    else { dw = aw; dh = Math.round(aw / ar); }
+    wrap.style.width = dw + 'px';
+    wrap.style.height = dh + 'px';
+    wrap.style.maxWidth = '100%';
+    wrap.style.maxHeight = '100%';
+    wrap.style.aspectRatio = 'auto';
+    var cv = $('gameCanvas');
+    if (cv) {
+      cv.style.width = dw + 'px';
+      cv.style.height = dh + 'px';
+    }
+    if (typeof cc !== 'undefined' && cc.view) {
+      try {
+        if (cc.view.setFrameSize) cc.view.setFrameSize(dw, dh);
+        cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
+        if (cc.view._resizeEvent) cc.view._resizeEvent();
+        else if (typeof cc._canvas === 'object' && cc.view._adjustViewportMeta) {
+          /* lite: force policy apply */
+          cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
+        }
+      } catch (e) { /* ignore resize races */ }
+    }
+  }
 
   function loadLevel() {
     try {
@@ -181,20 +224,19 @@
       level = loadLevel();
       var cols = level.cols;
       this.worldW = (cols + 4) * T;
-      this.gy = 110;
+      this.gy = 96;
 
-      // parallax bg fixed to screen via layer, world scrolls
       this.bg = mkColor(W * 2, H, 58, 92, 150);
       this.addChild(this.bg, -2);
-      var sky = mkColor(W * 2, 160, 92, 140, 200);
-      sky.setPosition(0, H - 160);
+      var sky = mkColor(W * 2, 140, 92, 140, 200);
+      sky.setPosition(0, H - 140);
       this.addChild(sky, -2);
 
-      var h1 = new cc.Sprite(hillTex); h1.setAnchorPoint(0, 0); h1.setPosition(0, 90); h1.setOpacity(200); this.world.addChild(h1, 0);
-      var h2 = new cc.Sprite(hillTex); h2.setAnchorPoint(0, 0); h2.setScaleX(-1); h2.setPosition(this.worldW - 40, 80); h2.setOpacity(170); this.world.addChild(h2, 0);
+      var h1 = new cc.Sprite(hillTex); h1.setAnchorPoint(0, 0); h1.setPosition(0, 70); h1.setOpacity(200); this.world.addChild(h1, 0);
+      var h2 = new cc.Sprite(hillTex); h2.setAnchorPoint(0, 0); h2.setScaleX(-1); h2.setPosition(this.worldW - 40, 60); h2.setOpacity(170); this.world.addChild(h2, 0);
       for (var ci = 0; ci < Math.ceil(this.worldW / 260); ci++) {
         var cl = new cc.Sprite(cloudTex);
-        cl.setPosition(80 + ci * 260, H - 70 - (ci % 2) * 18);
+        cl.setPosition(80 + ci * 260, H - 55 - (ci % 2) * 16);
         cl.setOpacity(150); this.world.addChild(cl, 1);
       }
 
@@ -207,7 +249,7 @@
 
       this.traps = [];
       this.coinNodes = [];
-      var pad = 2 * T; // start safe zone
+      var pad = 2 * T;
       for (var x = 0; x < cols; x++) {
         var kind = level.cells[x];
         var px = pad + x * T + T * 0.5;
@@ -239,7 +281,7 @@
       this.ninja = new cc.Sprite(SP + 'idle.png');
       this.ninja.setAnchorPoint(0.5, 0);
       var sz = this.ninja.getContentSize();
-      this.nScale = 100 / Math.max(sz.width || 100, 1);
+      this.nScale = 92 / Math.max(sz.width || 100, 1);
       this.ninja.setScale(this.nScale);
       this.world.addChild(this.ninja, 10);
       this.walk = [SP + 'walk_0.png', SP + 'walk_1.png', SP + 'walk_2.png', SP + 'walk_3.png'];
@@ -279,7 +321,6 @@
         var now = Date.now() / 1000;
         var elapsed = now - this.t0;
 
-        // movement
         var speed = 260;
         if (inp.left && !inp.right) { this.vx = -speed; this.face = -1; }
         else if (inp.right && !inp.left) { this.vx = speed; this.face = 1; }
@@ -303,7 +344,6 @@
           this.grounded = true;
         }
 
-        // anim
         this.ninja.setPosition(this.px, this.py);
         this.ninja.setScaleX(this.face * this.nScale);
         this.ninja.setScaleY(this.nScale);
@@ -323,14 +363,13 @@
           this.ninja.setOpacity((Math.floor(this.invuln * 20) % 2) ? 90 : 255);
         } else this.ninja.setOpacity(255);
 
-        // traps pop
         var sp = level.traps.spike || {};
         var I = Math.max(0.6, +sp.interval || 3);
         var upDur = Math.max(0.25, +sp.up || 1);
         var phase = elapsed % I;
         var spikeUp = phase < upDur;
         var fire = level.traps.fire || {};
-        var fireUp = spikeUp; // same rhythm for simplicity
+        var fireUp = spikeUp;
         var dmgS = Math.max(1, +sp.damage || 1);
         var dmgF = Math.max(1, +fire.damage || 1);
 
@@ -356,7 +395,6 @@
           }
         }
 
-        // coins
         for (var j = 0; j < this.coinNodes.length; j++) {
           var cn = this.coinNodes[j];
           if (cn.got) continue;
@@ -366,14 +404,12 @@
           }
         }
 
-        // goal
         if (!this.won && this.px >= this.goalX - 20) {
           this.won = true; this.playing = false;
           showResult(true, this.hp, this.coins);
           $('msg').textContent = '到旗了！';
         }
 
-        // camera
         var target = this.px - W * 0.35;
         if (target < 0) target = 0;
         if (target > this.worldW - W) target = Math.max(0, this.worldW - W);
@@ -387,6 +423,10 @@
     if (typeof cc === 'undefined') { bootErr('Cocos 未加载'); return; }
     window.addEventListener('error', function (e) { bootErr(e.message || String(e)); });
     bindControls();
+    updateOrientTip();
+    fitStage();
+    window.addEventListener('resize', fitStage);
+    window.addEventListener('orientationchange', function () { setTimeout(fitStage, 120); });
 
     var PlayScene = cc.Scene.extend({
       onEnter: function () {
@@ -403,8 +443,10 @@
       try {
         cc.view.enableRetina(false);
         cc.view.adjustViewPort(true);
+        // Do NOT resizeWithBrowserSize — that makes a tall portrait frame on phones.
+        // We drive frame size from the landscape letterboxed wrap via fitStage().
+        fitStage();
         cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
-        cc.view.resizeWithBrowserSize(true);
         spikeTex = buildSpikeTex();
         cloudTex = buildCloudTex();
         hillTex = buildHillTex();
@@ -415,8 +457,10 @@
         function tick() {
           left--;
           if (left > 0) return;
+          fitStage();
           cc.director.runScene(new PlayScene());
           $('msg').textContent = '可玩 · ←→移动 · 跳躲刺';
+          setTimeout(fitStage, 50);
         }
         RES.forEach(function (src) {
           var img = new Image();
