@@ -89,14 +89,13 @@ function dimVal(t,k){return k==='gap'?gapOf(t):st.traps[t.type][k];}
 function traps(){const t=selTile();if(!t){$('traps').innerHTML='';return;}
  $('traps').innerHTML=DIMS.map(([k,n,u,mn,mx])=>`<div class="card dim" style="flex:1 1 18%;padding:4px"><div style="font-size:14px">${n}</div><canvas id="m-${k}" width="120" height="44" style="width:100%;height:26px"></canvas><b id="v-${k}" style="font-size:18px;color:#ffe7a0">${dimVal(t,k)}</b><input type="range" min="${mn}" max="${mx}" value="${dimVal(t,k)}" data-f="${k}" style="width:100%"><div id="h-${k}" style="font-size:14px"></div></div>`).join('')+'<div id="sumtab" style="flex:1 1 100%;font-size:12px"></div>';
  dimRes();cancelAnimationFrame(stripAnim);const t0=performance.now();(function f(now){drawStrip((now-t0)/1000);stripAnim=requestAnimationFrame(f);})(t0);}
-let base0=null;
-function dimRes(){const t=selTile();if(!t)return;const p=st.traps[t.type],now=totalHits();if(!base0)base0={traps:JSON.parse(JSON.stringify(st.traps)),tiles:JSON.parse(JSON.stringify(st.tiles))};
- const rows=DIMS.map(([k,n])=>{let before,after=dimVal(t,k),dl;
-  if(k==='gap'){const sv=t.x,b=base0.tiles.find(b=>b.type===t.type&&b.y===t.y&&Math.abs(b.x-sv)<=5);before=b?(()=>{const keep=t.x;t.x=b.x;const g=gapOf(t);t.x=keep;return g;})():after;
-   const keep=t.x;if(b)t.x=b.x;const h0=totalHits();t.x=keep;dl=now-h0;}
-  else{before=base0.traps[t.type][k];const keep=p[k];p[k]=before;const h0=totalHits();p[k]=keep;dl=now-h0;}
+
+function dimRes(){const t=selTile();if(!t)return;const now=totalHits(),ty=[...new Set(trapTiles().map(x=>x.type))];
+ const rows=DIMS.map(([k,n])=>{let ch=[],dl;
+  if(k==='gap'){const keep=JSON.parse(JSON.stringify(st.tiles)),pre=preset(st.theme);const moved=st.tiles.some((x,i)=>!pre[i]||pre[i].x!==x.x||pre[i].type!==x.type);if(moved)ch.push('挪了');st.tiles=pre;const h0=totalHits();st.tiles=keep;dl=now-h0;}
+  else{const keep={};ty.forEach(y=>{const v=st.traps[y][k];keep[y]=v;if(v!==DEF[k])ch.push((NUM[y]||[y])[0]+DEF[k]+'→'+v);st.traps[y][k]=DEF[k];});const h0=totalHits();ty.forEach(y=>st.traps[y][k]=keep[y]);dl=now-h0;}
   const el=$('h-'+k);if(el)el.innerHTML=dl>0?`<span class="bad">-${dl}❤</span>`:dl<0?`<span class="ok">+${-dl}❤</span>`:'—';
-  return [n,before===after?'—':before+'→'+after,dl?(dl>0?'-'+dl+'❤':'+'+(-dl)+'❤'):'—'];});
+  return [n,ch.length?ch.join(' '):'默认',dl?(dl>0?'-'+dl+'❤':'+'+(-dl)+'❤'):'0❤'];});
  $('sumtab').innerHTML='<table style="width:100%;text-align:center"><tr><th>维度</th>'+rows.map(r=>`<th>${r[0]}</th>`).join('')+'</tr><tr><td>调了</td>'+rows.map(r=>`<td>${r[1]}</td>`).join('')+'</tr><tr><td>结果</td>'+rows.map(r=>`<td>${r[2]}</td>`).join('')+`</tr></table>`;}
 function mini(t){const tl=selTile();if(!tl)return;const p=st.traps[tl.type],e=E[tl.type];
  for(const [k] of DIMS){const c=$('m-'+k);if(!c)continue;const g=c.getContext('2d');g.clearRect(0,0,120,44);g.font='22px sans-serif';
@@ -220,11 +219,11 @@ const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);if(sl===0)return _p0
     g.fillStyle='#ffe7a0';g.font='bold 30px sans-serif';g.fillText(a,x+30,80);g.font='54px sans-serif';g.fillText(e,x+30,170);g.fillStyle='#fff';g.font='bold 18px sans-serif';g.fillText(b,x+20,230);});}
   if(t<12)a0=requestAnimationFrame(f);})(performance.now());};
 $('play0').onclick=()=>play0(0);
-const updHP=()=>{try{const h=totalHits(),M=6,left=Math.max(0,M-h);$('hp').innerHTML=`${'❤'.repeat(left)}${'🤍'.repeat(M-left)} <span style="font-size:12px;color:#c9c3ef">难度=频率×摆放 → 掉${h}❤</span>`;}catch(e){}};setInterval(updHP,300);setTimeout(updHP,0);
+function updHP(){try{const h=totalHits(),M=6,left=Math.max(0,M-h);$('hp').innerHTML=`${'❤'.repeat(left)}${'🤍'.repeat(M-left)} <span style="font-size:12px;color:#c9c3ef">难度=频率×摆放 → 掉${h}❤</span>`;}catch(e){}}setInterval(updHP,300);setTimeout(updHP,0);
 let cur=0;const ORDER=['s0','s1','sP','s2','s3'];function go(n){cur=Math.max(0,Math.min(4,n));ORDER.forEach((id,i)=>$(id).classList.toggle('on',i===cur));document.querySelectorAll('.nostage').forEach((s,i)=>s.classList.toggle('on',i===cur));
  document.querySelectorAll('.st').forEach((s,i)=>{s.classList.toggle('on',i===cur);s.classList.toggle('done',i<cur);});
  cancelAnimationFrame(stripAnim);if(cur===0)slide(+(new URLSearchParams(location.search).get('sl'))||0),play0(+(new URLSearchParams(location.search).get('pt0'))||0);if(cur===1)traps();if(cur===2)preview();if(cur===3)design();if(cur===4)save();
- $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<4?'visible':'hidden';}
+ $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<4?'visible':'hidden';if(typeof updHP==='function')updHP();}
 $('next').onclick=()=>go(cur+1);$('back').onclick=()=>go(cur-1);
 document.querySelector('.bar').onclick=e=>{const s=e.target.dataset.s;if(s!=null)go(+s);};
 {const q=new URLSearchParams(location.search);if(q.get('bump')||q.get('move')){preview();cancelAnimationFrame(anim);
