@@ -8,7 +8,7 @@
 <title>玩我的关 · Cocos · 伍澍暘</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;overflow:hidden;background:#000}
+html,body{margin:0;height:100%;overflow:hidden;background:#0b1a12}
 body{font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;color:#f7f4ff;display:flex;flex-direction:column;height:100dvh;height:100vh}
 .bar{position:relative;z-index:10;display:flex;gap:6px;padding:4px 8px;align-items:center;flex-shrink:0;background:#05070fee;min-height:34px}
 .bar a{color:#fff;font-weight:800;text-decoration:none;background:#3b4590;border-radius:999px;padding:5px 10px;font-size:12px}
@@ -17,9 +17,9 @@ h1{margin:0;font-size:14px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 #orientTip{display:none;position:absolute;left:50%;transform:translateX(-50%);top:36px;z-index:12;font-size:11px;font-weight:800;color:#ffe7a0;background:#1a2048cc;padding:3px 10px;border-radius:999px;pointer-events:none;white-space:nowrap}
 #orientTip.on{display:block}
 /* Black letterbox host — maximize locked landscape AR (contain, never squash) */
-.shell{flex:1 1 auto;min-height:0;width:100%;position:relative;background:#3a5c96;display:flex;align-items:center;justify-content:center}
-.cvwrap{position:relative;flex:0 0 auto;background:#000;overflow:hidden;line-height:0;box-shadow:0 0 0 1px #ffffff18}
-#gameCanvas{width:100%!important;height:100%!important;display:block;background:#3a5c96;touch-action:none}
+.shell{flex:1 1 auto;min-height:0;width:100%;position:relative;background:#0b1a12;display:flex;align-items:stretch;justify-content:stretch}
+.cvwrap{position:relative;flex:1 1 auto;width:100%;height:100%;background:#0b1a12;overflow:hidden;line-height:0}
+#gameCanvas{width:100%!important;height:100%!important;display:block;background:#1d4e38;touch-action:none}
 .hud{position:absolute;top:6px;left:8px;right:8px;z-index:6;display:flex;justify-content:space-between;align-items:center;pointer-events:none;text-shadow:0 1px 3px #000a}
 #hp{font-size:18px;letter-spacing:1px;font-weight:800}
 #coins{font-size:15px;color:#ffe7a0;font-weight:800}
@@ -43,15 +43,15 @@ h1{margin:0;font-size:14px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 #result .ctl{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 @media (orientation:portrait){
   #orientTip.on{display:block}
-  .shell{align-items:flex-start;background:#5c8cc8} /* sky letterbox, not void */
-  body{background:#5c8cc8}
+  .shell{align-items:stretch;background:#0b1a12}
+  body{background:#0b1a12}
   .touch button{width:78px;height:78px}.touch #btnJ{width:98px}
   .dock .go.sec{display:none}
 }
 @media (orientation:landscape),(max-height:480px){
   #orientTip{display:none!important}
-  .shell{background:#000;align-items:center}
-  body{background:#000}
+  .shell{background:#0b1a12;align-items:stretch}
+  body{background:#0b1a12}
   .bar{min-height:28px;padding:2px 8px}h1{font-size:12px}.badge{display:none}
   .touch button{width:56px;height:56px;font-size:20px}.touch #btnJ{width:70px;font-size:15px}
   #hp{font-size:15px}#msg{font-size:11px;top:28px}
@@ -69,12 +69,12 @@ h1{margin:0;font-size:14px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 <div class="bar">
   <a href="../level-design.html?path=tonight&s=3">← 回玩完</a>
   <h1>🎮 玩我的关</h1>
-  <span class="badge">横版侧视</span>
+  <span class="badge">同 xy-go</span>
 </div>
 <div id="orientTip">📱 竖屏可玩 · 横屏更铺满</div>
 <div class="shell" id="shell">
   <div class="cvwrap" id="cvwrap">
-    <canvas id="gameCanvas" width="960" height="600"></canvas>
+    <canvas id="gameCanvas" width="640" height="368"></canvas>
     <div class="hud"><div id="hp">❤❤❤❤❤❤</div><div id="coins">🪙 0</div></div>
     <div id="msg">← → 移动 · 跳 · 躲刺</div>
     <div id="boot"></div>
@@ -103,6 +103,6 @@ h1{margin:0;font-size:14px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
     </div>
   </div>
 </div>
-<script src="custom-play.js?v=c11"></script>
+<script src="custom-play.js?v=c12"></script>
 </body>
 </html>

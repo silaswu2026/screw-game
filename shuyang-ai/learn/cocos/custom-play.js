@@ -1,15 +1,28 @@
 /**
- * 玩我的关 — landscape side-view (960×600 base)
- * Landscape/desktop: contain letterbox at 16:10 (no squash, full height).
- * Portrait: full-bleed tall design (same width world, extended sky) so no dwarf strip / void bottom.
+ * 玩我的关 — Cocos2d-JS Lite, aligned to xy-go custom=1 (same JSON / T / zoom / forest BG).
+ * Only the engine differs. Coordinate system mirrors xy-go/game.js buildCustomDef + resize().
  */
 (function () {
   var KEY = 'xygo-custom-level';
   var SP = '../../../xy-go/sprites/green/';
-  var RES = [SP + 'walk_0.png', SP + 'walk_1.png', SP + 'walk_2.png', SP + 'walk_3.png',
-    SP + 'idle.png', SP + 'knock_0.png', SP + 'jump_0.png'];
-  var W = 960, BASE_H = 600, H = 600, T = 80, MAX_HP = 6;
-  var sceneRef = null, spikeTex = null, cloudTex = null, hillTex = null, fireTex = null, coinTex = null, flagTex = null;
+  var SC = '../../../xy-go/scenes/';
+  var RES = [
+    SP + 'walk_0.png', SP + 'walk_1.png', SP + 'walk_2.png', SP + 'walk_3.png',
+    SP + 'idle.png', SP + 'knock_0.png', SP + 'jump_0.png',
+    SC + 'forest-day.jpg', SC + 'dirt-tile.png', SC + 'grass-cap.png'
+  ];
+  /* xy-go constants */
+  var T = 40;
+  var DRAW_H = 78;
+  var EXP = 6;   /* design col → game cols */
+  var PAD = 6;   /* safe pad cols each side */
+  var WORLD_ROWS = 14;
+  var GROUND_ROW = 11;
+  var MAX_HP = 6;
+  var W = 640, H = 368; /* overwritten by fitStage to match xy-go visible world */
+
+  var sceneRef = null, spikeTex = null, fireTex = null, coinTex = null, flagTex = null;
+  var dirtTex = null, grassTex = null, forestImg = null;
   var level = null, lastFitKey = '', rebuilding = false;
   var inp = { left: false, right: false, jump: false, jumpPressed: false };
 
@@ -17,44 +30,43 @@
   function bootErr(m) { var b = $('boot'); if (!b) return; b.textContent = m; b.className = 'err'; }
   function mkColor(w, h, r, g, b, a) { return new cc.LayerColor(cc.color(r, g, b, a == null ? 255 : a), w, h); }
   function texFromCanvas(cv) { var tex = new cc.Texture2D(); tex.initWithElement(cv); tex.handleLoadedTexture(); return tex; }
+  function isPortrait() { return window.innerHeight > window.innerWidth; }
 
   function updateOrientTip() {
     var tip = $('orientTip');
     if (!tip) return;
-    tip.classList.toggle('on', window.innerHeight > window.innerWidth);
+    tip.classList.toggle('on', isPortrait());
   }
 
-  function isPortrait() { return window.innerHeight > window.innerWidth; }
-
-  /** Size stage: landscape = 16:10 contain letterbox; portrait = full-bleed tall design (no void strip). */
+  /**
+   * Match xy-go resize(): zoom = viewH / ((portrait?12.5:9.2)*T), clamp;
+   * design size = visible world in tile pixels so character/tile scale matches.
+   * Full-bleed shell (letterbox only if CSS chrome); no 960×600 SHOW_ALL blow-up.
+   */
   function fitStage() {
     updateOrientTip();
     var wrap = $('cvwrap');
     var shell = $('shell');
     if (!wrap || !shell) return;
-    var portrait = isPortrait();
     var aw = Math.max(2, shell.clientWidth || window.innerWidth);
     var ah = Math.max(2, shell.clientHeight || Math.max(160, window.innerHeight - 40));
-    var dw, dh, nextH;
-    if (portrait) {
-      /* Full-bleed: design height matches shell AR so SHOW_ALL fills with extended sky */
-      dw = aw; dh = ah;
-      nextH = Math.max(BASE_H, Math.round(W * ah / aw));
-    } else {
-      nextH = BASE_H;
-      var ar = W / BASE_H;
-      if (aw / ah > ar) { dh = ah; dw = Math.round(ah * ar); }
-      else { dw = aw; dh = Math.round(aw / ar); }
-    }
-    wrap.style.width = dw + 'px';
-    wrap.style.height = dh + 'px';
+    var portrait = ah > aw;
+    var zoom = ah / ((portrait ? 12.5 : 9.2) * T);
+    zoom = Math.max(0.8, Math.min(zoom, portrait ? 2.1 : 1.7));
+    var nextW = Math.max(200, Math.round(aw / zoom));
+    var nextH = Math.max(200, Math.round(ah / zoom));
+    wrap.style.width = aw + 'px';
+    wrap.style.height = ah + 'px';
     var cv = $('gameCanvas');
     if (cv) {
-      cv.style.width = dw + 'px'; cv.style.height = dh + 'px';
-      cv.width = W; cv.height = nextH; /* buffer matches design */
+      cv.style.width = aw + 'px';
+      cv.style.height = ah + 'px';
+      cv.width = nextW;
+      cv.height = nextH;
     }
-    var fitKey = (portrait ? 'p' : 'l') + ':' + nextH + ':' + dw + 'x' + dh;
-    var hChanged = nextH !== H;
+    var fitKey = (portrait ? 'p' : 'l') + ':' + nextW + 'x' + nextH + '@' + zoom.toFixed(2);
+    var changed = nextW !== W || nextH !== H;
+    W = nextW;
     H = nextH;
     try {
       var dbg = $('msg');
@@ -62,12 +74,12 @@
     } catch (e0) {}
     if (typeof cc === 'undefined' || !cc.view) { lastFitKey = fitKey; return; }
     try {
-      if (cc.view.setFrameSize) cc.view.setFrameSize(dw, dh);
+      if (cc.view.setFrameSize) cc.view.setFrameSize(aw, ah);
       cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
       if (cc.view._resizeEvent) cc.view._resizeEvent();
     } catch (e) { /* ignore */ }
     lastFitKey = fitKey;
-    if (hChanged && sceneRef && !rebuilding && window.__playSceneCtor) {
+    if (changed && sceneRef && !rebuilding && window.__playSceneCtor) {
       rebuilding = true;
       setTimeout(function () {
         try { cc.director.runScene(new window.__playSceneCtor()); } catch (e2) {}
@@ -76,86 +88,103 @@
     }
   }
 
+  /** Same mapping as xy-go buildCustomDef — design cells → game tile columns. */
   function loadLevel() {
     try {
       var d = JSON.parse(localStorage.getItem(KEY) || 'null') || {};
       var tiles = Array.isArray(d.tiles) ? d.tiles : [];
       var traps = d.traps || {};
-      var cols = Math.max(6, Math.min(24, d.cols | 0 || 12));
-      var rows = Math.max(2, Math.min(8, d.rows | 0 || 4));
-      var cells = [];
-      for (var x = 0; x < cols; x++) cells[x] = null;
-      tiles.forEach(function (t) {
-        if (!t || t.type === 'g' || t.type === 'p') return;
-        if ((t.y | 0) >= rows - 1) return;
-        cells[t.x | 0] = t.type;
-      });
+      var DC = Math.max(4, Math.min(40, d.cols | 0 || 12));
+      var DR = Math.max(2, Math.min(8, d.rows | 0 || 4));
+      var cols = PAD + DC * EXP + PAD + 10;
+      var gx = function (x) { return PAD + (x | 0) * EXP + 2; };
+      var items = [];
+      var groundCols = [];
+      var i, x, t, g;
+      for (x = 0; x < DC; x++) {
+        g = tiles.length
+          ? tiles.some(function (tt) { return tt && tt.x === x && tt.y === DR - 1 && (tt.type === 'g' || tt.type === 'p'); })
+          : true;
+        groundCols.push(g);
+      }
       if (!tiles.length && d.mine && Array.isArray(d.mine.map)) {
-        d.mine.map.forEach(function (k, x) { if (k) cells[x] = k; });
+        d.mine.map.forEach(function (k, xi) {
+          if (!k) return;
+          items.push({ type: k, c: gx(xi), designX: xi });
+        });
         if (d.mine.mp) {
           Object.keys(d.mine.mp).forEach(function (k) { traps[k] = traps[k] || d.mine.mp[k]; });
         }
+      } else {
+        tiles.forEach(function (tt) {
+          if (!tt || tt.type === 'g' || tt.type === 'p') return;
+          if ((tt.y | 0) >= DR - 1) return;
+          items.push({ type: tt.type, c: gx(tt.x | 0), designX: tt.x | 0, y: tt.y | 0 });
+        });
       }
-      if (!cells.some(Boolean)) {
-        cells[3] = 'spike'; cells[6] = 'coin'; cells[9] = 'spike';
+      if (!items.length) {
+        items.push({ type: 'spike', c: gx(3), designX: 3 });
+        items.push({ type: 'coin', c: gx(6), designX: 6 });
+        items.push({ type: 'spike', c: gx(9), designX: 9 });
         traps.spike = traps.spike || { interval: 3, up: 1, damage: 1 };
       }
       return {
-        version: d.version || '1.1', cols: cols, cells: cells, traps: traps,
+        version: d.version || '1.1',
+        DC: DC, DR: DR, cols: cols, groundCols: groundCols,
+        items: items, traps: traps,
+        theme: d.theme || 'swamp',
         hook_seen: d.hook_seen || d.reflectHook || '',
         vs_expect: d.vs_expect || d.reflectExpect || '',
-        by: d.by || ''
+        by: d.by || '',
+        spawnC: 2,
+        goalC: cols - 5
       };
     } catch (e) {
-      var a = []; for (var i = 0; i < 12; i++) a[i] = null;
-      a[3] = 'spike'; a[7] = 'coin'; a[10] = 'fire';
-      return { cols: 12, cells: a, traps: { spike: { interval: 3, up: 1, damage: 1 }, fire: { damage: 1, dur: 2 } }, version: '1.1' };
+      var fallback = {
+        version: '1.1', DC: 12, DR: 4, cols: PAD + 12 * EXP + PAD + 10,
+        groundCols: [], items: [], traps: { spike: { interval: 3, up: 1, damage: 1 }, fire: { damage: 1, dur: 2 } },
+        theme: 'swamp', by: '', spawnC: 2, goalC: 0
+      };
+      for (i = 0; i < 12; i++) fallback.groundCols.push(true);
+      fallback.items = [
+        { type: 'spike', c: PAD + 3 * EXP + 2 },
+        { type: 'coin', c: PAD + 7 * EXP + 2 },
+        { type: 'fire', c: PAD + 10 * EXP + 2 }
+      ];
+      fallback.goalC = fallback.cols - 5;
+      return fallback;
     }
   }
 
   function buildSpikeTex() {
-    var c = document.createElement('canvas'); c.width = 64; c.height = 36;
+    var c = document.createElement('canvas'); c.width = 48; c.height = 28;
     var g = c.getContext('2d');
-    for (var k = 0; k < 4; k++) {
+    for (var k = 0; k < 3; k++) {
       var sx = 2 + k * 15;
-      g.fillStyle = '#e2e8f0'; g.beginPath(); g.moveTo(sx, 36); g.lineTo(sx + 7.5, 2); g.lineTo(sx + 15, 36); g.closePath(); g.fill();
+      g.fillStyle = '#e2e8f0'; g.beginPath(); g.moveTo(sx, 28); g.lineTo(sx + 7, 2); g.lineTo(sx + 14, 28); g.closePath(); g.fill();
       g.strokeStyle = '#64748b'; g.stroke();
     }
-    g.fillStyle = '#334155'; g.fillRect(0, 32, 64, 4);
-    return texFromCanvas(c);
-  }
-  function buildCloudTex() {
-    var c = document.createElement('canvas'); c.width = 120; c.height = 48;
-    var g = c.getContext('2d'); g.fillStyle = 'rgba(255,255,255,0.5)';
-    function blob(x, y, r) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
-    blob(36, 28, 18); blob(58, 22, 22); blob(82, 28, 16);
-    return texFromCanvas(c);
-  }
-  function buildHillTex() {
-    var c = document.createElement('canvas'); c.width = 280; c.height = 90;
-    var g = c.getContext('2d');
-    g.fillStyle = '#2d4a6e'; g.beginPath(); g.moveTo(0, 90); g.quadraticCurveTo(70, 10, 140, 70); g.quadraticCurveTo(200, 20, 280, 90); g.closePath(); g.fill();
     return texFromCanvas(c);
   }
   function buildFireTex() {
-    var c = document.createElement('canvas'); c.width = 40; c.height = 52;
+    var c = document.createElement('canvas'); c.width = 28; c.height = 36;
     var g = c.getContext('2d');
-    g.fillStyle = '#ff6b2d'; g.beginPath(); g.moveTo(20, 2); g.quadraticCurveTo(38, 26, 20, 50); g.quadraticCurveTo(2, 26, 20, 2); g.fill();
-    g.fillStyle = '#ffe14a'; g.beginPath(); g.moveTo(20, 16); g.quadraticCurveTo(30, 32, 20, 46); g.quadraticCurveTo(10, 32, 20, 16); g.fill();
+    g.fillStyle = '#ff6b2d'; g.beginPath(); g.moveTo(14, 2); g.quadraticCurveTo(26, 18, 14, 34); g.quadraticCurveTo(2, 18, 14, 2); g.fill();
+    g.fillStyle = '#ffe14a'; g.beginPath(); g.moveTo(14, 12); g.quadraticCurveTo(21, 22, 14, 32); g.quadraticCurveTo(7, 22, 14, 12); g.fill();
     return texFromCanvas(c);
   }
   function buildCoinTex() {
-    var c = document.createElement('canvas'); c.width = 32; c.height = 32;
+    var c = document.createElement('canvas'); c.width = 22; c.height = 22;
     var g = c.getContext('2d');
-    g.fillStyle = '#f0c45a'; g.beginPath(); g.arc(16, 16, 14, 0, 7); g.fill();
-    g.fillStyle = '#ffe7a0'; g.beginPath(); g.arc(16, 16, 8, 0, 7); g.fill();
+    g.fillStyle = '#f0c45a'; g.beginPath(); g.arc(11, 11, 10, 0, 7); g.fill();
+    g.fillStyle = '#ffe7a0'; g.beginPath(); g.arc(11, 11, 5, 0, 7); g.fill();
     return texFromCanvas(c);
   }
   function buildFlagTex() {
-    var c = document.createElement('canvas'); c.width = 40; c.height = 56;
+    var c = document.createElement('canvas'); c.width = 28; c.height = 48;
     var g = c.getContext('2d');
-    g.fillStyle = '#94a3b8'; g.fillRect(6, 4, 4, 52);
-    g.fillStyle = '#4ea85c'; g.beginPath(); g.moveTo(10, 6); g.lineTo(36, 16); g.lineTo(10, 28); g.closePath(); g.fill();
+    g.fillStyle = '#94a3b8'; g.fillRect(4, 2, 3, 44);
+    g.fillStyle = '#4ea85c'; g.beginPath(); g.moveTo(7, 4); g.lineTo(26, 12); g.lineTo(7, 22); g.closePath(); g.fill();
     return texFromCanvas(c);
   }
 
@@ -235,69 +264,143 @@
       this.scheduleUpdate();
       return true;
     },
+    _addForestBg: function () {
+      /* Screen-space cover plate like xy-go drawSky (parallax updated each frame). */
+      var fallback = mkColor(W + 4, H + 4, 29, 78, 56);
+      fallback.setPosition(-2, -2);
+      this.addChild(fallback, -5);
+      this.bgNode = null;
+      if (forestImg && forestImg.naturalWidth) {
+        try {
+          var path = SC + 'forest-day.jpg';
+          var sp = new cc.Sprite(path);
+          sp.setAnchorPoint(0, 0);
+          this.addChild(sp, -4);
+          this.bgNode = sp;
+          this._layoutBg(0);
+        } catch (e) { /* solid fallback stays */ }
+      }
+    },
+    _layoutBg: function (camX) {
+      if (!this.bgNode || !forestImg) return;
+      var iw = forestImg.naturalWidth || 1600;
+      var ih = forestImg.naturalHeight || 900;
+      var scale = Math.max(W / iw, H / ih) * 1.08;
+      var dw = iw * scale, dh = ih * scale;
+      this.bgNode.setScale(scale);
+      var parallax = (camX || 0) * 0.12;
+      var ox = -((parallax % dw) + dw) % dw;
+      var oy = H - dh + 8;
+      this.bgNode.setPosition(ox, oy);
+      if (!this.bgNode2) {
+        try {
+          var sp2 = new cc.Sprite(SC + 'forest-day.jpg');
+          sp2.setAnchorPoint(0, 0);
+          sp2.setScale(scale);
+          this.addChild(sp2, -4);
+          this.bgNode2 = sp2;
+        } catch (e2) { this.bgNode2 = null; }
+      }
+      if (this.bgNode2) {
+        this.bgNode2.setScale(scale);
+        this.bgNode2.setPosition(ox + dw - 1, oy);
+        this.bgNode2.setVisible(ox + dw < W + 2);
+      }
+    },
+    _buildGround: function () {
+      var cols = level.cols;
+      var gy = this.gy;
+      var c, x0, solid;
+      /* Deep dirt fill below ground surface */
+      var deep = mkColor(this.worldW + 80, gy + 4, 61, 42, 28);
+      deep.setPosition(-40, -4);
+      this.world.addChild(deep, 1);
+      for (c = 0; c < cols; c++) {
+        solid = true;
+        if (level.groundCols && level.groundCols.length === level.DC) {
+          /* pad zones always solid; design band uses groundCols */
+          if (c >= PAD && c < PAD + level.DC * EXP) {
+            var dx = Math.floor((c - PAD) / EXP);
+            solid = !!level.groundCols[dx];
+          }
+        }
+        if (!solid) continue;
+        x0 = c * T;
+        if (dirtTex) {
+          var dirt = new cc.Sprite(SC + 'dirt-tile.png');
+          dirt.setAnchorPoint(0, 1);
+          dirt.setPosition(x0, gy);
+          dirt.setScale(T / 40);
+          this.world.addChild(dirt, 2);
+          var dirt2 = new cc.Sprite(SC + 'dirt-tile.png');
+          dirt2.setAnchorPoint(0, 1);
+          dirt2.setPosition(x0, gy - T);
+          dirt2.setScale(T / 40);
+          this.world.addChild(dirt2, 2);
+        }
+        if (grassTex) {
+          var cap = new cc.Sprite(SC + 'grass-cap.png');
+          cap.setAnchorPoint(0, 0);
+          cap.setPosition(x0, gy - 2);
+          cap.setScaleX((T + 0.6) / 40);
+          cap.setScaleY(16 / 18);
+          this.world.addChild(cap, 3);
+        } else {
+          var strip = mkColor(T + 1, 10, 63, 143, 74);
+          strip.setPosition(x0, gy - 2);
+          this.world.addChild(strip, 3);
+        }
+      }
+    },
     _build: function () {
       level = loadLevel();
-      var cols = level.cols;
-      this.worldW = (cols + 4) * T;
-      /* Portrait tall view: lift ground above touch dock; landscape keeps classic 150 */
-      this.gy = (H > BASE_H + 10) ? Math.max(260, Math.min(560, Math.round(H * 0.28))) : 150;
+      this.worldW = level.cols * T;
+      /* Player sits near 38% up the view (xy-go camera puts focus ~0.62 from top). */
+      this.gy = Math.round(H * 0.36);
+      this.gy = Math.max(80, Math.min(this.gy, H - 100));
 
-      this.bg = mkColor(W * 2, H, 58, 92, 150);
-      this.addChild(this.bg, -2);
-      var sky = mkColor(W * 2, H - this.gy, 92, 140, 200);
-      sky.setPosition(0, this.gy);
-      this.addChild(sky, -2);
-
-      var h1 = new cc.Sprite(hillTex); h1.setAnchorPoint(0, 0); h1.setPosition(0, this.gy - 40); h1.setOpacity(200); this.world.addChild(h1, 0);
-      var h2 = new cc.Sprite(hillTex); h2.setAnchorPoint(0, 0); h2.setScaleX(-1); h2.setPosition(this.worldW - 40, this.gy - 50); h2.setOpacity(170); this.world.addChild(h2, 0);
-      for (var ci = 0; ci < Math.ceil(this.worldW / 260); ci++) {
-        var cl = new cc.Sprite(cloudTex);
-        cl.setPosition(80 + ci * 260, H - 80 - (ci % 2) * 22);
-        cl.setOpacity(150); this.world.addChild(cl, 1);
-      }
-
-      var ground = mkColor(this.worldW + 200, this.gy, 107, 79, 47);
-      ground.setPosition(-40, 0);
-      this.world.addChild(ground, 2);
-      var grass = mkColor(this.worldW + 200, 14, 78, 168, 92);
-      grass.setPosition(-40, this.gy - 8);
-      this.world.addChild(grass, 3);
+      this._addForestBg();
+      this._buildGround();
 
       this.traps = [];
       this.coinNodes = [];
-      var pad = 2 * T;
-      for (var x = 0; x < cols; x++) {
-        var kind = level.cells[x];
-        var px = pad + x * T + T * 0.5;
-        if (kind === 'spike' || kind === 'fire') {
-          var base = mkColor(T * 0.7, 8, 58, 58, 66);
-          base.setPosition(px - T * 0.35, this.gy - 6);
+      var items = level.items || [];
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var px = it.c * T + T * 0.5;
+        if (it.type === 'spike' || it.type === 'fire') {
+          var base = mkColor(T * 0.85, 6, 58, 58, 66);
+          base.setPosition(px - T * 0.42, this.gy - 4);
           this.world.addChild(base, 4);
-          var sp = new cc.Sprite(kind === 'fire' ? fireTex : spikeTex);
+          var sp = new cc.Sprite(it.type === 'fire' ? fireTex : spikeTex);
           sp.setAnchorPoint(0.5, 0);
-          sp.setPosition(px, this.gy - 4);
-          sp.setScale(kind === 'fire' ? 1.1 : 1.0);
+          sp.setPosition(px, this.gy - 2);
+          sp.setScale(it.type === 'fire' ? 1.15 : 1.05);
           sp.setVisible(false);
           this.world.addChild(sp, 6);
-          this.traps.push({ kind: kind, x: px, sp: sp, w: T * 0.55 });
-        } else if (kind === 'coin' || kind === 'shield') {
+          this.traps.push({ kind: it.type, x: px, sp: sp, w: T * 0.7 });
+        } else if (it.type === 'coin' || it.type === 'shield') {
           var cn = new cc.Sprite(coinTex);
-          cn.setPosition(px, this.gy + 42);
+          cn.setPosition(px, this.gy + T * 0.9);
           this.world.addChild(cn, 5);
           this.coinNodes.push({ x: px, sp: cn, got: false });
+        } else if (it.type === 'flag') {
+          /* optional mid-flag from JSON; main goal still at goalC */
         }
       }
 
       var flag = new cc.Sprite(flagTex);
       flag.setAnchorPoint(0.5, 0);
-      this.goalX = pad + cols * T + T * 0.5;
+      this.goalX = level.goalC * T + T * 0.5;
       flag.setPosition(this.goalX, this.gy);
+      flag.setScale(DRAW_H / 48 * 0.55);
       this.world.addChild(flag, 5);
 
       this.ninja = new cc.Sprite(SP + 'idle.png');
       this.ninja.setAnchorPoint(0.5, 0);
       var sz = this.ninja.getContentSize();
-      this.nScale = 110 / Math.max(sz.width || 100, 1);
+      var ref = Math.max(sz.height || 256, 1);
+      this.nScale = DRAW_H / ref;
       this.ninja.setScale(this.nScale);
       this.world.addChild(this.ninja, 10);
       this.walk = [SP + 'walk_0.png', SP + 'walk_1.png', SP + 'walk_2.png', SP + 'walk_3.png'];
@@ -306,7 +409,7 @@
       $('msg').textContent = (level.by ? level.by + '的关 · ' : '') + '刺每' + iv + '秒冒 · ←→跳';
     },
     reset: function () {
-      this.px = 60;
+      this.px = level.spawnC * T + T * 0.5;
       this.py = this.gy;
       this.vx = 0;
       this.vy = 0;
@@ -324,8 +427,9 @@
       this.ninja.setPosition(this.px, this.py);
       this.ninja.setTexture(SP + 'idle.png');
       this.ninja.setOpacity(255);
-      this.camX = 0;
-      this.world.setPosition(0, 0);
+      this.camX = Math.max(0, this.px - W * 0.4);
+      this.world.setPosition(-this.camX, 0);
+      this._layoutBg(this.camX);
       hideResult();
       updHUD(this.hp, this.coins);
       inp.jumpPressed = false;
@@ -337,23 +441,24 @@
         var now = Date.now() / 1000;
         var elapsed = now - this.t0;
 
-        var speed = 260;
+        /* Speeds tuned for T=40 world (xy-go-ish feel, not the old T=80 mega-stride). */
+        var speed = 140;
         if (inp.left && !inp.right) { this.vx = -speed; this.face = -1; }
         else if (inp.right && !inp.left) { this.vx = speed; this.face = 1; }
         else this.vx *= Math.max(0, 1 - dt * 12);
 
         if (this.grounded && inp.jumpPressed) {
-          this.vy = 560;
+          this.vy = 320;
           this.grounded = false;
           this.ninja.setTexture(SP + 'jump_0.png');
         }
         inp.jumpPressed = false;
 
-        this.vy -= 1400 * dt;
+        this.vy -= 900 * dt;
         this.px += this.vx * dt;
         this.py += this.vy * dt;
-        if (this.px < 30) this.px = 30;
-        if (this.px > this.worldW - 40) this.px = this.worldW - 40;
+        if (this.px < T * 0.5) this.px = T * 0.5;
+        if (this.px > this.worldW - T * 0.5) this.px = this.worldW - T * 0.5;
         if (this.py <= this.gy) {
           this.py = this.gy;
           this.vy = 0;
@@ -366,7 +471,7 @@
 
         if (!this.grounded) {
           this.ninja.setTexture(SP + 'jump_0.png');
-        } else if (Math.abs(this.vx) > 30) {
+        } else if (Math.abs(this.vx) > 20) {
           this.frameT += dt;
           if (this.frameT > 0.1) { this.frameT = 0; this.frame = (this.frame + 1) % 4; }
           this.ninja.setTexture(this.walk[this.frame]);
@@ -394,7 +499,7 @@
           var raised = tr.kind === 'fire' ? fireUp : spikeUp;
           tr.sp.setVisible(raised);
           if (raised && this.invuln <= 0) {
-            var near = Math.abs(this.px - tr.x) < tr.w && this.py < this.gy + 55;
+            var near = Math.abs(this.px - tr.x) < tr.w && this.py < this.gy + DRAW_H * 0.7;
             var key = tr.kind + ':' + i + ':' + Math.floor(elapsed / I);
             if (near && !this.hitKeys[key]) {
               this.hitKeys[key] = 1;
@@ -414,23 +519,24 @@
         for (var j = 0; j < this.coinNodes.length; j++) {
           var cn = this.coinNodes[j];
           if (cn.got) continue;
-          cn.sp.setPosition(cn.x, this.gy + 48 + Math.sin(now * 5 + j) * 5);
-          if (Math.abs(this.px - cn.x) < 36 && this.py < this.gy + 80) {
+          cn.sp.setPosition(cn.x, this.gy + T * 0.85 + Math.sin(now * 5 + j) * 4);
+          if (Math.abs(this.px - cn.x) < T * 0.7 && this.py < this.gy + DRAW_H) {
             cn.got = true; cn.sp.setVisible(false); this.coins += 1; updHUD(this.hp, this.coins);
           }
         }
 
-        if (!this.won && this.px >= this.goalX - 20) {
+        if (!this.won && this.px >= this.goalX - T * 0.4) {
           this.won = true; this.playing = false;
           showResult(true, this.hp, this.coins);
           $('msg').textContent = '到旗了！';
         }
 
-        var target = this.px - W * 0.35;
+        var target = this.px - W * 0.4;
         if (target < 0) target = 0;
         if (target > this.worldW - W) target = Math.max(0, this.worldW - W);
         this.camX += (target - this.camX) * Math.min(1, dt * 8);
         this.world.setPosition(-this.camX, 0);
+        this._layoutBg(this.camX);
       } catch (e) { bootErr(String(e && e.message || e)); }
     }
   });
@@ -463,8 +569,6 @@
         fitStage();
         cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
         spikeTex = buildSpikeTex();
-        cloudTex = buildCloudTex();
-        hillTex = buildHillTex();
         fireTex = buildFireTex();
         coinTex = buildCoinTex();
         flagTex = buildFlagTex();
@@ -472,6 +576,8 @@
         function tick() {
           left--;
           if (left > 0) return;
+          dirtTex = true;
+          grassTex = true;
           fitStage();
           cc.director.runScene(new PlayScene());
           $('msg').textContent = '可玩 · ←→移动 · 跳躲刺';
@@ -479,7 +585,11 @@
         }
         RES.forEach(function (src) {
           var img = new Image();
-          img.onload = function () { try { cc.textureCache.addImage(src); } catch (e1) {} tick(); };
+          img.onload = function () {
+            try { cc.textureCache.addImage(src); } catch (e1) {}
+            if (src.indexOf('forest-day') >= 0) forestImg = img;
+            tick();
+          };
           img.onerror = function () { bootErr('图片失败 ' + src); tick(); };
           img.src = src;
         });
