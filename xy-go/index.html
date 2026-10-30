@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0b1f2a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>小雨闯关</title>
-<link rel="stylesheet" href="style.css?v=3063">
+<link rel="stylesheet" href="style.css?v=3064">
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -72,8 +72,9 @@
       <div class="matchHead"><span class="spinner" id="spinner"></span><b id="matchTitle">正在寻找队友…</b></div>
       <div class="slots">
         <div class="slot a" id="slotA"><img src="ninjas/ninja-green.jpg" alt=""><span id="slotAname">玩家A · 绿</span><span class="st" id="slotAst">等待</span><span class="me" id="slotAme"></span></div>
-        <div class="vs">VS</div>
+        
         <div class="slot b" id="slotB"><img src="ninjas/ninja-blue.jpg" alt=""><span id="slotBname">玩家B · 蓝</span><span class="st" id="slotBst">等待加入…</span><span class="me" id="slotBme"></span></div>
+        <div class="slot c" id="slotC"><img src="ninjas/ninja-red.jpg" alt=""><span>小雨 (AI) · 红</span><span class="st" id="slotCst">等大家齐了</span></div>
       </div>
       <p class="roomWait" id="roomWait">请稍等…</p>
       <p class="roomWait hidden" id="joinWait"></p>
@@ -120,6 +121,6 @@
   </div>
 </div>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="game.js?v=3063"></script>
+<script src="game.js?v=3064"></script>
 </body>
 </html>

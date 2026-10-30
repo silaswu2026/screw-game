@@ -150,3 +150,9 @@ button{font:inherit;font-weight:900;border:0;cursor:pointer}
   .bigBtns{gap:10px}
 }
 .topBar h2 small{margin-top:4px}
+
+/* v3064: 3 slots 你/队友/小雨AI */
+.slots{gap:10px}
+.slot.c.filled{border-color:#e23b3b;background:#ffecec}
+.slot.c.filled .st{background:#e23b3b}
+@media (orientation:landscape) and (max-height:460px){ .slot{width:120px} }

@@ -2300,62 +2300,52 @@
       ? (1.2 + Math.random() * 2.4)
       : (0.35 + Math.random() * 0.7);
   }
+  // 小雨 (red AI) — deliberately "dumb" helper: trails GREEN, never leads, hesitates,
+  // sometimes flubs a jump, throws at nearby monsters only now and then.
+  const aiDumb = { pauseT: 0, nextPause: 3 + Math.random() * 4, missT: 0, gap: 70 };
   function aiCompanionInput(dt) {
     clearInput(input3);
     if (!companion || p3.down || p3.knockPhase) return input3;
-    aiBuddy.modeT -= dt;
-    aiBuddy.dirT -= dt;
-    aiBuddy.jumpCd = Math.max(0, aiBuddy.jumpCd - dt);
-    if (aiBuddy.modeT <= 0) aiBuddyPickMode();
-    if (aiBuddy.dirT <= 0) aiBuddyPickDir();
-
-    const lead = companionLead();
-    // Soft leash: if way behind while wandering, briefly follow so they don't soft-lock
-    if (aiBuddy.mode === 'wander' && lead && !lead.down && (lead.x - p3.x) > 420) {
-      aiBuddy.mode = 'follow';
-      aiBuddy.modeT = 1.4 + Math.random() * 1.2;
+    const lead = player; // always follow 绿 (房主 / P1)
+    if (!lead || lead.down) return input3;
+    aiDumb.nextPause -= dt;
+    if (aiDumb.pauseT > 0) { aiDumb.pauseT -= dt; return input3; } // 发呆
+    if (aiDumb.nextPause <= 0) {
+      aiDumb.pauseT = 0.5 + Math.random() * 1.2;
+      aiDumb.nextPause = 3 + Math.random() * 5;
+      aiDumb.gap = 50 + Math.random() * 70;
+      return input3;
     }
-
-    if (aiBuddy.mode === 'follow' && lead && !lead.down) {
-      const dx = lead.x - 40 - p3.x;
-      if (dx > 18) input3.right = true;
-      else if (dx < -28) input3.left = true;
-      const ahead = p3.x + (p3.face || 1) * 28;
-      const gc = Math.floor(ahead / T);
+    aiDumb.missT = Math.max(0, aiDumb.missT - dt);
+    // stay BEHIND green: target = green.x - gap*face; never pass green by more than 10px
+    const face = lead.face || 1;
+    const target = lead.x - face * aiDumb.gap;
+    const dx = target - p3.x;
+    const passed = face > 0 ? p3.x > lead.x - 10 : p3.x < lead.x + 10;
+    if (passed) { if (face > 0) input3.left = true; else input3.right = true; }
+    else if (dx > 24) input3.right = true;
+    else if (dx < -24) input3.left = true;
+    const dir = input3.right ? 1 : input3.left ? -1 : 0;
+    if (p3.grounded && dir) {
+      const gc = Math.floor((p3.x + dir * 28) / T);
       const gr = Math.floor((p3.y + 2) / T);
-      const hole = p3.grounded && !solidAt(gc, gr) && !solidAt(gc, gr + 1);
-      if ((hole || (!lead.grounded && lead.vy < -80) || (lead.y < p3.y - 36)) && p3.grounded) {
-        input3.jump = true;
-        input3.jumpPressed = true;
-      }
-    } else {
-      // Wander: random walk / idle; jump gaps or on whim
-      if (aiBuddy.dir > 0) input3.right = true;
-      else if (aiBuddy.dir < 0) input3.left = true;
-      const ahead = p3.x + (aiBuddy.dir || p3.face || 1) * 28;
-      const gc = Math.floor(ahead / T);
-      const gr = Math.floor((p3.y + 2) / T);
-      const hole = p3.grounded && aiBuddy.dir !== 0 && !solidAt(gc, gr) && !solidAt(gc, gr + 1);
-      if (hole && p3.grounded) {
-        input3.jump = true;
-        input3.jumpPressed = true;
-      } else if (p3.grounded && aiBuddy.jumpCd <= 0 && Math.random() < dt * 0.35) {
-        input3.jump = true;
-        input3.jumpPressed = true;
-        aiBuddy.jumpCd = 0.9 + Math.random() * 1.4;
-      }
-      // turn around at walls / map edge roughly
-      if (p3.onWall && aiBuddy.dir) {
-        aiBuddy.dir = -aiBuddy.dir;
-        aiBuddy.dirT = 0.4 + Math.random() * 0.8;
+      const hole = !solidAt(gc, gr) && !solidAt(gc, gr + 1);
+      const wall = solidAt(gc, gr - 1);
+      const leadUp = lead.y < p3.y - 36;
+      if ((hole || wall || leadUp) && aiDumb.missT <= 0) {
+        if (Math.random() < 0.25) aiDumb.missT = 0.6; // 偶尔犹豫/没跳好
+        else { input3.jump = true; input3.jumpPressed = true; }
       }
     }
-    // weakly toss if slime nearby (either mode)
+    // random attack at nearby monsters (not precise)
     for (let i = 0; i < slimes.length; i++) {
       const m = slimes[i];
       if (m.dead) continue;
-      if (Math.abs(m.x - p3.x) < 120 && Math.abs(m.y - p3.y) < 40 && (m.x - p3.x) * (p3.face || 1) > 0) {
-        if (Math.random() < dt * 0.55) { input3.throw = true; input3.throwEdge = true; }
+      if (Math.abs(m.x - p3.x) < 160 && Math.abs(m.y - p3.y) < 50) {
+        if (Math.random() < dt * 0.6) {
+          p3.face = m.x > p3.x ? 1 : -1;
+          input3.throw = true; input3.throwEdge = true;
+        }
         break;
       }
     }
@@ -3917,8 +3907,13 @@
     document.getElementById('slotAst').textContent = (host || linked) ? '房主' : '等待房主…';
     document.getElementById('slotBst').textContent = linked ? '已准备' : (netRole === 'guest' ? '连接中…' : '等待加入…');
     document.getElementById('slotAme').textContent = host ? '（我）' : '';
-    document.getElementById('slotAname').textContent = host ? '你 · 绿' : (netRole === 'guest' ? '对手 · 绿' : '玩家A · 绿');
-    document.getElementById('slotBname').textContent = netRole === 'guest' ? '你 · 蓝' : (host ? '对手 · 蓝' : '玩家B · 蓝');
+    document.getElementById('slotAname').textContent = host ? '你 · 房主 绿' : '房主 · 绿';
+    document.getElementById('slotBname').textContent = netRole === 'guest' ? '你 · 蓝' : '队友 · 蓝';
+    const sc = document.getElementById('slotC');
+    if (sc) {
+      sc.classList.toggle('filled', linked);
+      document.getElementById('slotCst').textContent = linked ? '来啦！' : '等大家齐了';
+    }
     document.getElementById('slotBme').textContent = netRole === 'guest' ? '（我）' : '';
     const st = document.getElementById('roomStart');
     st.classList.toggle('hidden', !host);
@@ -4885,7 +4880,7 @@
     }, 150000);
     if (netRole || netRoomOverride === NET_LOBBY) return;
     wantCoop = true;
-    wantCompanion = false;
+    wantCompanion = true; // 小雨 (红 AI) joins once both humans are in
     syncCompanionUi();
     netRoomOverride = NET_LOBBY;
     netShowView('net');
