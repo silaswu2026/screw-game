@@ -30,12 +30,25 @@ svg{width:100%;height:100%;min-height:0}
 .foot button,.go{border:0;border-radius:999px;padding:10px 26px;font-size:20px;font-weight:800;color:#fff;background:linear-gradient(180deg,#78d484,#4ea85c);box-shadow:0 3px 0 #2f6d3a;text-decoration:none;cursor:pointer}
 .foot .back{background:#3b4590;box-shadow:none}
 .ok{color:#9ff0a8}.bad{color:#ffb4b4}.chk{font-size:15px}
-/* canvas: keep buffer aspect — letterbox, never stretch sprites flat */
-.stage.on{align-items:stretch}
-.stage canvas{width:auto!important;height:auto!important;max-width:100%;max-height:100%;flex:0 1 auto;align-self:center;margin:0 auto;object-fit:contain}
-#cvR,#cv0{aspect-ratio:960/300}#cvF,#cvM{aspect-ratio:960/250}#cvQ{aspect-ratio:960/340}#cvD{aspect-ratio:960/230}#cv{aspect-ratio:960/220}
-#strip{aspect-ratio:960/150;max-width:100%;max-height:70px;width:auto!important;height:auto!important;flex:0 0 auto}
-@media (max-height:500px){.s1h{display:none}.dim canvas{height:28px!important;aspect-ratio:auto}.dim b{font-size:15px!important}#sumtab td,#sumtab th{padding:0;line-height:1.15}.dim input{margin:0}.dim{gap:0!important}.cell{aspect-ratio:2.4}.bar img{width:40px;height:40px}.st{font-size:13px}h2{font-size:17px}}
+/* canvas wrap fills leftover; canvas letterboxes inside at buffer AR — never stretch */
+.cvwrap{flex:1 1 auto;min-height:0;min-width:0;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.cvwrap canvas,.stage>canvas{width:auto!important;height:auto!important;max-width:100%;max-height:100%;flex:0 0 auto;object-fit:contain}
+#cvR,#cv0{aspect-ratio:960/380}#cvF,#cvM{aspect-ratio:960/360}#cvQ{aspect-ratio:960/400}#cvD{aspect-ratio:960/340}#cv{aspect-ratio:960/300}
+#strip{aspect-ratio:960/150;max-width:100%;max-height:56px;width:auto!important;height:auto!important;flex:0 0 auto}
+@media (max-height:500px){
+  .s1h,.stage.on>h2:not(.keep),.n4{display:none}
+  .bar{padding:1px 4px;gap:2px}.bar img{width:24px;height:24px}.pp{font-size:8px;line-height:1}.st{font-size:10px;padding:2px 1px}.pp figcaption{margin:0}
+  main{padding:2px 6px;gap:2px}.stage{gap:2px}
+  .foot{padding:1px 6px 2px}.foot button,.go{padding:4px 12px;font-size:14px;box-shadow:none}
+  .n4{font-size:11px}.n4 span{padding:1px 6px}.msg{font-size:13px}
+  .dim canvas{height:28px!important;aspect-ratio:auto}.dim b{font-size:15px!important}
+  #sumtab td,#sumtab th{padding:0;line-height:1.15}.dim input{margin:0}.dim{gap:0!important}.cell{aspect-ratio:2.4}
+  #hp{font-size:12px!important}
+  #s0 .row{gap:2px}#slt{font-size:13px!important}#sld{font-size:11px!important}
+  #fSl{font-size:16px!important}#fSl input{width:160px!important;height:20px!important}#fIv{font-size:24px!important}
+  #dCt,#mCt,#mPal{font-size:12px!important;min-height:0!important}
+  #fRes,#qRes,#dRes,.msg{font-size:12px!important;min-height:0!important;line-height:1.2}
+}
 .sd{font-style:normal;font-size:11px;opacity:.35;margin-left:2px}.sd.on{opacity:1;color:#ffe7a0}
 .n4{display:flex;gap:4px;justify-content:center;font-size:13px;font-weight:800}.n4 span{padding:2px 9px;border-radius:999px;background:#ffffff14;color:#c9c3ef}.n4 span.on{background:#e23b3b;color:#fff}.n4 span.done{background:#2f7a45;color:#fff}
 .go.sm{font-size:15px!important;padding:4px 14px!important}
@@ -45,10 +58,10 @@ svg{width:100%;height:100%;min-height:0}
 <figure class="pp"><img src="../avatars/dad-wuxin.jpg" alt="爸爸"><figcaption>爸爸</figcaption></figure><figure class="pp"><img src="../avatars/mom-chunyan.jpg" alt="妈妈"><figcaption>妈妈</figcaption></figure></div>
 <main>
 <section class="stage" id="sR"><h2>⓪ 上节课：角色动画 = 一张张图快速换 <span style="font-size:15px">帧速 <input type="range" id="fps" min="1" max="12" value="4" style="width:100px;vertical-align:middle"> <b id="fpsv">4</b> 帧/秒 <button class="go sm" id="rPl">⏸</button> <button class="go sm" id="rSt" style="background:linear-gradient(180deg,#ffb06b,#e2793b)">⏭ 一帧一帧</button></span></h2>
-<canvas id="cvR" width="960" height="300" style="width:100%;min-height:0;background:#d6ecd0;border-radius:12px"></canvas>
+<div class="cvwrap"><canvas id="cvR" width="960" height="380" style="width:100%;min-height:0;background:#d6ecd0;border-radius:12px"></canvas></div>
 <div class="msg" style="font-size:15px">同一个角色，换姿势 → <b style="color:#ffe7a0">一致性</b>：脸、衣服、颜色都不变</div></section>
 <section class="stage" id="s0"><h2><button class="back sl" id="slp" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-size:16px;padding:3px 12px">◀</button> <span id="slt">好关卡：先简单，再变难</span> <span id="sld" style="font-size:13px"></span> <button class="sl" id="sln" style="border:0;border-radius:999px;background:#3b4590;color:#fff;font-size:16px;padding:3px 12px">▶</button> <button class="go" id="play0" style="font-size:15px;padding:4px 14px">▶ 播放</button></h2>
-<canvas id="cv0" width="960" height="300" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas>
+<div class="cvwrap"><canvas id="cv0" width="960" height="380" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas></div>
 <div class="msg" style="font-size:14px">🧠 策划故意这样设计 → 让人想「再来一次」· 我们要 ⏰ 适度玩</div></section>
 
 <section class="stage" id="s1"><h2 class="s1h" id="s1t">点陷阱，拉数字</h2><div class="n4" id="n4a"></div>
@@ -57,18 +70,18 @@ svg{width:100%;height:100%;min-height:0}
 
 <section class="stage" id="sF"><h2 class="s1h" id="sFt">⏱️ 频率：地刺每几秒冒一次</h2><div class="n4" id="n4f"></div>
 <div id="fSl" style="text-align:center;font-size:24px;font-weight:800">每 <input type="range" id="fI" min="1" max="5" value="3" style="width:240px;height:28px;vertical-align:middle"> <b id="fIv" style="font-size:40px;color:#ffe7a0">3</b> 秒冒一次刺</div>
-<canvas id="cvF" width="960" height="250" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas>
+<div class="cvwrap"><canvas id="cvF" width="960" height="360" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas></div>
 <div class="msg" id="fRes" style="font-size:22px;font-weight:800"></div>
 <div id="fBt" style="text-align:center"><button class="go sm" id="fRun">🏃 练：跑一次</button> <button class="go sm" id="fTw" style="background:linear-gradient(180deg,#ffb06b,#e2793b)">🔀 变：每1秒！</button> <button class="go sm" id="fEx" style="background:linear-gradient(180deg,#ff8a8a,#e23b3b)">🏁 考：最后一跑</button></div></section>
 <section class="stage" id="sQ"><h2 class="s1h" id="sQt">📍 位置：把地刺拖到别的地方</h2><div class="n4" id="n4q"></div>
-<canvas id="cvQ" width="960" height="340" style="width:100%;min-height:0;background:#0006;border-radius:12px;touch-action:none;cursor:grab"></canvas>
+<div class="cvwrap"><canvas id="cvQ" width="960" height="400" style="width:100%;min-height:0;background:#0006;border-radius:12px;touch-action:none;cursor:grab"></canvas></div>
 <div class="msg" id="qRes" style="font-size:22px;font-weight:800"></div></section>
 <section class="stage" id="sD"><h2 class="s1h" id="sDt">💥 难度 = 被扎几次 × 每次掉几❤</h2><div class="n4" id="n4d"></div>
 <div id="dCt" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:15px;font-weight:800"></div>
-<canvas id="cvD" width="960" height="230" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas>
+<div class="cvwrap"><canvas id="cvD" width="960" height="340" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas></div>
 <div class="msg" id="dRes" style="font-size:22px;font-weight:800"></div></section>
 <section class="stage" id="sP"><h2 id="sPt">👀 忍者自动闯关</h2><div class="n4" id="n4b"></div>
-<canvas id="cv" width="960" height="220" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas>
+<div class="cvwrap"><canvas id="cv" width="960" height="300" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas></div>
 <div class="msg" id="res" style="min-height:24px"></div>
 <div style="text-align:center"><button class="go sm" id="run">🏃 练：跑一次</button> <button class="go sm" id="twist" style="background:linear-gradient(180deg,#ffb06b,#e2793b)">🔀 变：加花样</button> <button class="go sm" id="exam" style="background:linear-gradient(180deg,#ff8a8a,#e23b3b)">🏁 考：最后一跑</button></div></section>
 <section class="stage" id="s2"><h2 class="s1h">选主题，点格子摆位置</h2><div class="n4" id="n4c"></div>
@@ -79,7 +92,7 @@ svg{width:100%;height:100%;min-height:0}
 
 <section class="stage" id="sM"><h2 class="s1h">🛠️ 设计我的关卡：摆位置 · 调频率 · 调难度</h2>
 <div id="mPal" style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"></div>
-<canvas id="cvM" width="960" height="250" style="width:100%;min-height:0;background:#0006;border-radius:12px;cursor:pointer"></canvas>
+<div class="cvwrap"><canvas id="cvM" width="960" height="360" style="width:100%;min-height:0;background:#0006;border-radius:12px;cursor:pointer"></canvas></div>
 <div id="mCt" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:15px;font-weight:800;min-height:34px"></div></section>
 <section class="stage" id="s3"><h2>🧪 实验：玩我设计的关卡</h2>
 <div class="row"><div class="card"><div class="msg" id="sumt"></div><div id="sumseg" style="display:flex;gap:4px;width:100%"></div><div class="msg" id="sumtot"></div></div>
@@ -88,7 +101,7 @@ svg{width:100%;height:100%;min-height:0}
 <div class="foot"><button class="back" id="back">上一步</button><div id="hp" style="align-self:center;font-weight:800;font-size:16px;text-align:center"></div><button id="next">下一步 ▶</button></div>
 <script>
 (function(){
-function fitZ(){const w=innerWidth,h=innerHeight,z=w>1000?Math.max(1,Math.min(w/960,h/470)):1;document.body.style.zoom=z;document.body.style.height=(h/z)+'px';}fitZ();addEventListener('resize',fitZ);
+function fitZ(){const w=innerWidth,h=innerHeight,z=w>1000?Math.max(1,Math.min(w/960,h/520)):1;document.body.style.zoom=z;document.body.style.height=(h/z)+'px';}fitZ();addEventListener('resize',fitZ);
 let COLS=12;const SW=()=>COLS/6,SEG=x=>Math.min(5,Math.floor(x/SW()));const KEY='xygo-custom-level',ROWS=4,$=id=>document.getElementById(id);
 const CURVE=[1,2,1,3,2,4];
 const E={mud:'🟫',bubble:'🫧',sand:'🏜️',mist:'☠️',wave:'🌊',shark:'🦈',rock:'🪨',meteor:'☄️',fire:'🔥',lowg:'🌙',spring:'🌀',shield:'🛡️',coin:'⭐',flag:'🚩'};
@@ -116,7 +129,7 @@ function gapOf(t){const tt=trapTiles(),i=tt.indexOf(t);return i>0?t.x-tt[i-1].x:
 function dimVal(t,k){return k==='gap'?gapOf(t):st.traps[t.type][k];}
 let MODE='freq';const MD={freq:['interval'],diff:['speed','damage','dur'],pos:['gap']};const MDIMS=()=>DIMS.filter(d=>MD[MODE].includes(d[0]));
 function traps(){const t=selTile();if(!t){$('traps').innerHTML='';return;}
- $('traps').innerHTML=MDIMS().map(([k,n,u,mn,mx])=>`<div class="card dim" style="flex:1 1 30%;padding:4px"><div style="font-size:14px">${n}</div><canvas id="m-${k}" width="120" height="44" style="width:100%;height:54px"></canvas><b id="v-${k}" style="font-size:18px;color:#ffe7a0">${dimVal(t,k)}</b><input type="range" min="${mn}" max="${mx}" value="${dimVal(t,k)}" data-f="${k}" style="width:100%"><div id="h-${k}" style="font-size:14px"></div></div>`).join('')+'<div id="sumtab" style="flex:1 1 100%;font-size:12px"></div>';
+ $('traps').innerHTML=MDIMS().map(([k,n,u,mn,mx])=>`<div class="card dim" style="flex:1 1 30%;padding:4px"><div style="font-size:14px">${n}</div><div class="cvwrap"><canvas id="m-${k}" width="120" height="44" style="width:100%;height:54px"></canvas></div><b id="v-${k}" style="font-size:18px;color:#ffe7a0">${dimVal(t,k)}</b><input type="range" min="${mn}" max="${mx}" value="${dimVal(t,k)}" data-f="${k}" style="width:100%"><div id="h-${k}" style="font-size:14px"></div></div>`).join('')+'<div id="sumtab" style="flex:1 1 100%;font-size:12px"></div>';
  document.querySelectorAll('#traps canvas').forEach(crisp);dimRes();cancelAnimationFrame(stripAnim);const t0=performance.now();(function f(now){drawStrip((now-t0)/1000);stripAnim=requestAnimationFrame(f);})(t0);}
 
 function dimRes(){const t=selTile();if(!t)return;const now=totalHits(),ty=[...new Set(trapTiles().map(x=>x.type))];
@@ -375,22 +388,23 @@ const RLB=['走1','走2','走3','走4','走5','走6','站','跳','受伤'];let r
 $('fps').oninput=e=>$('fpsv').textContent=e.target.value;
 $('rPl').onclick=()=>{rPause=!rPause;if(!rPause&&rIdx>5)rIdx=0;$('rPl').textContent=rPause?'▶':'⏸';};
 $('rSt').onclick=()=>{rPause=true;$('rPl').textContent='▶';rIdx=rIdx>5?0:(rIdx+1)%6;};
-$('cvR').onclick=e=>{const r=e.target.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*960,y=(e.clientY-r.top)/r.height*300;if(y<30||y>150)return;const i=Math.floor((x-10)/62);if(i>=0&&i<9){rIdx=i;rPause=true;$('rPl').textContent='▶';}};
+$('cvR').onclick=e=>{const r=e.target.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*960,y=(e.clientY-r.top)/r.height*$('cvR').height;if(y<20||y>170)return;const i=Math.floor((x-10)/62);if(i>=0&&i<9){rIdx=i;rPause=true;$('rPl').textContent='▶';}};
 function review(){cancelAnimationFrame(aR);const cv=$('cvR'),g=cv.getContext('2d'),W=cv.width,H=cv.height;rLast=performance.now();
  const CR=[['野猪',0,75],['青蛙',4,75],['螃蟹',5,75],['外星人',6,75]];
  (function f(now){const dt=(now-rLast)/1000;rLast=now;const fps=+$('fps').value;if(!rPause){rAcc+=dt*fps;while(rAcc>=1){rAcc-=1;rIdx=(rIdx+1)%6;}}const fr=rIdx;g.clearRect(0,0,W,H);
-  g.fillStyle='#2c4a2a';g.font='bold 18px sans-serif';g.fillText('序列帧（点一张看看）',10,22);
-  for(let i=0;i<9;i++){const x=10+i*62,on=i===fr;g.fillStyle=on?'#ffe07a':'#ffffff88';g.fillRect(x,30,58,110);if(on){g.strokeStyle='#e23b3b';g.lineWidth=3;g.strokeRect(x,30,58,110);}
-   const im=RX[i];if(im.complete)g.drawImage(im,x-6,32,70,86);g.fillStyle='#2c4a2a';g.font='bold 14px sans-serif';g.fillText(RLB[i],x+29-RLB[i].length*7,134);}
-  g.fillStyle='#ffffffaa';g.fillRect(580,30,180,250);g.fillStyle='#2c4a2a';g.font='bold 16px sans-serif';g.fillText(rPause?'⏸ 停在这一帧':'▶ 走路 1→6 循环',588,52);
-  const im=RX[fr];if(im.complete)g.drawImage(im,560,50,220,220);g.font='bold 18px sans-serif';g.fillStyle='#e23b3b';g.fillText(RLB[fr],648,274);
-  const cf=Math.floor(now/1000*fps/1.5)%2;
-  g.fillStyle='#2c4a2a';g.font='bold 16px sans-serif';g.fillText('小怪：2 帧走路',10,166);
-  CR.forEach(([n,r,x0],i)=>{const x=10+i*140;g.fillStyle='#ffffff88';g.fillRect(x,172,130,108);
-   if(IMC.complete){g.drawImage(IMC,x0,r*130+30,70,85,x+6,176,52,62);g.drawImage(IMC,x0+70,r*130+30,70,85,x+70,176,52,62);g.strokeStyle='#e23b3b';g.lineWidth=3;g.strokeRect(x+4+cf*64,174,56,66);}
-   g.fillStyle='#2c4a2a';g.font='bold 15px sans-serif';g.fillText(n,x+40,268);});
-  g.fillStyle='#ffffffaa';g.fillRect(780,30,170,250);g.fillStyle='#2c4a2a';g.font='bold 16px sans-serif';g.fillText('2 帧 = 会走',800,52);
-  CR.forEach(([n,r,x0],i)=>{if(IMC.complete)g.drawImage(IMC,x0+cf*70,r*130+30,70,85,790+(i%2)*80,62+Math.floor(i/2)*110,70,85);});
+  const y1=24,y2=Math.floor(H*.42),bh=Math.min(130,y2-y1-8),ns=Math.min(280,H-50);
+  g.fillStyle='#2c4a2a';g.font='bold 18px sans-serif';g.fillText('序列帧（点一张看看）',10,20);
+  for(let i=0;i<9;i++){const x=10+i*62,on=i===fr;g.fillStyle=on?'#ffe07a':'#ffffff88';g.fillRect(x,y1,58,bh);if(on){g.strokeStyle='#e23b3b';g.lineWidth=3;g.strokeRect(x,y1,58,bh);}
+   const im=RX[i];if(im.complete)g.drawImage(im,x-6,y1+2,70,bh-28);g.fillStyle='#2c4a2a';g.font='bold 14px sans-serif';g.fillText(RLB[i],x+29-RLB[i].length*7,y1+bh-6);}
+  g.fillStyle='#ffffffaa';g.fillRect(580,y1,180,ns);g.fillStyle='#2c4a2a';g.font='bold 16px sans-serif';g.fillText(rPause?'⏸ 停在这一帧':'▶ 走路 1→6 循环',588,y1+22);
+  const im=RX[fr];if(im.complete)g.drawImage(im,560,y1+24,ns-20,ns-20);g.font='bold 18px sans-serif';g.fillStyle='#e23b3b';g.fillText(RLB[fr],648,y1+ns-8);
+  const cf=Math.floor(now/1000*fps/1.5)%2,cy=y2+8;
+  g.fillStyle='#2c4a2a';g.font='bold 16px sans-serif';g.fillText('小怪：2 帧走路',10,cy);
+  CR.forEach(([n,r,x0],i)=>{const x=10+i*140;g.fillStyle='#ffffff88';g.fillRect(x,cy+8,130,H-cy-20);
+   if(IMC.complete){g.drawImage(IMC,x0,r*130+30,70,85,x+6,cy+14,52,62);g.drawImage(IMC,x0+70,r*130+30,70,85,x+70,cy+14,52,62);g.strokeStyle='#e23b3b';g.lineWidth=3;g.strokeRect(x+4+cf*64,cy+12,56,66);}
+   g.fillStyle='#2c4a2a';g.font='bold 15px sans-serif';g.fillText(n,x+40,H-8);});
+  g.fillStyle='#ffffffaa';g.fillRect(780,y1,170,ns);g.fillStyle='#2c4a2a';g.font='bold 16px sans-serif';g.fillText('2 帧 = 会走',800,y1+22);
+  CR.forEach(([n,r,x0],i)=>{if(IMC.complete)g.drawImage(IMC,x0+cf*70,r*130+30,70,85,790+(i%2)*80,y1+30+Math.floor(i/2)*110,70,85);});
   aR=requestAnimationFrame(f);})(rLast);}
 // 清晰：按 devicePixelRatio × 桌面缩放 × CSS 尺寸 渲染画布
 const CWD=Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype,'width'),CHD=Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype,'height');
