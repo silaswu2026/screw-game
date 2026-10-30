@@ -198,7 +198,9 @@
   let bolts = [];
   let sands = [];   // 流沙 quicksand patches
   let rocks = [];   // 落石 falling-rock zones
-  let mists = [];   // 毒雾 poison mist zones
+  let mists = [];
+  let waves = [];   // 自制关：浪 (rise every interval)
+  let lowgs = [];   // 自制关：低重力区   // 毒雾 poison mist zones
   let boss = null;
   let goal = { x: 0, y: 0 };
   let spawn = { x: 80, y: 200 };
@@ -1300,7 +1302,8 @@
       hint: '自制关卡' + (d.by ? '·' + d.by : '') + '：' + ({ swamp: '沼泽', ocean: '海洋', space: '太空' }[d.theme] || '冒险'),
       cols, rows: 14, spawn: [2, 11], goal: [cols - 5, 11],
       checks: [], slimes: [], crates: [], walls: [], springs: [], spikes: [], bombs: [], fires: [],
-      bolts: [], sands: [], rocks: [], mists: [], coins: [], stars: [],
+      bolts: [], sands: [], rocks: [], mists: [], coins: [], stars: [], waves: [], lowgs: [],
+      dmg: {}, rockKinds: {}, rockP: {}, mistKinds: {}, mistEvery: {}, slimeKinds: {},
       boss: { c: cols - 9, name: '史莱姆王', kind: 'slime', hp: 3 },
       build(box) {
         box(0, PAD - 1, 11, 13);
@@ -1309,6 +1312,7 @@
         plats.forEach((p) => box(PAD + p.x * W, PAD + p.x * W + W - 1, S(p.y), S(p.y)));
       },
     };
+    const tp = (k) => (tr[k] && typeof tr[k] === 'object') ? tr[k] : {};
     tiles.forEach((t) => {
       if (!t || t.type === 'g' || t.type === 'p' || t.y >= DR - 1) return;
       const c = gx(t.x | 0);
@@ -1318,20 +1322,47 @@
         case 'shield': def.stars.push([c, r - 2]); break;
         case 'flag': def.checks.push([c, r]); break;
         case 'spring': def.springs.push([c, r]); break;
-        case 'sand': case 'mud': def.sands.push([c, c + 1, r]); break;
-        case 'rock': case 'meteor': def.rocks.push([c, r]); break;
+        case 'sand': case 'mud': {
+          const p = tp(t.type);
+          const keep = t.type === 'mud' ? Math.max(0.1, Math.min(0.95, 1 - (p.slow != null ? +p.slow : 30) / 100)) : undefined;
+          const sink = +(p.sink || p.dur) || 0;
+          def.sands.push([c, c + 1, r, t.type, keep, sink > 0 ? 0.76 / Math.max(1, sink) : undefined]);
+          break;
+        }
+        case 'rock': case 'meteor': def.rocks.push([c, r]); def.rockKinds[c] = t.type; break;
         case 'fire': def.fires.push([c, r]); break;
-        case 'mist': case 'bubble': def.mists.push([c, r]); break;
-        case 'shark': def.slimes.push([c, r]); break;
-        case 'wave': def.spikes.push([c, c, r]); break;
-        default: break; // lowg etc: not yet
+        case 'mist': case 'bubble': def.mists.push([c, r]); def.mistKinds[c] = t.type; break;
+        case 'shark': def.slimes.push([c, r]); def.slimeKinds[c] = 'shark'; break;
+        case 'wave': {
+          const p = tp('wave');
+          def.waves.push([c, r, Math.max(1, Math.min(4, +p.height || 2)), Math.max(1, +p.interval || 2)]);
+          break;
+        }
+        case 'lowg': {
+          const p = tp('lowg');
+          const g = p.gravity != null ? +p.gravity / 100 : 0.4;
+          def.lowgs.push([c, Math.max(0.15, Math.min(1, g || 0.4))]);
+          break;
+        }
+        default: break;
       }
     });
-    if (!def.slimes.length) def.slimes.push([PAD + Math.floor(DC / 2) * W, 11]);
-    const rk = tr.rock || tr.meteor;
-    if (rk) { if (rk.interval) def.rockInterval = +rk.interval; if (rk.speed) def.rockSpeed = +rk.speed; }
-    const sd = tr.sand || tr.mud;
-    if (sd && sd.sink) def.sandRate = 0.76 / Math.max(1, +sd.sink);
+    // no auto slime: design without monsters stays without monsters
+    ['rock', 'meteor', 'fire', 'sand', 'mud', 'bubble', 'mist', 'shark', 'wave'].forEach((k) => {
+      const v = +tp(k).damage;
+      if (v > 0) def.dmg[k] = v;
+    });
+    ['rock', 'meteor'].forEach((k) => {
+      const p = tp(k), o = {};
+      if (+p.interval > 0) o.interval = +p.interval;
+      if (+p.speed > 0) o.speed = +p.speed;
+      def.rockP[k] = o;
+    });
+    ['bubble', 'mist'].forEach((k) => { const v = +tp(k).interval; if (v > 0) def.mistEvery[k] = v; });
+    const fb = +(tp('fire').burn || tp('fire').dur);
+    if (fb > 0) def.fireBurn = Math.max(1, Math.min(10, fb));
+    const sp = +tp('shark').speed;
+    if (sp > 0) def.sharkSpeed = sp;
     return def;
   }
   function installCustomLevel(d) {
@@ -1376,7 +1407,9 @@
     stars = def.stars.map(([c, r]) => Object.assign({ got: false, bob: r }, cell(c, r)));
     slimes = def.slimes.map(([c, r]) => {
       const p = feet(c, r);
-      return { x: p.x, y: p.y, w: 34, h: 26, vx: 0, vy: 0, dir: 1, hop: 0.5, dead: false, grounded: true, hp: 2, max: 2, hurtCd: 0 };
+      const sk = (def.slimeKinds && def.slimeKinds[c]) || 'slime';
+      return { x: p.x, y: p.y, w: 34, h: 26, vx: 0, vy: 0, dir: 1, hop: 0.5, dead: false, grounded: true, hp: 2, max: 2, hurtCd: 0,
+        kind: sk, spd: (def.sharkSpeed && sk === 'shark') ? 12 * def.sharkSpeed : 36 };
     });
     crates = def.crates.map(([c, r]) => {
       const p = feet(c, r);
@@ -1411,21 +1444,31 @@
     sands = (def.sands || []).map((s) => {
       const c0 = s[0], c1 = s.length > 1 ? s[1] : s[0];
       const row = s.length > 2 ? s[2] : ground;
-      return { c0, c1, x0: c0 * T, x1: (c1 + 1) * T, y: row * T };
+      return { c0, c1, x0: c0 * T, x1: (c1 + 1) * T, y: row * T, kind: s[3] || 'sand', keep: s[4], rate: s[5] };
     });
     rocks = (def.rocks || []).map(([c, r]) => {
       const row = r == null ? ground : r;
+      const rk = (def.rockKinds && def.rockKinds[c]) || 'rock';
+      const rp = (def.rockP && def.rockP[rk]) || {};
       return {
-        c, x: c * T + T * 0.5, yTop: 2 * T, yGround: row * T,
+        kind: rk, c, x: c * T + T * 0.5, yTop: 2 * T, yGround: row * T,
         phase: (c % 7) * 0.41, warn: 0, rockOn: 0, rockY: 2 * T, rockVy: 0, cool: 0,
-        coolBase: def.rockInterval, grav: def.rockSpeed ? 1400 * def.rockSpeed / 3 : 1400,
+        coolBase: rp.interval != null ? rp.interval : def.rockInterval,
+        grav: rp.speed ? 1400 * rp.speed / 3 : (def.rockSpeed ? 1400 * def.rockSpeed / 3 : 1400),
       };
     });
+    waves = (def.waves || []).map(([c, r, h, every]) => ({
+      x0: c * T - T * 0.5, x1: (c + 2) * T, y: (r == null ? ground : r) * T, h: (h || 2) * T,
+      every: every || 2, t: (c % 3) * 0.4, up: 0,
+    }));
+    lowgs = (def.lowgs || []).map(([c, g]) => ({ x0: (c - 2) * T, x1: (c + 4) * T, g: g || 0.4 }));
     mists = (def.mists || []).map(([c, r]) => {
       const row = r == null ? ground : r;
       return {
         c0: c, c1: c + 1, x0: c * T, x1: (c + 2) * T,
         y0: row * T - 70, y1: row * T + 4, pulse: (c % 5) * 0.3,
+        kind: (def.mistKinds && def.mistKinds[c]) || 'mist',
+        every: def.mistKinds && def.mistEvery && def.mistEvery[(def.mistKinds[c]) || 'mist'],
       };
     });
     goal = feet(def.goal[0], def.goal[1]);
@@ -1780,9 +1823,23 @@
     } else if (name === 'left') inp.left = down;
     else if (name === 'right') inp.right = down;
   }
-  function hurt(n, fromX) {
+  function curDef() { return LEVELS[levelIndex] || null; }
+  function dmgOf(kind) {
+    const d = curDef();
+    const v = d && d.dmg && d.dmg[kind];
+    return v > 0 ? Math.min(6, Math.round(v)) : 1;
+  }
+  function gravAt(n) {
+    if (!lowgs.length || !n) return GRAV;
+    for (let i = 0; i < lowgs.length; i++) {
+      const z = lowgs[i];
+      if (n.x >= z.x0 && n.x <= z.x1) return GRAV * z.g;
+    }
+    return GRAV;
+  }
+  function hurt(n, fromX, amt) {
     if (!n || n.down || n.invuln > 0 || mode !== 'play') return;
-    n.hp -= 1;
+    n.hp -= amt > 0 ? amt : 1;
     n.invuln = 0.85;
     n.vx = n.x < fromX ? -220 : 220;
     n.vy = -280;
@@ -1869,12 +1926,13 @@
     if (n.burnT > 0) return;
     // 5s over: damage applies once, then fire stops regardless
     n.burnShake = 0; n.burnDir = 0; n.burnTick = 0;
-    n.hp -= 1;
+    const fd = dmgOf('fire');
+    n.hp -= fd;
     n.flash = 0.18;
     n.invuln = Math.max(n.invuln || 0, 0.45);
     puff(n.x, n.y - 28, '#ff8c32', 8);
     sfx.bump();
-    toast((n.palette === 'green' ? '绿' : n.palette === 'blue' ? '蓝' : '红') + '忍者衣服烧满5秒，-1血·火已停');
+    toast((n.palette === 'green' ? '绿' : n.palette === 'blue' ? '蓝' : '红') + '忍者衣服烧满' + ((curDef() && curDef().fireBurn) || 5) + '秒，-' + fd + '血·火已停');
     buzz(14);
     if (n.hp <= 0) { n.hp = 0; downOrOver(n); }
   }
@@ -1888,13 +1946,13 @@
     }
     const was = n.burnT || 0;
     if (was <= 0) {
-      n.burnT = BURN_WINDOW; // exactly 5s, then stops
+      n.burnT = (curDef() && curDef().fireBurn) || BURN_WINDOW; // default 5s, then stops
       n.burnShake = 0;
       n.burnDir = 0;
       n.burnTick = 0;
       n.bones = Math.max(n.bones || 0, 0.35);
       n.glow = Math.max(n.glow || 0, 0.35);
-      toast((n.palette === 'green' ? '绿' : '蓝') + '忍者衣服着火！5秒内左右快晃可免伤');
+      toast((n.palette === 'green' ? '绿' : '蓝') + '忍者衣服着火！' + ((curDef() && curDef().fireBurn) || 5) + '秒内左右快晃可免伤');
       puff(n.x, n.y - 16, '#ff8c32', 10);
       sfx.bump();
       buzz(12);
@@ -2115,7 +2173,7 @@
     for (let i = 0; i < sands.length; i++) {
       const s = sands[i];
       if (n.x >= s.x0 - 2 && n.x <= s.x1 + 2 && n.y > s.y - 10 && n.y < s.y + 20) {
-        inSand = true; break;
+        inSand = s; break;
       }
     }
     if (!inSand) {
@@ -2123,9 +2181,9 @@
       return;
     }
     // slow + sink while grounded
-    n.vx *= 0.42;
+    n.vx *= inSand.keep != null ? inSand.keep : 0.42;
     if (n.grounded) {
-      n.sandSink = Math.min(1.15, (n.sandSink || 0) + dt * (LEVELS[levelIndex] && LEVELS[levelIndex].sandRate || 0.38));
+      n.sandSink = Math.min(1.15, (n.sandSink || 0) + dt * (inSand.rate || (curDef() && curDef().sandRate) || 0.38));
       n.y += dt * 10 * Math.min(1, n.sandSink);
     }
     // jump helps escape
@@ -2136,8 +2194,9 @@
       n.sandSink = 0;
       n.vy = -360;
       n.grounded = false;
-      toast('流沙！跳出来了·-1');
-      hurt(n, n.x);
+      const sd = dmgOf(inSand.kind || 'sand');
+      toast((inSand.kind === 'mud' ? '淤泥' : '流沙') + '！跳出来了·-' + sd);
+      hurt(n, n.x, sd);
       puff(n.x, n.y - 8, '#c2a066', 10);
     }
   }
@@ -2183,14 +2242,37 @@
       const r = rocks[i];
       if (!r.rockOn) continue;
       if (Math.abs(n.x - r.x) < 18 && n.y > r.rockY - 8 && n.y < r.rockY + 28) {
-        toast('落石砸中！-1');
-        hurt(n, r.x);
+        const rd = dmgOf(r.kind || 'rock');
+        toast((r.kind === 'meteor' ? '陨石' : '落石') + '砸中！-' + rd);
+        hurt(n, r.x, rd);
         n.shake = 0.3;
         n.flash = 0.15;
         puff(n.x, n.y - 20, '#aaa', 8);
         r.rockOn = 0;
         r.cool = 1.6;
         r.warn = 0;
+        return;
+      }
+    }
+  }
+  function updateWaves(dt) {
+    for (let i = 0; i < waves.length; i++) {
+      const w = waves[i];
+      w.t += dt;
+      const ph = w.t % w.every;
+      // rise 0.5s, hold 0.5s, fall 0.4s
+      w.up = ph < 0.5 ? ph / 0.5 : ph < 1.0 ? 1 : ph < 1.4 ? 1 - (ph - 1.0) / 0.4 : 0;
+    }
+  }
+  function touchWaves(n) {
+    if (!n || n.down || n.knockPhase || mode !== 'play' || n.invuln > 0) return;
+    for (let i = 0; i < waves.length; i++) {
+      const w = waves[i];
+      if (w.up < 0.6) continue;
+      if (n.x >= w.x0 && n.x <= w.x1 && n.y > w.y - w.h * w.up && n.y <= w.y + 8) {
+        const d = dmgOf('wave');
+        toast('大浪！-' + d);
+        hurt(n, (w.x0 + w.x1) / 2, d);
         return;
       }
     }
@@ -2202,7 +2284,7 @@
     for (let i = 0; i < mists.length; i++) {
       const m = mists[i];
       if (n.x >= m.x0 - 4 && n.x <= m.x1 + 4 && n.y > m.y0 && n.y < m.y1 + 10) {
-        inMist = true; break;
+        inMist = m; break;
       }
     }
     if (!inMist) {
@@ -2210,11 +2292,13 @@
       return;
     }
     n.mistT = (n.mistT || 0) + dt;
-    if (n.mistT >= 1.45 && n.mistCd <= 0 && n.invuln <= 0) {
+    const mk = inMist.kind || 'mist', miv = inMist.every || 1.45;
+    if (n.mistT >= miv && n.mistCd <= 0 && n.invuln <= 0) {
       n.mistT = 0;
-      n.mistCd = 1.1;
-      toast('毒雾！别久站·-1');
-      hurt(n, n.x);
+      n.mistCd = Math.min(1.1, miv * 0.6);
+      const md = dmgOf(mk);
+      toast((mk === 'bubble' ? '毒泡' : '毒雾') + '！别久站·-' + md);
+      hurt(n, n.x, md);
       puff(n.x, n.y - 24, '#9b59b6', 10);
     }
   }
@@ -2539,7 +2623,7 @@
     }
     if (!inp.jump && n.vy < -240 && n.springLock <= 0) n.vy = -240;
 
-    n.vy += GRAV * dt;
+    n.vy += gravAt(n) * dt;
     if (n.vy > 980) n.vy = 980;
     if (n.onWall && !n.grounded && n.vy > SLIDE) n.vy = SLIDE;
 
@@ -2740,6 +2824,7 @@
     updateRockets(dt);
     updateBolts(dt);
     updateRocks(dt);
+    updateWaves(dt);
     touchBombs(player);
     touchGrasslandTraps(player);
     touchSpikes(player);
@@ -2749,6 +2834,7 @@
     touchSands(player, dt);
     touchRocks(player);
     touchMists(player, dt);
+      touchWaves(player);
     if (coop) {
       touchBombs(p2);
       touchGrasslandTraps(p2);
@@ -2759,6 +2845,7 @@
       touchSands(p2, dt);
       touchRocks(p2);
       touchMists(p2, dt);
+      touchWaves(p2);
     }
     if (companion) {
       touchBombs(p3);
@@ -2770,6 +2857,7 @@
       touchSands(p3, dt);
       touchRocks(p3);
       touchMists(p3, dt);
+      touchWaves(p3);
     }
 
     for (let i = 0; i < trails.length; i++) if (trails[i].on) {
@@ -2845,7 +2933,7 @@
         m.vy = 0;
         m.grounded = true;
       } else m.grounded = false;
-      m.x += m.dir * 36 * dt;
+      m.x += m.dir * (m.spd || 36) * dt;
       const ax = m.x + m.dir * (m.w / 2 + 2);
       const ac0 = Math.floor(ax / T);
       if (solidAt(ac0, Math.floor((m.y - 8) / T)) || !solidAt(ac0, Math.floor((m.y + 2) / T))) m.dir *= -1;
@@ -2876,7 +2964,7 @@
           }
           return;
         }
-        if (n.invuln <= 0) hurt(n, m.x);
+        if (n.invuln <= 0) hurt(n, m.x, m.kind === 'shark' ? dmgOf('shark') : 1);
       };
       poke(player);
       if (coop) poke(p2);
@@ -3653,6 +3741,23 @@
     }
     for (let i = 0; i < sands.length; i++) drawSand(sands[i]);
     for (let i = 0; i < mists.length; i++) drawMist(mists[i]);
+    for (let i = 0; i < lowgs.length; i++) {
+      const z = lowgs[i];
+      ctx.fillStyle = 'rgba(150,120,255,0.13)';
+      ctx.fillRect(z.x0, 0, z.x1 - z.x0, rows * T);
+      ctx.fillStyle = 'rgba(220,210,255,0.8)';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText('低重力', z.x0 + 6, 3 * T);
+    }
+    for (let i = 0; i < waves.length; i++) {
+      const w = waves[i];
+      const hh = w.h * w.up;
+      if (hh < 2) { ctx.fillStyle = 'rgba(60,150,230,0.5)'; ctx.fillRect(w.x0, w.y - 6, w.x1 - w.x0, 6); continue; }
+      ctx.fillStyle = 'rgba(60,150,230,0.75)';
+      ctx.fillRect(w.x0, w.y - hh, w.x1 - w.x0, hh);
+      ctx.fillStyle = '#e8f6ff';
+      ctx.fillRect(w.x0, w.y - hh, w.x1 - w.x0, 4);
+    }
     for (let i = 0; i < fires.length; i++) drawFireJet(fires[i]);
     for (let i = 0; i < rockets.length; i++) drawRocket(rockets[i]);
     for (let i = 0; i < bolts.length; i++) drawBolt(bolts[i]);
@@ -4297,6 +4402,7 @@
     updateRockets(dt);
     updateBolts(dt);
     updateRocks(dt);
+    updateWaves(dt);
     player.phase += dt * 8;
     p2.phase += dt * 8;
     // local decay of cosmetic knock FX between snaps
@@ -5200,7 +5306,7 @@
         coop, companion, hp: player.hp, p2x: p2.x, p2y: p2.y, p2hp: p2.hp,
         p3x: p3.x, p3y: p3.y, p3hp: p3.hp, p3anim: p3.anim,
         bossHp: boss ? boss.hp : 0, bossAlive: !!(boss && boss.alive),
-        levels: LEVELS.length, customIndex, levelName: LEVELS[levelIndex] && LEVELS[levelIndex].name, rocksN: rocks.length, sandsN: sands.length, firesN: fires.length, bombsN: bombs.length, mistsN: mists.length,
+        levels: LEVELS.length, customIndex, levelName: LEVELS[levelIndex] && LEVELS[levelIndex].name, rocksN: rocks.length, sandsN: sands.length, firesN: fires.length, bombsN: bombs.length, mistsN: mists.length, wavesN: waves.length, lowgsN: lowgs.length, dmg: LEVELS[levelIndex] && LEVELS[levelIndex].dmg, fireBurn: LEVELS[levelIndex] && LEVELS[levelIndex].fireBurn, rockXs: rocks.map((r) => [r.kind, Math.round(r.x), r.coolBase, Math.round(r.grav)]), waveXs: waves.map((w) => [Math.round(w.x0), w.h, w.every]), lowgXs: lowgs.map((z) => [z.x0, z.g]), slimeXs: slimes.map((m) => [m.kind, m.spd]), sandXs: sands.map((q) => [q.kind, q.keep, q.rate]), mistXs: mists.map((q) => [q.kind, q.every]),
         netRole, netCode, netLinked,
       };
     },
