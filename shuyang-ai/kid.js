@@ -69,7 +69,7 @@
       title: '道具和关卡是怎么设计的',
       with: ['小雨', '爸爸', '澍暘'],
       principle: '一关 = 地形 + 陷阱 + 道具 + 节奏（先易后难）；每个陷阱都有躲法。道具 = 作用 + 代价 + 什么时候用。',
-      lab: { url: 'learn/level-design.html?v=ld6', label: '打开关卡设计台' },
+      lab: { url: 'learn/level-design.html?v=ld7', label: '打开关卡设计台' },
       video: null,
       guess: {
         prompt: '小雨闯关里的落石，为什么玩家躲得开？',
@@ -81,8 +81,8 @@
       },
       dessert: {
         line: '在小雨闯关里试玩你保存的关卡，爸爸当第一个玩家',
-        play: '../xy-go/?net=1&custom=1',
-        label: '去试玩我的关',
+        play: '../xy-go/?custom=1',
+        label: '单机玩我的关卡',
       },
       star: '看清关卡和道具的本质',
     },
