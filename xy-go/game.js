@@ -72,6 +72,10 @@
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun.cloudflare.com:3478' },
+        // TURN relay so players on different networks (NAT) can still connect
+        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
       ],
     },
   };
@@ -3875,6 +3879,7 @@
     try { netConn.send(obj); } catch (e) { /* drop */ }
   }
   function netDestroy() {
+    try { if (typeof netLobbyProbePeer !== 'undefined' && netLobbyProbePeer) netLobbyProbePeer.destroy(); } catch (e) {}
     try { if (netConn) netConn.close(); } catch (e) {}
     try { if (netPeer) netPeer.destroy(); } catch (e) {}
     netConn = null;
@@ -4372,6 +4377,122 @@
       else onBusy('busy');
     });
   }
+  // ===== v3063 自动匹配 (internet-robust) =====
+  // Slot 0 is canonical. Claim it → host. Taken → connect as guest (15s). Only if that fails
+  // try slot 1. A host on slot 1 probes slot 0 every 5s and merges into it (lower slot wins).
+  const NET_LOBBY_CONNECT_MS = 15000;
+  var netLobbyProbePeer = null;
+  function netLobbyConnect(id, ms) {
+    return new Promise((resolve) => {
+      if (netMatchAbort || netLinked) { resolve(null); return; }
+      let peer;
+      try { peer = netNewPeer(); } catch (e) { resolve(null); return; }
+      netLobbyProbePeer = peer;
+      let done = false;
+      const finish = (conn) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        if (netLobbyProbePeer === peer) netLobbyProbePeer = null;
+        if (!conn || netMatchAbort) { try { peer.destroy(); } catch (e) {} resolve(null); return; }
+        resolve({ peer, conn });
+      };
+      const timer = setTimeout(() => finish(null), ms);
+      peer.on('error', (err) => { if (err && (err.type === 'peer-unavailable' || err.type === 'network' || err.type === 'server-error')) finish(null); });
+      peer.on('open', () => {
+        let conn;
+        try { conn = peer.connect(id, { reliable: true }); } catch (e) { finish(null); return; }
+        conn.on('open', () => finish(conn));
+        conn.on('error', () => finish(null));
+      });
+    });
+  }
+  function netLobbyBecomeGuest(got, id) {
+    netPeer = got.peer;
+    netRole = 'guest';
+    netCode = id;
+    netShowRoom('join');
+    netBindConn(got.conn, false);
+    netSyncRoom();
+  }
+  function netLobbyBecomeHost(won, slot, ids) {
+    netPeer = won.peer;
+    netCode = won.id;
+    netRole = 'host';
+    netShowRoom('host');
+    netBcSession = netMakeSession();
+    netBCPost({ t: 'host', id: won.id, lv: netPickLv | 0 });
+    netBCPost({ t: 'bc-offer', id: won.id, session: netBcSession, lv: netPickLv | 0 });
+    const pulse = setInterval(() => {
+      if (netMatchAbort || netRole !== 'host' || netLinked || netPeer !== won.peer) { clearInterval(pulse); return; }
+      netBCPost({ t: 'host', id: netCode, lv: netPickLv | 0 });
+      netBCPost({ t: 'bc-offer', id: netCode, session: netBcSession, lv: netPickLv | 0 });
+    }, 1200);
+    won.peer.on('connection', (conn) => {
+      if (netConn && netLinked) { try { conn.close(); } catch (e) {} return; }
+      netBindConn(conn, true);
+    });
+    won.peer.on('disconnected', () => { try { won.peer.reconnect(); } catch (e) {} });
+    won.peer.on('error', () => {});
+    netSetWait('等另一位玩家也点「联机游玩」');
+    netSetBanner('匹配中·等队友', 'ok');
+    if (slot > 0) {
+      // merge: keep probing lower slots; if a host is there, join it and free ours
+      (async () => {
+        while (!netMatchAbort && !netLinked && netPeer === won.peer) {
+          await new Promise((r) => setTimeout(r, 5000));
+          if (netMatchAbort || netLinked || netPeer !== won.peer) return;
+          for (let k = 0; k < slot; k++) {
+            const got = await netLobbyConnect(ids[k], 10000);
+            if (!got) continue;
+            if (netLinked || netMatchAbort || netPeer !== won.peer) { try { got.peer.destroy(); } catch (e) {} return; }
+            try { won.peer.destroy(); } catch (e) {}
+            toast('找到队友，正在加入…');
+            netLobbyBecomeGuest(got, ids[k]);
+            return;
+          }
+        }
+      })();
+    }
+  }
+  async function netLobbyMatch() {
+    if (!netEnsurePeerJs()) return;
+    unlock();
+    netMatchAbort = false;
+    netDestroy();
+    netRole = 'guest'; // tentative (keeps menu buttons inert)
+    const ids = netRoomCandidates();
+    for (let round = 1; !netMatchAbort && !netLinked; round++) {
+      for (let k = 0; k < ids.length; k++) {
+        if (netMatchAbort || netLinked) return;
+        netSetWait(round > 1 ? '正在寻找队友…第' + round + '轮' : '正在寻找队友…');
+        const won = await netClaimOne(ids[k]);
+        if (netMatchAbort) { if (won) { try { won.peer.destroy(); } catch (e) {} } return; }
+        if (netLinked) { if (won) { try { won.peer.destroy(); } catch (e) {} } return; }
+        if (won) { netLobbyBecomeHost(won, k, ids); return; }
+        // slot taken → someone is waiting there: join as guest. Retry several times
+        // (slow internet / NAT) before treating the holder as a ghost and moving on.
+        const tries = k === 0 ? 3 : 2;
+        for (let t = 1; t <= tries; t++) {
+          if (netMatchAbort || netLinked) return;
+          netSetWait(t === 1 ? '发现队友，正在连接…' : '网络有点慢，正在重试…第' + t + '次');
+          const got = await netLobbyConnect(ids[k], NET_LOBBY_CONNECT_MS);
+          if (got) {
+            if (netLinked || netMatchAbort) { try { got.peer.destroy(); } catch (e) {} return; }
+            netLobbyBecomeGuest(got, ids[k]);
+            return;
+          }
+          if (t < tries) {
+            // holder may have just left — try to claim the slot again
+            const again = await netClaimOne(ids[k]);
+            if (netMatchAbort || netLinked) { if (again) { try { again.peer.destroy(); } catch (e) {} } return; }
+            if (again) { netLobbyBecomeHost(again, k, ids); return; }
+          }
+        }
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }
   function netOpenHost(opts) {
     opts = opts || {};
     const silent = !!opts.silent;
@@ -4761,7 +4882,7 @@
         toast('重新寻找队友…');
         setTimeout(() => netAutoMatch(), 300);
       }
-    }, 90000);
+    }, 150000);
     if (netRole || netRoomOverride === NET_LOBBY) return;
     wantCoop = true;
     wantCompanion = false;
@@ -4793,9 +4914,8 @@
       if (netMatchAbort || netRole || mode !== 'title' || netRoomOverride !== NET_LOBBY) return;
       if (found) { pickColor = 'blue'; netOpenJoin({ silent: false }); }
       else {
-        // netOpenHost probes the lobby id first (join if a host exists), else claims it
         pickColor = 'green';
-        netOpenHost({ silent: false });
+        netLobbyMatch();
       }
     }, 700);
   }
