@@ -271,32 +271,19 @@
     }
   });
 
+  var PlayScene = null;
+
   function boot() {
     if (typeof cc === 'undefined') { bootErr('Cocos 未加载'); return; }
-    spikeTex = buildSpikeTex();
-    cloudTex = buildCloudTex();
-    hillTex = buildHillTex();
-    fireTex = buildFireTex();
-    coinTex = buildCoinTex();
+    window.addEventListener('error', function (e) { bootErr(e.message || String(e)); });
 
-    cc.game.onStart = function () {
-      cc.view.enableRetina(true);
-      cc.view.adjustViewPort(true);
-      cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
-      cc.view.resizeWithBrowserSize(true);
-      cc.LoaderScene.preload(RES, function () {
-        var Scene = cc.Scene.extend({
-          onEnter: function () {
-            this._super();
-            sceneRef = new PlayLayer();
-            this.addChild(sceneRef);
-          }
-        });
-        cc.director.runScene(new Scene());
-        $('msg').textContent = '关卡已载入 · 点「开始跑」';
-      }, this);
-    };
-    cc.game.run();
+    PlayScene = cc.Scene.extend({
+      onEnter: function () {
+        this._super();
+        sceneRef = new PlayLayer();
+        this.addChild(sceneRef);
+      }
+    });
 
     $('start').onclick = function () {
       if (sceneRef) sceneRef.startRun();
@@ -305,6 +292,37 @@
       hideResult();
       if (sceneRef) sceneRef.startRun();
     };
+
+    cc.game.onStart = function () {
+      try {
+        cc.view.enableRetina(false);
+        cc.view.adjustViewPort(true);
+        cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.SHOW_ALL);
+        cc.view.resizeWithBrowserSize(true);
+        spikeTex = buildSpikeTex();
+        cloudTex = buildCloudTex();
+        hillTex = buildHillTex();
+        fireTex = buildFireTex();
+        coinTex = buildCoinTex();
+        var left = RES.length;
+        function tick() {
+          left--;
+          if (left > 0) return;
+          cc.director.runScene(new PlayScene());
+          $('msg').textContent = '关卡已载入 · 点「开始跑」';
+        }
+        RES.forEach(function (src) {
+          var img = new Image();
+          img.onload = function () { try { cc.textureCache.addImage(src); } catch (e1) {} tick(); };
+          img.onerror = function () { bootErr('图片加载失败: ' + src); tick(); };
+          img.src = src;
+        });
+      } catch (e) {
+        bootErr('启动失败：' + e);
+      }
+    };
+    try { cc.game.run('gameCanvas'); }
+    catch (e) { bootErr('启动失败：' + e); }
   }
 
   if (document.readyState === 'complete') boot();
