@@ -326,8 +326,8 @@ function freqView(prev){cancelAnimationFrame(aF);$('fSl').style.display=prev?'no
   fHits=fHit(I);if(typeof updHP==='function')updHP();
   if(!prev){$('fRes').innerHTML=`每 <b>${I}</b> 秒 → <b>${n}</b> 块 → 掉 <b class="bad">${fHit(I)}❤</b>`;aF=requestAnimationFrame(f);return;}
   if(t<DUR+.3){aF=requestAnimationFrame(f);return;}
-  if(done===1){done=2;setTimeout(()=>aF=requestAnimationFrame(f),400);}
-  if(!done){done=1;const pv=fLast;fLast={I,h:fHit(I)};$('fRes').innerHTML=`${['','🏃 练','🔀 变','🏁 考'][fStep]}：每 <b>${I}</b> 秒 → <b>${n}</b> 块 → 掉 <b class="bad">${fHit(I)}❤</b>`+(fStep===3?(fHit(I)<=1?' ✅ 过关':' 😵 太难，回去调慢'):'')+(pv?` <span style="font-size:15px;color:#c9c3ef">（上次 每${pv.I}秒 掉${pv.h}❤ → 这次 ${fHit(I)}❤）</span>`:'');}})(performance.now());}
+  if(done===1){done=2;}
+  if(!done){done=1;setTimeout(()=>aF=requestAnimationFrame(f),400);const pv=fLast;fLast={I,h:fHit(I)};$('fRes').innerHTML=`${['','🏃 练','🔀 变','🏁 考'][fStep]}：每 <b>${I}</b> 秒 → <b>${n}</b> 块 → 掉 <b class="bad">${fHit(I)}❤</b>`+(fStep===3?(fHit(I)<=1?' ✅ 过关':' 😵 太难，回去调慢'):'')+(pv?` <span style="font-size:15px;color:#c9c3ef">（上次 每${pv.I}秒 掉${pv.h}❤ → 这次 ${fHit(I)}❤）</span>`:'');}})(performance.now());}
 $('fRun').onclick=()=>{fStep=1;freqView(true);};$('fTw').onclick=()=>{$('fI').value=1;$('fIv').textContent=1;fStep=2;freqView(true);};$('fEx').onclick=()=>{fStep=3;freqView(true);};
 let cur=0;const SCR=[['sR'],['s0'],['sF','freq'],['sF','freq'],['s2','pos'],['sP','pos'],['s1','diff'],['sP','diff'],['s3']],BLK=[0,1,2,2,3,3,4,4,5];
 const TIT={freq:'⏱️ 频率：多久来一次',pos:'📍 位置：分开还是挤',diff:'💥 难度：速度·伤害·持续'};const taught={};
