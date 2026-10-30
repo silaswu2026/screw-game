@@ -50,7 +50,8 @@ svg{width:100%;height:100%;min-height:0}
 <div class="card"><div class="big">🪨🔥⏳</div><div class="msg">陷阱是策划故意设的</div><div class="big">🔢</div><div class="msg">背后都是数据</div></div>
 </div></section>
 
-<section class="stage" id="s1"><h2>拉一拉数字，陷阱就变了</h2>
+<section class="stage" id="s1"><h2>点关卡里的陷阱，拉数字</h2>
+<canvas id="strip" width="960" height="150" style="width:100%;height:30%;min-height:70px;background:#0006;border-radius:12px;cursor:pointer"></canvas>
 <div class="row" id="traps" style="flex-wrap:wrap"></div></section>
 
 <section class="stage" id="sP"><h2>👀 忍者自动闯关</h2>
@@ -87,9 +88,29 @@ function preset(th){const [a,b,c]=TH[th][1],t=[];for(let x=0;x<COLS;x++)t.push({
  [[.2,a],[.4,b],[.55,'flag'],[.65,'shield'],[.8,c],[.93,c]].forEach(([f,ty])=>t.push({x:at(f),y:ROWS-2,type:ty}));return t;}
 {const q=new URLSearchParams(location.search);if([8,12,16].includes(+q.get('len')))COLS=+q.get('len');}st.tiles=preset('swamp');
 // stage 2 trap cards (show current theme + rock/fire)
-function traps(){const ks=[...new Set(['rock','fire','sand',...TH[st.theme][1]])].slice(0,4);
- $('traps').innerHTML=ks.map(k=>`<div class="card trap" style="flex:1 1 45%"><span class="e">${E[k]}</span><div style="flex:1">${Object.entries(NUM[k][1]).map(([f,d])=>`<label>${NUM[k][0]} · ${d[3]} <b id="v-${k}-${f}">${st.traps[k][f]}</b><input type="range" min="${d[1]}" max="${d[2]}" value="${st.traps[k][f]}" data-k="${k}" data-f="${f}"></label>`).join('')}</div></div>`).join('');}
-$('traps').oninput=e=>{const i=e.target;st.traps[i.dataset.k][i.dataset.f]=+i.value;$('v-'+i.dataset.k+'-'+i.dataset.f).textContent=i.value;};
+const RISK={rock:p=>p.speed/6*.5+.4/p.interval,meteor:p=>p.speed/6*.5+.4/p.interval,fire:p=>p.burn/10*.7,sand:p=>p.sink/5*.7,
+ shark:p=>p.speed/6*.8,wave:p=>p.height/4*.8,mud:p=>p.slow/90*.6,bubble:p=>.8/p.interval,lowg:p=>(100-p.gravity)/100*.5,mist:()=>.4};
+let sel=null,stripAnim=null;
+const trapTiles=()=>st.tiles.filter(t=>NUM[t.type]).sort((a,b)=>a.x-b.x);
+function segDiff(){const d=[0,0,0,0,0,0];for(const t of trapTiles())d[SEG(t.x)]+=RISK[t.type](st.traps[t.type]);return d.map(v=>Math.max(1,Math.min(5,1+Math.round(v*3))));}
+function traps(){const ks=[...new Set(trapTiles().map(t=>t.type))];if(!ks.includes(sel))sel=ks[0];
+ $('traps').innerHTML=ks.map(k=>`<div class="card trap" data-c="${k}" style="flex:1 1 30%;${k===sel?'border-color:#ffe7a0;background:#2f7a4566':''}"><span class="e">${E[k]}</span><div style="flex:1">${Object.entries(NUM[k][1]).map(([f,d])=>`<label>${NUM[k][0]} · ${d[3]} <b id="v-${k}-${f}">${st.traps[k][f]}</b><input type="range" min="${d[1]}" max="${d[2]}" value="${st.traps[k][f]}" data-k="${k}" data-f="${f}"></label>`).join('')}</div></div>`).join('');
+ cancelAnimationFrame(stripAnim);const t0=performance.now();(function f(now){drawStrip((now-t0)/1000);stripAnim=requestAnimationFrame(f);})(t0);}
+function drawStrip(t){const cv=$('strip'),g=cv.getContext('2d'),W=cv.width,H=cv.height,cw=W/COLS,gy=H-28,sd=segDiff();g.clearRect(0,0,W,H);
+ for(let s=0;s<6;s++){g.fillStyle=s%2?'#ffffff08':'#ffffff14';g.fillRect(s*SW()*cw,0,SW()*cw,H);const v=sd[s];g.fillStyle=['','#78d484','#b6e07a','#ffe07a','#ffb06b','#ff6b6b'][v];g.font='bold 22px sans-serif';g.fillText('难'+v,s*SW()*cw+6,24);}
+ g.fillStyle='#6b4f2f';g.fillRect(0,gy,W,28);const fs=Math.min(40,cw*.8);
+ for(const it of st.tiles.filter(t=>t.y===ROWS-2)){const x=it.x*cw+cw*.1,p=st.traps[it.type];let y=gy-6,sc=1,al=1;
+  if(p&&(it.type==='rock'||it.type==='meteor')){const ph=(t%p.interval)/p.interval,fall=Math.min(1,ph*p.speed);y=30+fall*(gy-36);}
+  else if(it.type==='fire'){const on=(t%(p.burn+2))<p.burn;sc=on?1+.15*Math.sin(t*12):.5;al=on?1:.35;}
+  else if(it.type==='sand'||it.type==='mud'){y=gy-6+((t*(it.type==='sand'?1/p.sink:p.slow/90))%1)*14;}
+  else if(p&&p.interval){al=(t%p.interval)<p.interval/2?1:.3;}
+  else if(it.type==='shark'||it.type==='wave'){y=gy-6-Math.abs(Math.sin(t*(p.speed||p.height)))*(p.height?p.height*10:20);}
+  else if(it.type==='lowg'){y=gy-6-Math.abs(Math.sin(t*p.gravity/30))*30;}
+  g.globalAlpha=al;g.font=fs*sc+'px sans-serif';g.fillText(E[it.type]||'',x,y);g.globalAlpha=1;
+  if(it.type===sel){g.strokeStyle='#ffe7a0';g.lineWidth=4;g.strokeRect(it.x*cw+2,30,cw-4,gy-30);}}}
+$('strip').onclick=e=>{const r=e.target.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*COLS);const t=trapTiles().find(t=>t.x===x)||trapTiles().reduce((a,b)=>Math.abs(b.x-x)<Math.abs(a.x-x)?b:a);if(t){sel=t.type;traps();}};
+$('traps').onclick=e=>{const c=e.target.closest('[data-c]');if(c&&e.target.tagName!=='INPUT'&&c.dataset.c!==sel){sel=c.dataset.c;traps();}};
+$('traps').oninput=e=>{const i=e.target;sel=i.dataset.k;st.traps[i.dataset.k][i.dataset.f]=+i.value;$('v-'+i.dataset.k+'-'+i.dataset.f).textContent=i.value;document.querySelectorAll('#traps [data-c]').forEach(c=>c.style.cssText=`flex:1 1 30%;${c.dataset.c===sel?'border-color:#ffe7a0;background:#2f7a4566':''}`);};
 let brush='g';
 function design(){
  $('th').innerHTML=Object.entries(TH).map(([k,v])=>`<button data-t="${k}" class="${k===st.theme?'on':''}">${v[0]}</button>`).join('');
@@ -122,8 +143,7 @@ function save(){const used=new Set(st.tiles.map(t=>t.type)),tr={};for(const k in
  $('sum').textContent=TH[st.theme][1].map(k=>E[k]).join('');$('sumt').textContent=TH[st.theme][0]+'关 · 难度 '+CURVE.join('-');$('saved').textContent='已保存 ✅';}
 $('play').onclick=save;
 
-const RISK={rock:p=>p.speed/6*.5+.4/p.interval,meteor:p=>p.speed/6*.5+.4/p.interval,fire:p=>p.burn/10*.7,sand:p=>p.sink/5*.7,
- shark:p=>p.speed/6*.8,wave:p=>p.height/4*.8,mud:p=>p.slow/90*.6,bubble:p=>.8/p.interval,lowg:p=>(100-p.gravity)/100*.5,mist:()=>.4};
+
 let anim=null;
 function preview(){cancelAnimationFrame(anim);const cv=$('cv'),g=cv.getContext('2d'),W=cv.width,H=cv.height,cw=W/COLS;
  const col=x=>st.tiles.filter(t=>t.x===x&&t.y===ROWS-2);
@@ -148,7 +168,7 @@ function preview(){cancelAnimationFrame(anim);const cv=$('cv'),g=cv.getContext('
 $('run').onclick=preview;$('prev2').onclick=()=>go(2);
 let cur=0;const ORDER=['s0','s1','sP','s2','s3'];function go(n){cur=Math.max(0,Math.min(4,n));ORDER.forEach((id,i)=>$(id).classList.toggle('on',i===cur));document.querySelectorAll('.nostage').forEach((s,i)=>s.classList.toggle('on',i===cur));
  document.querySelectorAll('.st').forEach((s,i)=>{s.classList.toggle('on',i===cur);s.classList.toggle('done',i<cur);});
- if(cur===1)traps();if(cur===2)preview();if(cur===3)design();if(cur===4)save();
+ cancelAnimationFrame(stripAnim);if(cur===1)traps();if(cur===2)preview();if(cur===3)design();if(cur===4)save();
  $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<4?'visible':'hidden';}
 $('next').onclick=()=>go(cur+1);$('back').onclick=()=>go(cur-1);
 document.querySelector('.bar').onclick=e=>{const s=e.target.dataset.s;if(s!=null)go(+s);};
