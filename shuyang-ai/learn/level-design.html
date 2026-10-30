@@ -52,6 +52,7 @@ svg{width:100%;height:100%;min-height:0}
 .sd{font-style:normal;font-size:11px;opacity:.35;margin-left:2px}.sd.on{opacity:1;color:#ffe7a0}
 .n4{display:flex;gap:4px;justify-content:center;font-size:13px;font-weight:800}.n4 span{padding:2px 9px;border-radius:999px;background:#ffffff14;color:#c9c3ef}.n4 span.on{background:#e23b3b;color:#fff}.n4 span.done{background:#2f7a45;color:#fff}
 .go.sm{font-size:15px!important;padding:4px 14px!important}
+.kidsub{text-align:center;font-size:14px;font-weight:800;color:#c9c3ef;margin:-2px 0 2px;opacity:.95}
 </style><script src="ld-art.js?v=ld10"></script></head><body>
 <div class="bar"><figure class="pp"><img src="../avatars/xiaoyu.jpg" alt="小雨" style="object-position:32% 34%"><figcaption>小雨</figcaption></figure>
 <div class="st" data-s="0">⓪ 上节课回顾</div><div class="st" data-s="1">① 看图学习</div><div class="st" data-s="2">② 关卡频率 <i class="sd" data-s="2">●</i><i class="sd" data-s="3">●</i></div><div class="st" data-s="4">③ 关卡位置 <i class="sd" data-s="4">●</i><i class="sd" data-s="5">●</i></div><div class="st" data-s="6">④ 关卡难度 <i class="sd" data-s="6">●</i><i class="sd" data-s="7">●</i></div><div class="st" data-s="8">⑤ 设计关卡</div><div class="st" data-s="9">⑥ 单机玩</div>
@@ -68,15 +69,15 @@ svg{width:100%;height:100%;min-height:0}
 <canvas id="strip" width="960" height="150" style="width:100%;flex:none;background:#0006;border-radius:12px;cursor:pointer"></canvas>
 <div class="row" id="traps" style="flex-wrap:wrap;gap:4px;align-content:flex-start"></div></section>
 
-<section class="stage" id="sF"><h2 class="s1h" id="sFt">⏱️ 频率：地刺每几秒冒一次</h2><div class="n4" id="n4f"></div>
+<section class="stage" id="sF"><h2 class="s1h" id="sFt">⏱️ 频率：地刺每几秒冒一次</h2><div class="kidsub">频率=节奏多久来一次</div><div class="n4" id="n4f"></div>
 <div id="fSl" style="text-align:center;font-size:24px;font-weight:800">每 <input type="range" id="fI" min="1" max="5" value="3" style="width:240px;height:28px;vertical-align:middle"> <b id="fIv" style="font-size:40px;color:#ffe7a0">3</b> 秒冒一次刺</div>
 <div class="cvwrap"><canvas id="cvF" width="960" height="360" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas></div>
 <div class="msg" id="fRes" style="font-size:22px;font-weight:800"></div>
 <div id="fBt" style="text-align:center"><button class="go sm" id="fRun">🏃 练：跑一次</button> <button class="go sm" id="fTw" style="background:linear-gradient(180deg,#ffb06b,#e2793b)">🔀 变：每1秒！</button> <button class="go sm" id="fEx" style="background:linear-gradient(180deg,#ff8a8a,#e23b3b)">🏁 考：最后一跑</button></div></section>
-<section class="stage" id="sQ"><h2 class="s1h" id="sQt">📍 位置：把地刺拖到别的地方</h2><div class="n4" id="n4q"></div>
+<section class="stage" id="sQ"><h2 class="s1h" id="sQt">📍 位置：把地刺拖到别的地方</h2><div class="kidsub">位置=摆哪/公不公平</div><div class="n4" id="n4q"></div>
 <div class="cvwrap"><canvas id="cvQ" width="960" height="400" style="width:100%;min-height:0;background:#0006;border-radius:12px;touch-action:none;cursor:grab"></canvas></div>
 <div class="msg" id="qRes" style="font-size:22px;font-weight:800"></div></section>
-<section class="stage" id="sD"><h2 class="s1h" id="sDt">💥 难度 = 被扎几次 × 每次掉几❤</h2><div class="n4" id="n4d"></div>
+<section class="stage" id="sD"><h2 class="s1h" id="sDt">💥 难度 = 被扎几次 × 每次掉几❤</h2><div class="kidsub">难度=扎几次×每次掉❤</div><div class="n4" id="n4d"></div>
 <div id="dCt" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:15px;font-weight:800"></div>
 <div class="cvwrap"><canvas id="cvD" width="960" height="340" style="width:100%;min-height:0;background:#0006;border-radius:12px"></canvas></div>
 <div class="msg" id="dRes" style="font-size:22px;font-weight:800"></div></section>
@@ -306,79 +307,105 @@ function reward(PT){cancelAnimationFrame(a0);const cv=$('cv0'),g=cv.getContext('
    g.fillStyle='#fff';g.font='bold 16px sans-serif';g.fillText('没奖励',X0+58,272);g.fillText('有奖励',X0+238,272);}
   if(t>DUR){g.fillStyle='#0f1230dd';g.fillRect(40,20,480,60);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText('奖励让人还想玩 → ⏰ 适度玩，到点就停',58,58);}
   if(t<DUR+2)a0=requestAnimationFrame(f);})(performance.now());}
-const SL=['先简单，再变难','🎁 奖励：让人超兴奋','🏆 最难的关 = 最大的奖','🛒 生活里也一样','🎣 阶梯刺激 + 钩子','🤫 秘密','🛠️ 我们做设计钩子的人','⏱️ 频率：多久来一次','📍 摆放：分开还是挤','🎮 任天堂四步：教→练→变→考'];let sl=0;
+const SL=[
+  '🍬 先甜一口',
+  '📶 难一点 · 奖大一点',
+  '🎣 钩子：咬到的是自己',
+  '📱 生活里的钩子',
+  '🛠️ 我们设计钩子',
+  '✋ 我自己决定停',
+  '🎮 下一步：动手调'
+];let sl=0;
 function slide(n){sl=(n+SL.length)%SL.length;$('slt').textContent=SL[sl];$('sld').textContent=SL.map((_,i)=>i===sl?'●':'○').join('');play0(0);}
 $('slp').onclick=()=>slide(sl-1);$('sln').onclick=()=>slide(sl+1);
-const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);if(sl===0)return scene0(PT);if(sl===1)return reward(PT);const cv=$('cv0'),g=cv.getContext('2d'),W=cv.width,H=cv.height,start=performance.now()-(PT||0)*1000;
- (function f(now){const t=(now-start)/1000;g.clearRect(0,0,W,H);g.font='bold 22px sans-serif';
-  if(sl===7||sl===8){const lanes=sl===7?[['地刺 每3秒',[3,7,11],3,'掉 0❤','#9ff0a8'],['地刺 每1秒',[3,7,11],1,'掉 2❤','#ff6b6b']]:[['分开 · 有喘气',[2,6,10],2,'掉 1❤','#9ff0a8'],['挤在一起',[6,7,8],2,'掉 3❤','#ff6b6b']];
-   lanes.forEach(([lab,xs,iv,res,col],li)=>{const y0=20+li*140,gy=y0+110,cw=(W-200)/13,T=Math.min(t,8),nx=60+T/8*13*cw;
-    g.fillStyle='#ffffff10';g.fillRect(10,y0,W-20,128);g.fillStyle='#6b4f2f';g.fillRect(60,gy,13*cw,14);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText(lab,16,y0+24);
-    g.font='34px sans-serif';xs.forEach(x=>{if(sl===7){if((t%iv)<.6){const a=60+x*cw;for(let k=0;k<3;k++){g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(a+k*12,gy);g.lineTo(a+k*12+6,gy-26);g.lineTo(a+k*12+12,gy);g.closePath();g.fill();}}else{g.fillStyle='#3a3a42';g.fillRect(60+x*cw,gy-4,36,5);}}else g.fillText('🔥',60+x*cw,gy-4);});
-    const near=xs.find(x=>T*13/8>x-.5&&T*13/8<x+.8);g.fillText('🥷',nx-10,gy-4-(near!=null?40:0));
-    if(t>8){g.fillStyle=col;g.font='bold 30px sans-serif';g.fillText(res,W-170,y0+80);}});}
-  if(sl===2){const A=LDART.ART,lv=[['第1关',1],['第2关',2],['第3关',3],['大BOSS',5]];
-   const fin=t>5.2,ct=t-5.2;
-   if(!fin){lv.forEach(([n,d],i)=>{const x=40+i*225,on=t>i*1.1,h=Math.min(1,Math.max(0,(t-i*1.1)/.9))*d*28;g.fillStyle='#ffffff14';g.fillRect(x+30*i*0,20+(3-i)*0,190,230);
-     g.fillStyle=i===3?'#ff5a5a':'#9ff0a8';g.fillRect(x+70,230-h,50,h);if(on){g.fillStyle='#fff';g.font='bold 18px sans-serif';g.fillText('难度 '+'▲'.repeat(d),x+40,40);}
-     if(i===3&&on){const im=LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,x+20,230-h-90,90,90);}
-     g.fillStyle='#fff';g.font='bold 22px sans-serif';g.fillText(n,x+60,272);});
-    if(t>4.3){g.fillStyle='#ffe07a';g.font='bold 40px sans-serif';g.fillText('打败大BOSS！',330,140);}}
-   else{// 全屏大奖
-    const gr=g.createRadialGradient(W/2,170,10,W/2,170,520);gr.addColorStop(0,'#fff3b0');gr.addColorStop(.35,'#ffc53d');gr.addColorStop(1,'#6b2c00');g.fillStyle=gr;g.fillRect(0,0,W,H);
-    g.save();g.translate(W/2,170);g.rotate(ct*.4);for(let k=0;k<16;k++){g.rotate(Math.PI/8);g.fillStyle='#ffffff30';g.beginPath();g.moveTo(0,0);g.lineTo(600,-40);g.lineTo(600,40);g.closePath();g.fill();}g.restore();
-    // 烟花
-    for(let k=0;k<6;k++){const fx=120+k*150,fy=60+(k%2)*40,p=((ct+k*.37)%1.6)/1.6,rr=p*80;for(let j=0;j<12;j++){const a=j/12*Math.PI*2;g.fillStyle=['#ff5a5a','#4ec96b','#5ab0ff','#ffe14a','#ff8af0','#fff'][k];g.globalAlpha=1-p;g.beginPath();g.arc(fx+Math.cos(a)*rr,fy+Math.sin(a)*rr,4,0,7);g.fill();}g.globalAlpha=1;}
-    // 大宝箱
-    const op=Math.min(1,ct/.6),cx=W/2,cy=205,sc=1+Math.min(.25,ct*.5);g.save();g.translate(cx,cy);g.scale(sc,sc);
-    g.fillStyle='#8b5a2b';g.fillRect(-110,-70,220,70);g.fillStyle='#ffd166';g.fillRect(-110,-44,220,10);g.fillRect(-14,-70,28,70);
-    g.save();g.translate(0,-70);g.rotate(-op*1.1);g.fillStyle='#a0692f';g.fillRect(-110,-40,220,40);g.fillStyle='#ffd166';g.fillRect(-14,-40,28,40);g.restore();
-    g.restore();
-    // 金币喷发
-    for(let k=0;k<30;k++){const a=-Math.PI/2+(k/30-.5)*2.2,v=200+(k*37%90),tt=((ct+k*.07)%1.8),x=cx+Math.cos(a)*v*tt,y=cy-80+Math.sin(a)*v*tt+260*tt*tt;if(A.coin&&y<H)g.drawImage(A.coin,x-14,y-14,28,28);}
-    if(ct>.6){g.fillStyle='#fff';g.font='120px sans-serif';g.fillText('🏆',cx-62,cy-110-Math.min(30,ct*20));}
-    if(A.star)for(let k=0;k<8;k++)g.drawImage(A.star,cx-260+k*70,cy-30+Math.sin(ct*5+k)*12,36,36);
-    if(ct>1){g.fillStyle='#7a2a00';g.font='bold 46px sans-serif';g.fillText('超级大奖！！',cx-140,H-10);}
-    const im=LDART.JUMP;if(im&&im.complete)g.drawImage(im,cx+170,cy-150-Math.abs(Math.sin(ct*4))*40,130,130);}}
-  if(sl===3){const IT=[['🃏','零食抽卡','隐藏款！'],['🎰','游乐场','积分换大奖'],['🛍️','商场集章','集满送礼'],['📱','短视频','下一个…']];
-   IT.forEach(([e,a,b],i)=>{const x=20+i*235,on=t>i*.8,bob=on?Math.sin(t*4+i)*6:0;g.fillStyle=on?'#ffffff1c':'#ffffff08';g.fillRect(x,20,215,250);
-    g.globalAlpha=on?1:.3;g.fillStyle='#fff';g.font='86px sans-serif';g.fillText(e,x+60,150+bob);g.font='bold 26px sans-serif';g.fillText(a,x+108-a.length*13,205);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText(b,x+108-b.length*10,245);g.globalAlpha=1;});}
-  if(sl===4){// 阶梯刺激 + 钩子
-   const st=[0,1,2,3];st.forEach(i=>{const x=30+i*90,y=250-i*45;g.fillStyle='#3b4590';g.fillRect(x,y,90,260-y);g.fillStyle='#ffe07a';g.font=(18+i*8)+'px sans-serif';if(t>i*.6)g.fillText(['🪙','🪙','⭐','🏆'][i],x+30-i*4,y-8);});
-   const ni=Math.min(3,Math.floor(t/.8)),im=LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,30+ni*90+10,250-ni*45-74,70,70);
-   g.fillStyle='#fff';g.font='bold 20px sans-serif';g.fillText('每一步：难一点 · 奖大一点',30,290);
-   // 钓鱼：看见鱼饵 → 咬 → 被钩住
-   const ox=470,ph=t<2.5?0:t<4?1:2,hy=ph<2?150:150-Math.min(80,(t-4)*70);
-   g.strokeStyle='#ddd';g.lineWidth=2;g.beginPath();g.moveTo(ox+250,0);g.lineTo(ox+250,hy);g.stroke();
-   g.strokeStyle='#c0c8d0';g.lineWidth=7;g.beginPath();g.arc(ox+236,hy,18,0,Math.PI);g.stroke();
-   if(ph<1){g.fillStyle='#fff';g.font='48px sans-serif';g.fillText('🪱',ox+222,hy+50);}
-   const fx=ph===0?ox+40+t/2.5*150:ox+200,fy=ph<2?hy+24:hy+24;g.save();g.translate(fx,fy);if(ph===2)g.rotate(Math.sin(t*20)*.4);g.font='100px sans-serif';g.fillStyle='#fff';g.fillText('🐟',-50,36);g.restore();
-   g.fillStyle='#ffe7a0';g.font='bold 24px sans-serif';g.fillText(['① 看见鱼饵','② 咬一口','③ 被钩住！'][ph],ox+20,40);
-   if(ph===2){g.fillStyle='#ff5a5a';g.font='bold 30px sans-serif';g.fillText('受伤的是自己',ox+40,290);}
-   if(t>6.5){g.fillStyle='#000e';g.fillRect(0,0,W,H);g.fillStyle='#fff';g.font='48px sans-serif';g.fillText('🃏 📱 🎰 🛍️  =  🪝',250,140);g.fillStyle='#ffe07a';g.font='bold 30px sans-serif';g.fillText('抽卡、刷视频……都是钩子',300,210);g.fillStyle='#ff8a8a';g.font='bold 26px sans-serif';g.fillText('咬太多，伤的是自己',340,260);}}
-  if(sl===6){// 我们做设计钩子的人：关卡地图
-   const A=LDART.ART,ST=[['鱼饵','超简单',['coin'],0],['难一点','',['spike','coin'],1],['再难点','小奖',['fire','star'],2],['大BOSS','大奖！',['boss','chest'],3]];
-   ST.forEach(([a,b,its,i])=>{const x=20+i*232,y=230-i*40,on=t>i*1.2;g.fillStyle=on?'#2f7a45':'#ffffff14';g.fillRect(x,y,220,270-y);g.fillStyle='#4ea85c';g.fillRect(x,y,220,6);
-    if(!on)return;g.fillStyle='#ffe07a';g.font='bold 24px sans-serif';g.fillText(['①','②','③','④'][i]+' '+a,x+10,y+36);g.fillStyle='#fff';g.font='bold 18px sans-serif';if(b)g.fillText(b,x+10,y+62);
-    its.forEach((k,j)=>{const ix=x+70+j*70,iy=y-56;if(k==='spike'){for(let q=0;q<3;q++){g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(ix+q*16,y);g.lineTo(ix+q*16+8,y-28);g.lineTo(ix+q*16+16,y);g.closePath();g.fill();}}
-     else if(k==='boss'){g.font='54px sans-serif';g.fillStyle='#fff';g.fillText('🐊',ix-10,y-6);}else if(k==='chest'){g.font=(48+Math.sin(t*6)*6)+'px sans-serif';g.fillStyle='#fff';g.fillText('🎁',ix,y-8);}
-     else if(A[k])g.drawImage(A[k],ix,iy+8,i===0?44:40,i===0?44:40);});});
-   const p=Math.min(3.99,t/1.3),k=Math.floor(p),im=LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,20+k*232+(p-k)*150,230-k*40-90,80,80);
-   if(t>5.5){g.fillStyle='#000d';g.fillRect(0,0,W,H);g.fillStyle='#9ff0a8';g.font='bold 40px sans-serif';g.fillText('我们做设计钩子的人 🛠️',230,110);
-    g.fillStyle='#fff';g.font='bold 26px sans-serif';g.fillText('鱼饵 → 阶梯变难 → 小奖 → 大奖',270,170);
-    g.fillStyle='#ffd23f';g.font='bold 26px sans-serif';g.fillText('不做被设计的人 · ⏰ 什么时候停，我自己决定',170,240);}}
-  if(sl===5){g.fillStyle='#fff';g.font='64px sans-serif';g.fillText('🧠✨',60,120);g.fillStyle='#ffe7a0';g.font='bold 34px sans-serif';g.fillText('多巴胺：「还想再来一次！」',200,110);
-   if(t>1.5){g.fillStyle='#fff';g.font='bold 26px sans-serif';g.fillText('这些都是设计的人故意做的',200,160);}
-   if(t>3){g.fillStyle='#9ff0a8';g.font='bold 36px sans-serif';g.fillText('做看懂设计的人，',60,230);g.fillText('不做被设计的人 💪',380,230);}
-   if(t>4.5){g.fillStyle='#ffd23f';g.font='bold 24px sans-serif';g.fillText('⏰ 什么时候停，我自己决定',300,280);}}
-  if(sl===9){const A=LDART.ART,cw=(W-40)/4,ST=[['① 教','安全地方先见到',['rock']],['② 练','再来几次',['rock','rock']],['③ 变','加新花样',['rock','fire']],['④ 考','全用上，过关！',['rock','fire','sand','flag']]];
-   ST.forEach(([a,b,its],i)=>{const x=20+i*cw,on=t>i*1.5,cur=Math.min(3,Math.floor(t/1.5))===i;g.fillStyle=on?'#2f7a4588':'#ffffff10';g.fillRect(x+6,10,cw-12,215);if(cur){g.strokeStyle='#ffe7a0';g.lineWidth=4;g.strokeRect(x+6,10,cw-12,215);}
-    g.fillStyle='#ffe7a0';g.font='bold 28px sans-serif';g.fillText(a,x+20,46);g.fillStyle='#6b4f2f';g.fillRect(x+14,170,cw-28,12);g.fillStyle='#4ea85c';g.fillRect(x+14,166,cw-28,5);
-    its.forEach((k,j)=>g.drawImage(A[k],x+80+j*(cw-110)/Math.max(1,its.length),124,44,44));
-    const im=on?LDART.ninjaImg():LDART.IDLE;if(im&&im.complete)g.drawImage(im,x+8+(on?((t-i*1.5)%3)/3*(cw-80):0),96,80,80);
-    g.fillStyle='#fff';g.font='bold 17px sans-serif';g.fillText(b,x+20,210);});
-   g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText('② 频率   ③ 位置   ④ 难度  —— 每一块都走这 4 步：动手=教，预览=练→变→考',24,262);}
-  if(t<12)a0=requestAnimationFrame(f);})(performance.now());};
+const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);const cv=$('cv0'),g=cv.getContext('2d'),W=cv.width,H=cv.height,A=LDART.ART,start=performance.now()-(PT||0)*1000;
+ const spk=(x,y,n=3,hh=28)=>{for(let k=0;k<n;k++){g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(x+k*14,y);g.lineTo(x+k*14+7,y-hh);g.lineTo(x+k*14+14,y);g.closePath();g.fill();g.strokeStyle='#7a8794';g.stroke();}};
+ const chest=(x,y,open,sc)=>{g.save();g.translate(x,y);g.scale(sc,sc);g.fillStyle='#8b5a2b';g.fillRect(-50,-32,100,32);g.fillStyle='#ffd166';g.fillRect(-50,-18,100,6);g.fillRect(-6,-32,12,32);
+  if(open){g.save();g.translate(0,-32);g.rotate(-1.05);g.fillStyle='#a0692f';g.fillRect(-50,-28,100,28);g.fillStyle='#ffd166';g.fillRect(-6,-28,12,28);g.restore();}
+  else{g.fillStyle='#a0692f';g.fillRect(-50,-52,100,22);}g.restore();};
+ (function f(now){const t=(now-start)/1000;g.clearRect(0,0,W,H);
+  // 0 先甜一口 = 鱼饵
+  if(sl===0){const gy=H-48;g.fillStyle='#3a5fb0';g.fillRect(0,0,W,H);g.fillStyle='#6b4f2f';g.fillRect(0,gy,W,48);g.fillStyle='#4ea85c';g.fillRect(0,gy,W,6);
+   const P=7,tt=Math.min(t,P),nx=40+tt/P*(W-120);
+   [{x:.25,k:'coin'},{x:.45,k:'coin'},{x:.65,k:'star'}].forEach(o=>{const x=40+o.x*(W-120);if(A[o.k])g.drawImage(A[o.k],x-20,gy-70+Math.sin(t*4+x)*5,40,40);if(tt/P>o.x){g.fillStyle='#ffe14a';g.font='bold 22px sans-serif';g.fillText('+★',x+10,gy-80-(((tt/P)-o.x)*80));}});
+   const im=tt>=P?LDART.IDLE:LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,nx-50,gy-110,100,100);
+   g.fillStyle='#0008';g.fillRect(W/2-200,16,400,54);g.fillStyle='#ffe7a0';g.font='bold 28px sans-serif';g.fillText('开头超简单 · 先尝到甜头',W/2-175,52);
+   if(t>P){g.fillStyle='#9ff0a8';g.font='bold 36px sans-serif';g.fillText('这叫「鱼饵」🪱',W/2-130,H/2);}}
+
+  // 1 阶梯 + 超级大奖
+  if(sl===1){const lv=[['第1关',1,'🪙'],['第2关',2,'🪙'],['第3关',3,'⭐'],['大BOSS',5,'🏆']];const fin=t>5.4,ct=t-5.4;
+   if(!fin){lv.forEach(([n,d,e],i)=>{const x=30+i*235,on=t>i*1.15,h=Math.min(1,Math.max(0,(t-i*1.15)/.85))*Math.min(H-90,d*48);
+    g.fillStyle='#ffffff12';g.fillRect(x,20,220,H-40);g.fillStyle=i===3?'#ff5a5a':'#4ea85c';g.fillRect(x+80,H-50-h,60,h);
+    if(on){g.fillStyle='#fff';g.font='bold 22px sans-serif';g.fillText(n,x+70,48);g.font='42px sans-serif';g.fillText(e,x+90,H-60-h);if(A.star)for(let k=0;k<d;k++)g.drawImage(A.star,x+40+k*28,70,26,26);}
+    if(i===3&&on){const im=LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,x+20,H-50-h-100,95,95);}});
+    if(t>4.5){g.fillStyle='#ffe07a';g.font='bold 34px sans-serif';g.fillText('难一点 → 奖大一点',W/2-160,H/2);}}
+   else{const gr=g.createRadialGradient(W/2,H*.42,8,W/2,H*.42,560);gr.addColorStop(0,'#fff3b0');gr.addColorStop(.4,'#ffc53d');gr.addColorStop(1,'#5a1e00');g.fillStyle=gr;g.fillRect(0,0,W,H);
+    g.save();g.translate(W/2,H*.4);g.rotate(ct*.35);for(let k=0;k<18;k++){g.rotate(Math.PI/9);g.fillStyle='#ffffff28';g.beginPath();g.moveTo(0,0);g.lineTo(700,-36);g.lineTo(700,36);g.closePath();g.fill();}g.restore();
+    for(let k=0;k<7;k++){const fx=80+k*130,fy=40+(k%2)*50,p=((ct+k*.3)%1.5)/1.5,rr=p*90;for(let j=0;j<10;j++){const a=j/10*Math.PI*2;g.globalAlpha=1-p;g.fillStyle=['#ff5a5a','#4ec96b','#5ab0ff','#ffe14a','#ff8af0'][k%5];g.beginPath();g.arc(fx+Math.cos(a)*rr,fy+Math.sin(a)*rr,5,0,7);g.fill();}g.globalAlpha=1;}
+    const op=Math.min(1,ct/.55),cx=W/2,cy=H*.62;chest(cx,cy,op>.3,1.35+Math.min(.2,ct*.3));
+    for(let k=0;k<28;k++){const a=-Math.PI/2+(k/28-.5)*2.4,v=180+(k*41%100),tt=((ct+k*.06)%1.7),x=cx+Math.cos(a)*v*tt,y=cy-70+Math.sin(a)*v*tt+220*tt*tt;if(A.coin&&y<H+20)g.drawImage(A.coin,x-16,y-16,32,32);}
+    if(ct>.5){g.fillStyle='#fff';g.font='110px sans-serif';g.fillText('🏆',cx-55,cy-100-Math.min(24,ct*18));}
+    if(A.star)for(let k=0;k<9;k++)g.drawImage(A.star,cx-280+k*70,cy+20+Math.sin(ct*5+k)*14,40,40);
+    const im=LDART.JUMP;if(im&&im.complete)g.drawImage(im,cx+160,cy-160-Math.abs(Math.sin(ct*4))*36,120,120);
+    if(ct>.9){g.fillStyle='#5a1e00';g.font='bold 48px sans-serif';g.fillText('超级大奖！！',cx-150,H-16);}
+   }}
+
+  // 2 钩子：咬到的是自己（只讲钩子）
+  if(sl===2){g.fillStyle='#1a2744';g.fillRect(0,0,W,H);
+   // water
+   g.fillStyle='#2a6aaa';g.fillRect(0,H*.55,W,H*.45);g.fillStyle='#3a8acc88';for(let i=0;i<8;i++){g.beginPath();g.ellipse(80+i*120,H*.58+Math.sin(t*2+i)*6,70,12,0,0,7);g.fill();}
+   const ph=t<2.2?0:t<4?1:2, hy=ph<2?H*.42:H*.42-Math.min(H*.22,(t-4)*55);
+   g.strokeStyle='#e8e8e8';g.lineWidth=3;g.beginPath();g.moveTo(W*.72,0);g.lineTo(W*.72,hy);g.stroke();
+   g.strokeStyle='#c5d0dc';g.lineWidth=8;g.beginPath();g.arc(W*.72-6,hy,22,0,Math.PI);g.stroke();
+   if(ph<1){g.font='56px sans-serif';g.fillStyle='#fff';g.fillText('🪱',W*.72-28,hy+60);}
+   const fx=ph===0?W*.2+t/2.2*W*.4:W*.72-30, fy=ph<2?H*.62:hy+20;
+   g.save();g.translate(fx,fy);if(ph===2)g.rotate(Math.sin(t*18)*.45);g.font='120px sans-serif';g.fillText('🐟',-60,40);g.restore();
+   const tip=[['① 看见鱼饵','好想咬！'],['② 咬一口','真甜…'],['③ 被钩住！','受伤的是自己']][ph];
+   g.fillStyle='#0009';g.fillRect(24,18,360,100);g.fillStyle='#ffe7a0';g.font='bold 32px sans-serif';g.fillText(tip[0],40,58);g.fillStyle=ph===2?'#ff6b6b':'#fff';g.font='bold 28px sans-serif';g.fillText(tip[1],40,98);
+   if(ph===2&&t>5.2){g.fillStyle='#000c';g.fillRect(0,H-70,W,70);g.fillStyle='#ff8a8a';g.font='bold 30px sans-serif';g.fillText('钩子看起来甜，咬到却会伤到自己',W/2-260,H-28);}
+  }
+
+  // 3 生活里的钩子
+  if(sl===3){const IT=[['🃏','盲盒抽卡','再来一抽…'],['📱','短视频','下一个更好？'],['🎰','游乐场','差一点点大奖'],['🛍️','集章送礼','集满就有']];
+   IT.forEach(([e,a,b],i)=>{const x=18+i*(W/4),on=t>i*.7,bob=on?Math.sin(t*3.5+i)*8:0;
+    g.fillStyle=on?'#ffffff18':'#ffffff08';g.fillRect(x+6,30,W/4-20,H-100);
+    g.globalAlpha=on?1:.25;g.font='90px sans-serif';g.fillStyle='#fff';g.fillText(e,x+(W/4)/2-48,160+bob);
+    g.font='bold 26px sans-serif';g.fillText(a,x+(W/4)/2-a.length*13,230);g.fillStyle='#ffe7a0';g.font='bold 20px sans-serif';g.fillText(b,x+(W/4)/2-b.length*10,270);g.globalAlpha=1;
+    if(on&&t>i*.7+.4){g.font='42px sans-serif';g.fillText('🪝',x+(W/4)/2-18,H-40);}});
+   if(t>3.5){g.fillStyle='#000a';g.fillRect(0,0,W,56);g.fillStyle='#fff';g.font='bold 28px sans-serif';g.fillText('这些，都是同一种钩子',W/2-150,38);}
+  }
+
+  // 4 我们设计钩子 = 关卡配方
+  if(sl===4){const ST=[['① 鱼饵','超简单',['coin']],['② 难一点','',['spike','coin']],['③ 小奖','再难点',['fire','star']],['④ 大奖','大BOSS',['boss','chest']]];
+   ST.forEach(([a,b,its],i)=>{const x=16+i*((W-20)/4),y=H*.55-i*(H*.08),on=t>i*1.1;g.fillStyle=on?'#2f7a45':'#ffffff10';g.fillRect(x,y,(W-40)/4-8,H-y-16);g.fillStyle='#4ea85c';g.fillRect(x,y,(W-40)/4-8,5);
+    if(!on)return;g.fillStyle='#ffe7a0';g.font='bold 24px sans-serif';g.fillText(a,x+12,y+34);g.fillStyle='#fff';g.font='bold 18px sans-serif';if(b)g.fillText(b,x+12,y+60);
+    its.forEach((k,j)=>{const ix=x+50+j*55;if(k==='spike')spk(ix,y-4,3,32);else if(k==='boss'){g.font='50px sans-serif';g.fillText('🐊',ix,y-8);}else if(k==='chest'){g.font=(44+Math.sin(t*6)*5)+'px sans-serif';g.fillText('🎁',ix,y-6);}else if(A[k])g.drawImage(A[k],ix,y-52,44,44);});});
+   const p=Math.min(3.99,t/1.25),k=Math.floor(p),im=LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,16+k*((W-20)/4)+(p-k)*(((W-20)/4)-90),H*.55-k*(H*.08)-95,85,85);
+   if(t>5.2){g.fillStyle='#000d';g.fillRect(0,0,W,H);g.fillStyle='#9ff0a8';g.font='bold 40px sans-serif';g.fillText('我们做「设计钩子」的人',W/2-220,H*.4);
+    g.fillStyle='#fff';g.font='bold 26px sans-serif';g.fillText('鱼饵 → 阶梯变难 → 小奖 → 大奖',W/2-200,H*.55);}
+  }
+
+  // 5 自己决定停
+  if(sl===5){g.fillStyle='#141c38';g.fillRect(0,0,W,H);
+   // two paths
+   g.fillStyle='#ffffff10';g.fillRect(40,40,W/2-60,H-80);g.fillStyle='#ffffff10';g.fillRect(W/2+20,40,W/2-60,H-80);
+   g.fillStyle='#ff8a8a';g.font='bold 28px sans-serif';g.fillText('❌ 被钩子拖着走',70,90);
+   g.fillStyle='#9ff0a8';g.font='bold 28px sans-serif';g.fillText('✅ 看懂钩子的人',W/2+50,90);
+   const left=['再看一条…','再抽一发…','停不下来'],right=['我看见钩子了','玩够了就停','我自己决定'];
+   left.forEach((w,i)=>{if(t>1+i*.6){g.fillStyle='#ffb4b4';g.font='bold 24px sans-serif';g.fillText('🪝 '+w,70,160+i*55);}});
+   right.forEach((w,i)=>{if(t>1+i*.6){g.fillStyle='#c8ffd0';g.font='bold 24px sans-serif';g.fillText('🛡️ '+w,W/2+50,160+i*55);}});
+   if(t>4){g.fillStyle='#ffe07a';g.font='bold 34px sans-serif';g.fillText('⏰ 什么时候停，我自己决定',W/2-220,H-36);}
+   const im=LDART.IDLE;if(im&&im.complete&&t>3)g.drawImage(im,W/2-40,H*.35,90,90);
+  }
+
+  // 6 桥接到练习
+  if(sl===6){const cards=[['⏱️','频率','多久冒一次'],['📍','位置','放在哪里'],['💥','难度','打多疼']];
+   cards.forEach(([e,a,b],i)=>{const x=40+i*((W-60)/3),on=t>i*.5;g.fillStyle=on?'#2f7a4588':'#ffffff10';g.fillRect(x,50,(W-80)/3-16,H-140);
+    g.globalAlpha=on?1:.3;g.font='72px sans-serif';g.fillStyle='#fff';g.fillText(e,x+((W-80)/3)/2-50,160);g.font='bold 32px sans-serif';g.fillText(a,x+((W-80)/3)/2-a.length*16,220);
+    g.fillStyle='#ffe7a0';g.font='bold 22px sans-serif';g.fillText(b,x+((W-80)/3)/2-b.length*11,265);g.globalAlpha=1;});
+   if(t>2){g.fillStyle='#fff';g.font='bold 28px sans-serif';g.fillText('接下来：动手调这三样，做出你的钩子！',W/2-260,H-40);}
+  }
+  if(t<14)a0=requestAnimationFrame(f);})(performance.now());};
 $('play0').onclick=()=>play0(0);
 function updHP(){try{const h=(MODE==='freq'&&$('sF').classList.contains('on')&&fHits!=null)?fHits:($('sQ').classList.contains('on')&&qHits!=null)?qHits:($('sD').classList.contains('on')&&dHits!=null)?dHits:(($('sM').classList.contains('on')||$('s3').classList.contains('on'))&&mHits!=null)?mHits:totalHits(),M=6,left=Math.max(0,M-h);$('hp').innerHTML=`${'❤'.repeat(left)}${'🤍'.repeat(M-left)} <span style="font-size:12px;color:#c9c3ef">${$('sF').classList.contains('on')?'频率 → 掉':$('sQ').classList.contains('on')?'位置 → 掉':$('sD').classList.contains('on')?'难度 → 掉':($('sM').classList.contains('on')||$('s3').classList.contains('on'))?'我的关卡 → 掉':'难度=频率×摆放 → 掉'}${h}❤</span>`;}catch(e){}}setInterval(updHP,300);setTimeout(updHP,0);
 let aR=null;const IMN=new Image();IMN.src='img/ninjas.png';const IMC=new Image();IMC.src='img/critters.png';
@@ -416,42 +443,81 @@ function crispAll(){document.querySelectorAll('.stage.on canvas').forEach(crisp)
 
 
 // ⑤ 设计我的关卡：组合 位置 + 频率 + 难度
-let aM=null,mHits=null,mTool='spike',mSel='spike',mRun=-1;const MC=12;
+let aM=null,mHits=null,mTool='spike',mSel='spike',mSelX=-1,mRun=-1,mMode='run',mPreviewDone=0,mEndMsg='';const MC=12;
 const MT={spike:['🔺','地刺'],fire:['🔥','火'],rock:['🪨','落石'],mist:['☠️','毒雾'],coin:['🪙','金币'],shield:['⭐','无敌星'],spring:['🌀','弹簧'],del:['🧽','擦掉']};
 const MP={spike:{interval:3,up:1,damage:1},fire:{dur:3,damage:1},rock:{interval:3,damage:1},mist:{interval:3,damage:1}};
 let mMap=(()=>{try{const d=JSON.parse(localStorage.getItem(KEY)||'null');if(d&&d.mine&&Array.isArray(d.mine.map)){Object.assign(MP,d.mine.mp||{});return d.mine.map;}}catch(e){}const m=Array(MC).fill(null);m[3]='fire';m[6]='coin';m[9]='rock';return m;})();
 const isTrap=k=>k==='spike'||k==='fire'||k==='rock'||k==='mist';
+const isReward=k=>k==='coin'||k==='shield';
+const MZONE=x=>x<=2?['教','#4ea85c']:x<=6?['练','#e6c200']:x<=9?['变','#e2793b']:['考','#e23b3b'];
 function mEst(){let sh=0;return mMap.map((k,x)=>{if(k==='shield'){sh++;return 0;}if(!isTrap(k))return 0;const p=MP[k];
- let n=k==='fire'?{1:0,3:1,5:2}[p.dur]:k==='spike'?(Math.min(1,p.up/p.interval)>=0.34?1:0):{1:2,3:1,5:0}[p.interval];const nb=k!=='spike'&&isTrap(mMap[x-1])||mMap[x-1]==='spring'||isTrap(mMap[x+1]);if(nb)n++;
+ let n=k==='fire'?{1:0,3:1,5:2}[p.dur]:k==='spike'?(Math.min(1,p.up/p.interval)>=0.34?1:0):{1:2,3:1,5:0}[p.interval];const nb=k!=='spike'&&(isTrap(mMap[x-1])||mMap[x-1]==='spring'||isTrap(mMap[x+1]));if(nb)n++;
  let h=n*p.damage;if(h>0&&sh){sh--;h=Math.max(0,h-p.damage);}return h;});}
-function mPal(){$('mPal').innerHTML=Object.entries(MT).map(([k,[e,n]])=>`<button class="go sm" data-k="${k}" style="padding:3px 10px;font-size:16px;${mTool===k?'background:linear-gradient(180deg,#ffe07a,#f0b400);color:#222':'background:#3b4590'}">${e} ${n}</button>`).join('')+` <button class="go sm" id="mGo" style="padding:3px 12px;font-size:16px">▶ 跑一次</button>`;
- document.querySelectorAll('#mPal button[data-k]').forEach(b=>b.onclick=()=>{mTool=b.dataset.k;if(isTrap(mTool))mSel=mTool;mPal();mCtl();});$('mGo').onclick=()=>{mRun=performance.now();};}
-function mCtl(){const k=mSel,p=MP[k],[e,n]=MT[k];const seg=(lab,key,vs,fmt)=>`<span style="background:#ffffff14;border-radius:12px;padding:2px 6px">${lab} `+vs.map(v=>`<button class="go sm" data-p="${key}" data-v="${v}" style="padding:2px 8px;font-size:15px;${p[key]===v?'background:linear-gradient(180deg,#ffe07a,#f0b400);color:#222':'background:#3b4590'}">${fmt(v)}</button>`).join('')+'</span>';
- $('mCt').innerHTML=`<span style="align-self:center">${e} 所有${n}：</span>`+(k==='fire'?seg('⏳ 停','dur',[1,3,5],v=>v+'秒'):seg('⏱️ 每','interval',[1,3,5],v=>v+'秒'))+(k==='spike'?seg('⏳ 停','up',[0.6,1,2],v=>({0.6:'短',1:'中',2:'久'})[v]):'')+seg('💔','damage',[1,2,3],v=>v+'❤');
+function mPal(){const modes=[['run','▶ 跑一次'],['tw','🔀 变一变'],['ex','🏁 考：≤3❤']];
+ $('mPal').innerHTML=Object.entries(MT).map(([k,[e,n]])=>`<button class="go sm" data-k="${k}" style="padding:3px 10px;font-size:16px;${mTool===k?'background:linear-gradient(180deg,#ffe07a,#f0b400);color:#222':'background:#3b4590'}">${e} ${n}</button>`).join('')+' '+modes.map(([m,lab])=>`<button class="go sm" data-m="${m}" style="padding:3px 12px;font-size:16px;${mMode===m?'background:linear-gradient(180deg,#78d484,#4ea85c)':'background:#3b4590'}">${lab}</button>`).join('');
+ document.querySelectorAll('#mPal button[data-k]').forEach(b=>b.onclick=()=>{mTool=b.dataset.k;if(isTrap(mTool)||isReward(mTool)){mSel=mTool;mSelX=mMap.findIndex(x=>x===mTool);}mPal();mCtl();});
+ document.querySelectorAll('#mPal button[data-m]').forEach(b=>b.onclick=()=>{mMode=b.dataset.m;mEndMsg='';if(mMode==='tw'){/* soft twist: bump one trap faster */const xs=mMap.map((k,i)=>isTrap(k)?i:-1).filter(i=>i>=0);if(xs.length){const i=xs[xs.length-1],k=mMap[i];if(k==='fire')MP.fire.dur=1;else if(MP[k])MP[k].interval=1;mSel=k;mSelX=i;mCtl();mSave();}mMode='run';}mPal();mRun=performance.now();});}
+function mCtl(){if(!isTrap(mSel)&&!isReward(mSel)){$('mCt').innerHTML='<span style="color:#c9c3ef">点格子摆东西 · 点陷阱再调数字</span>';return;}
+ const k=mSel,[e,n]=MT[k];
+ if(isReward(k)){$('mCt').innerHTML=`<span style="align-self:center;color:#9ff0a8">${e} 奖励格 · 不掉血 · 喘气</span>`;return;}
+ const p=MP[k];const seg=(lab,key,vs,fmt)=>`<span style="background:#ffffff14;border-radius:12px;padding:2px 6px">${lab} `+vs.map(v=>`<button class="go sm" data-p="${key}" data-v="${v}" style="padding:2px 8px;font-size:15px;${p[key]===v?'background:linear-gradient(180deg,#ffe07a,#f0b400);color:#222':'background:#3b4590'}">${fmt(v)}</button>`).join('')+'</span>';
+ const tip=(k==='fire'?`停${p.dur}秒`:`每${p.interval}秒`)+` · ${p.damage}❤`;
+ $('mCt').innerHTML=`<span style="align-self:center">${e} 位置已定 · 调频率/难度 <small style="color:#ffe7a0">${tip}</small></span>`+(k==='fire'?seg('⏳ 停','dur',[1,3,5],v=>v+'秒'):seg('⏱️ 每','interval',[1,3,5],v=>v+'秒'+(v===1?'⚡':v===3?'!':'')))+(k==='spike'?seg('⏳ 停','up',[0.6,1,2],v=>({0.6:'短',1:'中',2:'久'})[v]):'')+seg('💔','damage',[1,2,3],v=>v+'❤');
  document.querySelectorAll('#mCt button').forEach(b=>b.onclick=()=>{MP[mSel][b.dataset.p]=+b.dataset.v;mCtl();mSave();});}
 function mSave(final){const tiles=[];for(let x=0;x<MC;x++)tiles.push({x,y:ROWS-1,type:'g'});mMap.forEach((k,x)=>{if(k)tiles.push({x,y:ROWS-2,type:k});});
  const tr={},used=new Set(mMap);if(used.has('spike'))tr.spike={interval:MP.spike.interval,up:MP.spike.up,damage:MP.spike.damage};if(used.has('fire'))tr.fire={damage:MP.fire.damage,dur:MP.fire.dur,burn:MP.fire.dur};if(used.has('rock'))tr.rock={interval:MP.rock.interval,speed:3,damage:MP.rock.damage};if(used.has('mist'))tr.mist={interval:MP.mist.interval,damage:MP.mist.damage};
  localStorage.setItem(KEY,JSON.stringify({theme:'swamp',cols:MC,rows:ROWS,tiles,traps:tr,savedAt:new Date().toISOString(),by:'伍澍暘',mine:{map:mMap,mp:MP}}));
  if(final){const h=mEst(),tot=h.reduce((a,b)=>a+b,0);$('sumt').textContent='我的关卡 · 12格 · 预计掉血';
   $('sumseg').innerHTML=mMap.map((k,x)=>k&&k!=='del'?`<div style="flex:1;text-align:center;background:#ffffff12;border-radius:8px;padding:4px"><div style="font-size:20px">${MT[k][0]}</div><div style="font-size:16px;color:${h[x]?'#ff6b6b':'#9ff0a8'}">${isTrap(k)?(h[x]?'-'+h[x]+'❤':'✓'):''}</div></div>`:'').join('');
-  $('sumtot').innerHTML='一共掉 <b style="font-size:24px">'+tot+'❤</b>';$('saved').textContent='已保存 ✅ 游戏里就是这一关';}}
+  $('sumtot').innerHTML='一共掉 <b style="font-size:24px">'+tot+'❤</b>'+(mPreviewDone?'':' <span style="color:#ffe7a0;font-size:14px">（先▶跑一次看看）</span>');$('saved').textContent=mPreviewDone?'已保存 ✅ 游戏里就是这一关':'先在上面▶跑一次，再来玩';}}
+function mCheck(){const traps=mMap.map((k,i)=>isTrap(k)?i:-1).filter(i=>i>=0);const types=new Set(traps.map(i=>mMap[i]));
+ const easy=traps.length?traps[0]<=3:true;let breath=true;for(let i=1;i<traps.length;i++)if(traps[i]-traps[i-1]<=1){const mid=mMap.slice(traps[i-1],traps[i]+1);if(!mid.some(isReward))breath=false;}
+ return [['先易后难',easy],['有喘气',breath],['一种主意(≤3)',types.size<=3]];}
+function mRewardNudge(){for(let x=0;x<MC-1;x++){if(isTrap(mMap[x])&&isTrap(mMap[x+1])){const near=mMap.slice(Math.max(0,x-2),Math.min(MC,x+4)).some(isReward);if(!near)return x;}}return -1;}
 function mView(){cancelAnimationFrame(aM);mPal();mCtl();const cv=$('cvM');crisp(cv);const g=cv.getContext('2d'),W=cv.width,H=cv.height,L=20,cw=(W-200)/MC,gy=H-60;mSave();
  cv.onclick=e=>{const r=cv.getBoundingClientRect(),x=Math.floor(((e.clientX-r.left)/r.width*W-L)/cw);if(x<0||x>=MC)return;
-  if(mTool==='del')mMap[x]=null;else if(mMap[x]===mTool&&isTrap(mTool)){mSel=mTool;}else mMap[x]=mTool;if(isTrap(mMap[x])){mSel=mMap[x];mCtl();}mSave();};
+  if(mTool==='del'){mMap[x]=null;if(mSelX===x)mSelX=-1;}
+  else if(mMap[x]&&(isTrap(mMap[x])||isReward(mMap[x]))){mSel=mMap[x];mSelX=x;if(isTrap(mSel))mTool=mSel;}
+  else{mMap[x]=mTool;mSel=mTool;mSelX=x;}mCtl();mSave();};
  (function f(now){g.clearRect(0,0,W,H);const h=mEst(),tot=h.reduce((a,b)=>a+b,0);mHits=tot;
+  // 教练变考 color bands
+  [[0,3,'#4ea85c33','教'],[3,7,'#e6c20033','练'],[7,10,'#e2793b33','变'],[10,12,'#e23b3b33','考']].forEach(([a,b,c,lab])=>{g.fillStyle=c;g.fillRect(L+a*cw,gy-88,(b-a)*cw,96);g.fillStyle=c.replace('33','cc');g.font='bold 14px sans-serif';g.fillText(lab,L+a*cw+6,gy-74);});
   g.fillStyle='#6b4f2f';g.fillRect(L,gy,MC*cw,30);g.fillStyle='#4ea85c';g.fillRect(L,gy,MC*cw,6);
-  for(let x=0;x<MC;x++){g.strokeStyle='#ffffff22';g.lineWidth=1;g.strokeRect(L+x*cw+2,gy-80,cw-4,78);g.fillStyle='#c9c3ef';g.font='bold 13px sans-serif';g.fillText(x+1,L+x*cw+cw/2-5,gy+48);
-   const k=mMap[x];if(k==='spike'){const up=Math.floor(now/1000/MP.spike.interval*2)%2===0;g.fillStyle='#3a3a42';g.fillRect(L+x*cw+6,gy-4,cw-12,6);if(up)for(let q=0;q<4;q++){const a=L+x*cw+8+q*(cw-16)/4;g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(a,gy);g.lineTo(a+(cw-16)/8,gy-34);g.lineTo(a+(cw-16)/4,gy);g.closePath();g.fill();g.strokeStyle='#7a8794';g.stroke();}}if(k){g.fillStyle='#fff';g.font='44px sans-serif';if(k!=='spike')g.fillText(MT[k][0],L+x*cw+cw/2-24,gy-22);
-    if(isTrap(k)){const p=MP[k];g.font='bold 13px sans-serif';g.fillStyle='#ffe7a0';g.fillText((k==='fire'?'停'+p.dur:'每'+p.interval)+'秒 '+p.damage+'❤',L+x*cw+4,gy-84);}}}
+  const pulse=isTrap(mSel)&&((MP[mSel].damage|0)>=2||(MP[mSel].interval|0)===1||(mSel==='fire'&&MP.fire.dur===1));
+  const nudgeAt=mRewardNudge();
+  for(let x=0;x<MC;x++){const sel=mSelX===x;g.strokeStyle=sel?'#ffd700':'#ffffff22';g.lineWidth=sel?3:1;g.strokeRect(L+x*cw+2,gy-80,cw-4,78);
+   g.fillStyle='#c9c3ef';g.font='bold 13px sans-serif';g.fillText(x+1,L+x*cw+cw/2-5,gy+48);
+   // zone hint when placing trap tool
+   if(isTrap(mTool)&&!mMap[x]){const[,zc]=MZONE(x);g.fillStyle=zc+'22';g.fillRect(L+x*cw+4,gy-78,cw-8,20);}
+   const k=mMap[x];if(k==='spike'){const up=Math.floor(now/1000/MP.spike.interval*2)%2===0;g.fillStyle='#3a3a42';g.fillRect(L+x*cw+6,gy-4,cw-12,6);if(up)for(let q=0;q<4;q++){const a=L+x*cw+8+q*(cw-16)/4;g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(a,gy);g.lineTo(a+(cw-16)/8,gy-34);g.lineTo(a+(cw-16)/4,gy);g.closePath();g.fill();g.strokeStyle='#7a8794';g.stroke();}}
+   if(k){g.fillStyle='#fff';g.font='44px sans-serif';if(k!=='spike')g.fillText(MT[k][0],L+x*cw+cw/2-24,gy-22);
+    if(isTrap(k)){const p=MP[k];g.font='bold 12px sans-serif';g.fillStyle='#ffe7a0';g.fillText((k==='fire'?'停'+p.dur:'每'+p.interval)+'秒 '+p.damage+'❤',L+x*cw+2,gy-84);
+     // interval ticks under selected trap
+     if(sel&&k!=='fire'){const iv=p.interval||3;for(let t=0;t<5;t++){g.fillStyle=t%iv===0?'#ffe07a':'#ffffff44';g.fillRect(L+x*cw+8+t*10,gy-8,7,5);}}}
+    if(isReward(k)&&sel){g.fillStyle='#9ff0a8';g.font='bold 12px sans-serif';g.fillText('奖励·喘气',L+x*cw+4,gy-84);}
+   }
+   if(nudgeAt===x){g.fillStyle='#ffe07a';g.font='bold 13px sans-serif';g.fillText('放个🪙',L+x*cw+4,gy-98);}
+  }
+  if(nudgeAt>=0){g.fillStyle='#ffe07acc';g.font='bold 16px sans-serif';g.fillText('难完了放个🪙喘气',L+nudgeAt*cw-10,gy-112);}
   if(A0().flag)g.drawImage(A0().flag,L+MC*cw-10,gy-60,50,56);
-  // 预览：匀速跑
+  // preview
   const rt=mRun<0?-1:(now-mRun)/1000,P=6;let nx=L-10;if(rt>=0){nx=L+Math.min(rt,P)/P*MC*cw;}
-  let hurt=false,jump=0;for(let x=0;x<MC;x++){const cx=L+x*cw+cw/2;if(rt>=0&&nx>=cx){if(h[x]>0){g.fillStyle='#ff5a5a';g.font='bold 22px sans-serif';g.fillText('-'+h[x]+'❤',cx-22,gy-110);if(nx-cx<cw)hurt=true;}else if(isTrap(mMap[x])){g.fillStyle='#9ff0a8';g.font='bold 22px sans-serif';g.fillText('✓',cx-8,gy-110);}}
-   if(rt>=0&&isTrap(mMap[x])&&!h[x]&&Math.abs(nx-cx)<cw*.8)jump=Math.sin((nx-cx+cw*.8)/(cw*1.6)*Math.PI)*60;}
+  let hurt=false,jump=0;for(let x=0;x<MC;x++){const cx=L+x*cw+cw/2,k=mMap[x];
+   // telegraph ! one beat before slow traps
+   if(rt>=0&&isTrap(k)){const p=MP[k],slow=(k==='fire'?p.dur:p.interval)>=3;const dist=(cx-nx)/(MC*cw)*P;if(slow&&dist>0&&dist<0.7){g.fillStyle='#ffe07a';g.font='bold 28px sans-serif';g.fillText('!',cx-6,gy-120);}}
+   if(rt>=0&&nx>=cx){if(h[x]>0){g.fillStyle='#ff5a5a';g.font='bold 22px sans-serif';g.fillText('-'+h[x]+'❤',cx-22,gy-110);if(nx-cx<cw)hurt=true;}else if(isTrap(k)){g.fillStyle='#9ff0a8';g.font='bold 22px sans-serif';g.fillText('✓',cx-8,gy-110);}}
+   if(rt>=0&&isTrap(k)&&!h[x]&&Math.abs(nx-cx)<cw*.8)jump=Math.sin((nx-cx+cw*.8)/(cw*1.6)*Math.PI)*60;}
   const im=hurt?LDART.HURT:jump>4?LDART.JUMP:(rt<0||rt>P)?LDART.IDLE:LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,nx-40,gy-90-jump,90,90);
-  const col=tot<=2?'#4ec96b':tot<=5?'#ffd23f':'#ff5a5a';g.fillStyle=col;g.beginPath();g.roundRect(W-170,10,160,H-20,16);g.fill();g.fillStyle='#1b1b2a';
-  g.font='bold 20px sans-serif';g.fillText('一共掉',W-130,46);g.font='bold 64px sans-serif';g.fillText(tot+'❤',W-158,124);g.font='bold 20px sans-serif';g.fillText(tot<=2?'简单':tot<=5?'刚刚好':'超难',W-124,164);
-  g.font='bold 14px sans-serif';g.fillText('点格子摆放',W-132,200);
+  if(rt>=P&&mRun>0){if(!mPreviewDone)mPreviewDone=1;const worst=h.reduce((bi,v,i)=>v>(h[bi]||0)?i:bi,0);const goal=mMode==='ex';
+   mEndMsg=`掉${tot}❤ · 最疼格#${worst+1}`+(goal?(tot<=3?' ✅ 考过！':' · 再调到≤3❤'):'');mRun=-1;}
+  // right card
+  const col=tot<=2?'#4ec96b':tot<=5?'#ffd23f':'#ff5a5a';const pulseOn=pulse&&Math.floor(now/200)%2;
+  g.fillStyle=pulseOn?'#ff8a3a':col;g.beginPath();g.roundRect(W-170,8,160,H-16,16);g.fill();g.fillStyle='#1b1b2a';
+  g.font='bold 20px sans-serif';g.fillText('一共掉',W-130,42);g.font='bold 58px sans-serif';g.fillText(tot+'❤',W-158,110);g.font='bold 18px sans-serif';g.fillText(tot<=2?'简单':tot<=5?'刚刚好':'超难',W-124,140);
+  // soft checklist
+  mCheck().forEach(([lab,ok],i)=>{g.fillStyle=ok?'#1b5e20':'#5a3a10';g.font='bold 13px sans-serif';g.fillText((ok?'✓ ':'· ')+lab,W-158,168+i*22);});
+  if(mEndMsg){g.fillStyle='#1b1b2a';g.font='bold 13px sans-serif';g.fillText(mEndMsg,W-162,H-28);}
+  else g.fillStyle='#1b1b2a',g.font='bold 13px sans-serif',g.fillText(mSelX>=0&&isTrap(mSel)?'位置已定·调右下':'点格子摆放',W-158,H-28);
   aM=requestAnimationFrame(f);})(performance.now());}
 const A0=()=>LDART.ART;
 // 难度块：伤害 × 冒得快 × 停留久
@@ -563,7 +629,7 @@ function go(n){cur=Math.max(0,Math.min(9,n));const [id,m]=SCR[cur];if(m)MODE=m;
  if(id==='s2'){n4('n4c',0);design();}
  if(id==='sP'){$('sPt').textContent=TIT[m]+' · 忍者匀速跑';pstep=1;n4('n4b',1);preview();}
  if(id==='sM')mView();else cancelAnimationFrame(aM);
- if(cur===9)mSave(true);
+ if(cur===9){mSave(true);if(!mPreviewDone&&$('saved'))$('saved').textContent='提示：先回⑤ ▶跑一次，再单机玩';}
  $('back').style.visibility=cur?'visible':'hidden';$('next').style.visibility=cur<9?'visible':'hidden';if(typeof updHP==='function')updHP();}
 function twist(){const tt=trapTiles();if(!tt.length)return;const t=tt[tt.length-1];
  if(MODE==='freq')st.traps[t.type].interval=1;
