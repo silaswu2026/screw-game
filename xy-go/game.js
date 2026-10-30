@@ -153,7 +153,7 @@
     }
     // Guest sees host offer → accept via BC (skip PeerJS)
     if ((m.t === 'host' || m.t === 'bc-offer') && netRole === 'guest' && !netLinked && m.id) {
-      if (netRoomOverride && String(m.id) !== netCustomRoom()) return; // other room
+      if (netRoomOverride && netRoomCandidates().indexOf(String(m.id)) < 0) return; // other room
       const sess = m.session || netMakeSession();
       netBcSession = sess;
       netCode = String(m.id);
@@ -3827,6 +3827,8 @@
   }
   function netRoomCandidates() {
     const custom = netCustomRoom();
+    // 自动匹配大厅: 2 fixed slots so one stuck/ghost id cannot block everyone
+    if (custom && /-c-match-/.test(custom)) return [custom + '-0', custom + '-1'];
     if (custom) return [custom];
     // 3-minute buckets keep ids stable while avoiding forever-stuck PeerJS ghosts
     const bucket = Math.floor(Date.now() / 180000);
@@ -4472,8 +4474,8 @@
       }
       if (!silent) netSetWait(netLinked ? '队友已准备！马上开始' : '等另一位玩家也点「联机游玩」');
       const short = String(won.id || '').slice(-6);
-      netSetBanner(netRoomOverride === 'match-lobby' ? '匹配中·等队友' : '房间已开·等玩家B·' + short, 'ok');
-      toast(netRoomOverride === 'match-lobby' ? '正在等队友…' : '房间已开·对方点「玩家B」加入');
+      netSetBanner(netRoomOverride === NET_LOBBY ? '匹配中·等队友' : '房间已开·等玩家B·' + short, 'ok');
+      toast(netRoomOverride === NET_LOBBY ? '正在等队友…' : '房间已开·对方点「玩家B」加入');
     })();
   }
   function netProbeId(peer, id) {
@@ -4535,7 +4537,7 @@
     const onBCHint = (ev) => {
       const m = ev && ev.data;
       if (!m || !m.id) return;
-      if ((m.t === 'host' || m.t === 'bc-offer') && (!netRoomOverride || String(m.id) === netCustomRoom())) bcHostId = String(m.id);
+      if ((m.t === 'host' || m.t === 'bc-offer') && (!netRoomOverride || netRoomCandidates().indexOf(String(m.id)) >= 0)) bcHostId = String(m.id);
     };
     try { if (netBC) netBC.addEventListener('message', onBCHint); } catch (e) {}
     netBCPost({ t: 'need', want: 1 });
@@ -4726,9 +4728,40 @@
     mode1.classList.add('on');
     mode2.classList.remove('on');
   });
-  const NET_LOBBY = 'match-lobby';
+  const NET_LOBBY = (() => {
+    try {
+      const l = new URLSearchParams(location.search).get('lobby');
+      const c = String(l || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 16);
+      if (c) return 'match-' + c;
+    } catch (e) {}
+    return 'match-lobby';
+  })();
   let netMatchClock = 0;
+  // Host keeps simulating when its tab is in background (rAF pauses there → guest froze)
+  let hiddenLast = 0;
+  setInterval(() => {
+    if (!document.hidden || netRole !== 'host' || !netLinked || paused) { hiddenLast = 0; return; }
+    const now = performance.now();
+    let dt = hiddenLast ? Math.min(0.5, (now - hiddenLast) / 1000) : 0;
+    hiddenLast = now;
+    let g = 0;
+    while (dt >= 1 / 60 && g++ < 30) { try { update(1 / 60); } catch (e) { break; } dt -= 1 / 60; }
+  }, 100);
+  document.addEventListener('visibilitychange', () => {
+    // waiting host leaving the page → free the lobby so nobody matches a ghost
+    if (document.hidden && netRoomOverride === NET_LOBBY && netRole === 'host' && !netLinked) netBackMenu();
+  });
+  let netLobbyTimer = 0;
   function netAutoMatch() {
+    clearTimeout(netLobbyTimer);
+    netLobbyTimer = setTimeout(() => {
+      // still alone after 90s → release and re-enter matching fresh
+      if (netRoomOverride === NET_LOBBY && !netLinked && mode === 'title') {
+        netBackMenu();
+        toast('重新寻找队友…');
+        setTimeout(() => netAutoMatch(), 300);
+      }
+    }, 90000);
     if (netRole || netRoomOverride === NET_LOBBY) return;
     wantCoop = true;
     wantCompanion = false;
@@ -4746,11 +4779,11 @@
       el.textContent = String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
     }, 500);
     // Same browser: a waiting host answers 'need' on BroadcastChannel within ~0.6s
-    const want = netCustomRoom();
+    const wantIds = netRoomCandidates();
     let found = false;
     const onHint = (ev) => {
       const m = ev && ev.data;
-      if (m && (m.t === 'host' || m.t === 'bc-offer') && String(m.id) === want) found = true;
+      if (m && (m.t === 'host' || m.t === 'bc-offer') && wantIds.indexOf(String(m.id)) >= 0) found = true;
     };
     try { if (netBC) netBC.addEventListener('message', onHint); } catch (e) {}
     netBCPost({ t: 'need', want: 1 });
