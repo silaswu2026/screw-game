@@ -313,14 +313,14 @@ function freqView(prev){cancelAnimationFrame(aF);$('fSl').style.display=prev?'no
   for(let s=1;s<=12;s++){const x=L+(s-1)*cw,d=drops.includes(s);g.fillStyle=tt>=s?'#3b4590':'#ffffff14';g.fillRect(x+2,8,cw-4,64);g.fillStyle='#c9c3ef';g.fillText(s+'秒',x+cw/2-14,66);if(d)g.drawImage(A.rock,x+cw/2-18,10,36,36);}
   g.fillStyle='#ffe7a0';g.font='bold 40px sans-serif';g.fillText(n+' 块',W-160,56);
   // 地面 + 忍者
-  const gy=H-30,nx=L+tt/DUR*12*cw;g.fillStyle='#6b4f2f';g.fillRect(0,gy,W-180,30);g.fillStyle='#4ea85c';g.fillRect(0,gy,W-180,6);
+  const gy=H-30,nx=Math.min(W-240,L+tt/DUR*12*cw);g.fillStyle='#6b4f2f';g.fillRect(0,gy,W-180,30);g.fillStyle='#4ea85c';g.fillRect(0,gy,W-180,6);
   let hits=0,hurt=false,jump=0;
   drops.forEach((s,i)=>{const x=L+(s-.5)*cw,hit=(i+1)%4===0,dt=tt-(s-1);
    if(dt>0&&dt<.6){g.drawImage(A.rock,x-22,90+dt/.6*(gy-130),44,44);}
    else if(dt>=.6){if(!hit)g.drawImage(A.rock,x-18,gy-34,36,36);}
    if(dt>=.6){if(hit){hits++;if(dt<1.4)hurt=true;}}
    const nd=tt-(s-1.3);if(!hit&&nd>0&&nd<.9)jump=Math.sin(nd/.9*Math.PI)*70;});
-  const im=tt>=DUR?LDART.IDLE:hurt?LDART.HURT:jump>4?LDART.JUMP:LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,nx-50,gy-96-jump,100,100);
+  const im=tt>=DUR&&!hurt?LDART.IDLE:hurt?LDART.NF[0]:jump>4?LDART.JUMP:LDART.ninjaImg();if(im&&im.complete)g.drawImage(im,nx-50,gy-96-jump,100,100);
   if(hurt){g.font='38px sans-serif';g.fillText('💔',nx-10,gy-120-jump);}
   g.fillStyle='#ff6b6b';g.font='bold 44px sans-serif';g.fillText('-'+hits+'❤',W-160,gy-20);g.fillStyle='#c9c3ef';g.font='bold 15px sans-serif';g.fillText('第4块躲不开',W-164,gy+20);
   fHits=fHit(I);if(typeof updHP==='function')updHP();
