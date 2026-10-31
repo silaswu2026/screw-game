@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="zh-CN"><!-- ldtonight:v6 --><head><meta charset="utf-8">
+<html lang="zh-CN"><!-- ldtonight:v7 --><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="ld-build" content="ldt6">
+<meta name="ld-build" content="ldt7">
 <title>关卡设计台 · 伍澍暘</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%}
@@ -153,7 +153,7 @@ body.tonight #expectAsk{flex-shrink:0;width:100%;max-width:100%;box-sizing:borde
 @media (orientation:portrait){
   body.tonight main{padding:4px 8px;gap:6px}
   body.tonight .stage.on{flex:1;min-height:0}
-  body.tonight #s0.stage.on .cvwrap,
+  /* ②③ 保持 ldt6 过线：contain 不改 */
   body.tonight #sF.stage.on .cvwrap,
   body.tonight #sM.stage.on .cvwrap{
     flex:1 1 auto;
@@ -161,7 +161,6 @@ body.tonight #expectAsk{flex-shrink:0;width:100%;max-width:100%;box-sizing:borde
     min-height:0;
     width:100%;
   }
-  body.tonight #s0.stage.on .cvwrap canvas,
   body.tonight #sF.stage.on .cvwrap canvas,
   body.tonight #sM.stage.on .cvwrap canvas{
     width:100%!important;
@@ -169,6 +168,28 @@ body.tonight #expectAsk{flex-shrink:0;width:100%;max-width:100%;box-sizing:borde
     max-width:100%;
     max-height:100%;
     object-fit:contain;
+  }
+  /* ① 专修：舞台铺满可视下半，禁止 contain 夹成中间一条 + 空浅蓝 */
+  body.tonight #s0.stage.on .cvwrap{
+    flex:1 1 auto;
+    max-height:none;
+    min-height:0;
+    width:100%;
+    background:#0e1e34; /* 同看图底，不是 #6ec8ff 空浅蓝 */
+    align-items:stretch;
+    justify-content:stretch;
+  }
+  body.tonight #s0.stage.on #cv0,
+  body.tonight #s0.stage.on .cvwrap canvas#cv0{
+    width:100%!important;
+    height:100%!important;
+    max-width:none!important;
+    max-height:none!important;
+    aspect-ratio:auto!important;
+    object-fit:fill!important;
+    flex:1 1 auto;
+    align-self:stretch;
+    background:#0e1e34!important;
   }
   body.tonight #s3.stage.on{overflow:auto}
   body.tonight #sumseg{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:5px}
@@ -189,7 +210,7 @@ body.tonight #expectAsk{flex-shrink:0;width:100%;max-width:100%;box-sizing:borde
   body.tonight .reflect .rq{font-size:15px}
   body.tonight .reflect .rbtns button{min-height:40px;padding:8px 10px;font-size:14px}
 }
-</style><script src="ld-art.js?v=ld35"></script></head><body>
+</style><script src="ld-art.js?v=ld36"></script></head><body>
 <div class="bar"><figure class="pp"><img src="../avatars/xiaoyu.jpg" alt="小雨" style="object-position:32% 34%"><figcaption>小雨</figcaption></figure>
 <div class="st full-only" data-s="0">⓪ 上节课回顾</div><div class="st" data-s="1">① 看图学习</div><div class="st" data-s="2">② 关卡频率 <i class="sd" data-s="2">●</i><i class="sd" data-s="3">●</i></div><div class="st full-only" data-s="4">③ 关卡位置 <i class="sd" data-s="4">●</i><i class="sd" data-s="5">●</i></div><div class="st full-only" data-s="6">④ 关卡难度 <i class="sd" data-s="6">●</i><i class="sd" data-s="7">●</i></div><div class="st" data-s="8">⑤ 设计关卡</div><div class="st" data-s="9">⑥ 单机玩</div>
 <figure class="pp"><img src="../avatars/dad-wuxin.jpg" alt="爸爸"><figcaption>爸爸</figcaption></figure><figure class="pp"><img src="../avatars/mom-chunyan.jpg" alt="妈妈"><figcaption>妈妈</figcaption></figure></div>
@@ -481,7 +502,7 @@ const SL=[
 ];let sl=0;
 function slide(n){sl=(n+SL.length)%SL.length;$('slt').textContent=SL[sl];$('sld').textContent=SL.map((_,i)=>i===sl?'●':'○').join('');play0(0);if(typeof footLabel==='function')footLabel();}
 $('slp').onclick=()=>slide(sl-1);$('sln').onclick=()=>slide(sl+1);
-const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);const cv=$('cv0'),g=cv.getContext('2d'),W=cv.width,H=cv.height,A=LDART.ART,start=performance.now()-(PT||0)*1000;
+const _p0=play0;play0=function(PT){cancelAnimationFrame(a0);fitS0Portrait();const cv=$('cv0'),g=cv.getContext('2d'),W=cv.width,H=cv.height,A=LDART.ART,start=performance.now()-(PT||0)*1000;
  const spk=(x,y,n=3,hh=28)=>{for(let k=0;k<n;k++){g.fillStyle='#c5d0dc';g.beginPath();g.moveTo(x+k*14,y);g.lineTo(x+k*14+7,y-hh);g.lineTo(x+k*14+14,y);g.closePath();g.fill();g.strokeStyle='#7a8794';g.stroke();}};
  const chest=(x,y,open,sc)=>{g.save();g.translate(x,y);g.scale(sc,sc);g.fillStyle='#8b5a2b';g.fillRect(-50,-32,100,32);g.fillStyle='#ffd166';g.fillRect(-50,-18,100,6);g.fillRect(-6,-32,12,32);
   if(open){g.save();g.translate(0,-32);g.rotate(-1.05);g.fillStyle='#a0692f';g.fillRect(-50,-28,100,28);g.fillStyle='#ffd166';g.fillRect(-6,-28,12,28);g.restore();}
@@ -619,6 +640,29 @@ function crisp(cv){if(!cv.clientWidth)return;if(!cv._lw){cv._lw=CWD.get.call(cv)
  const z=parseFloat(document.body.style.zoom)||1,sx=cv.clientWidth/cv._lw,sy=cv.clientHeight/cv._lh,k=Math.min(4,(devicePixelRatio||1)*z*((sx&&sy)?Math.min(sx,sy):sx||sy||1));if(Math.abs((cv._k||0)-k)<.05)return;cv._k=k;
  CWD.set.call(cv,Math.round(cv._lw*k));CHD.set.call(cv,Math.round(cv._lh*k));const g=cv.getContext('2d');g.setTransform(k,0,0,k,0,0);g.imageSmoothingQuality='high';}
 function crispAll(){document.querySelectorAll('.stage.on canvas').forEach(crisp);}addEventListener('resize',()=>setTimeout(crispAll,50));
+
+/* ldt7：①竖屏把 cv0 逻辑高改成铺满 wrap，地面/水面画满下半（空浅蓝不算舞台） */
+function fitS0Portrait(){
+  if(typeof TONIGHT==='undefined'||!TONIGHT) return;
+  const cv=$('cv0'), st=$('s0');
+  if(!cv||!st||!st.classList.contains('on')) return;
+  const portrait=window.matchMedia('(orientation:portrait)').matches;
+  const wrap=cv.parentElement;
+  if(!portrait){
+    if(cv._s0Tall){ cv._lw=960; cv._lh=380; cv._k=0; cv._s0Tall=0; crisp(cv); }
+    return;
+  }
+  const cw=wrap&&wrap.clientWidth||cv.clientWidth||400;
+  const ch=wrap&&wrap.clientHeight||cv.clientHeight||500;
+  if(cw<40||ch<80) return;
+  /* keep design width 960; height follows wrap AR so play0/slide 用 H 铺满 */
+  const lw=960, lh=Math.max(520, Math.min(1200, Math.round(960*ch/cw)));
+  if(!cv._lw){ crisp(cv); }
+  if(cv._lw===lw && cv._lh===lh) return;
+  cv._lw=lw; cv._lh=lh; cv._k=0; cv._s0Tall=1; crisp(cv);
+}
+addEventListener('resize',()=>{ fitS0Portrait(); if(typeof TONIGHT!=='undefined'&&TONIGHT&&$('s0')&&$('s0').classList.contains('on')&&typeof slide==='function'){ try{ slide(sl); }catch(e){} } });
+
 
 
 
@@ -897,7 +941,7 @@ function go(n){cur=Math.max(0,Math.min(MAX,n));const [id,m]=SCR[cur];if(m)MODE=m
  document.querySelectorAll('.sd').forEach(d=>d.classList.toggle('on',+d.dataset.s===cur));
  cancelAnimationFrame(stripAnim);
  if(id==='sR')review();else cancelAnimationFrame(aR);
- if(id==='s0'){if(TONIGHT){sl=TONIGHT_SL&&TONIGHT_SL.includes(sl)?sl:2;slide(sl);}else{const qsl=new URLSearchParams(location.search).get('sl');slide(qsl!=null?+qsl:sl||0);}play0(+(new URLSearchParams(location.search).get('pt0'))||0);}
+ if(id==='s0'){fitS0Portrait();if(TONIGHT){sl=TONIGHT_SL&&TONIGHT_SL.includes(sl)?sl:2;slide(sl);}else{const qsl=new URLSearchParams(location.search).get('sl');slide(qsl!=null?+qsl:sl||0);}play0(+(new URLSearchParams(location.search).get('pt0'))||0);}
  if(id==='sF'){freqView(false);if(TONIGHT){const ks=$('sF').querySelector('.kidsub');if(ks)ks.textContent='一个旋钮：每几秒冒刺';if(REFLECT.hook_seen)showHookAsk();else{const ha=$('hookAsk');if(ha)ha.classList.remove('on');}}else{const ha=$('hookAsk');if(ha)ha.classList.remove('on');}}else cancelAnimationFrame(aF);
  if(id==='sQ')qView(cur===5);else cancelAnimationFrame(aQ);
  if(id==='sD')dView(cur===7);else cancelAnimationFrame(aD);
@@ -928,6 +972,7 @@ if(TONIGHT){const smt=$('sMt');if(smt)smt.textContent='🛠️ 摆一小关';con
 if(TONIGHT){sl=2;const m=$('s0msg');if(m)m.textContent='一句：上钩 → 自己决定停';const s3t=$('s3t');if(s3t)s3t.textContent='🎮 玩完问一句';const sfs=$('sFsub');if(sfs)sfs.textContent='一个旋钮：每几秒冒刺';}
 const _slide=slide;slide=function(n){
   if(TONIGHT_SL){
+    fitS0Portrait();
     let i=TONIGHT_SL.indexOf(sl);if(i<0)i=0;
     if(typeof n==='number'&&TONIGHT_SL.includes(n)){sl=n;}
     else if(n===sl-1||(typeof n==='number'&&n<sl)){i=Math.max(0,i-1);sl=TONIGHT_SL[i];}
