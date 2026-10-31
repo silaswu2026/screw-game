@@ -358,8 +358,9 @@
     r.classList.add('show');
     $('resultBig').textContent = win ? '🎉 过关！' : '😵 再试一次';
     $('resultBig').style.color = win ? '#9ff0a8' : '#ffb4b4';
-    $('resultSub').innerHTML = '剩 <b>' + hp + '❤</b> · 金币 <b style="color:#ffe7a0">' + coins + '</b>' +
-      (level && level.vs_expect ? '<br>你预计：' + level.vs_expect : '<br>回上一页答：和预计一样吗？');
+    var hint = (level && level.vs_expect) ? ('你预计：' + level.vs_expect) : '回上一页答：和预计一样吗？';
+    $('resultSub').innerHTML = '<span class="sub-hp">剩 <b>' + hp + '❤</b> · 金币 <b style="color:#ffe7a0">' + coins + '</b></span>' +
+      '<span class="sub-hint">' + hint + '</span>';
   }
 
   function bindControls() {
