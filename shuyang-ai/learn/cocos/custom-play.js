@@ -39,9 +39,21 @@
     if (!tip) return;
     tip.classList.toggle('on', window.innerHeight > window.innerWidth);
   }
-  /** Portrait: keep player leftish so fire×2+flag+croc fit first glance. */
+  function isPortrait() {
+    return window.innerHeight > window.innerWidth;
+  }
+  /** Portrait: keep player leftish so fire×2+flag+whole-croc fit first glance. */
   function camBias() {
-    return (window.innerHeight > window.innerWidth) ? 0.22 : 0.4;
+    return isPortrait() ? 0.12 : 0.4;
+  }
+  /** Croc scale; portrait caps width so the whole body fits the first glance. */
+  function crocDrawScale() {
+    var s = Math.max(1.85, DRAW_H * 1.5 / 64);
+    if (isPortrait() && W < 420) {
+      s = Math.min(s, (W * 0.30) / 48);
+      s = Math.max(1.35, s);
+    }
+    return s;
   }
 
   /** Full-bleed like xy-go: shell = viewport; EXACT_FIT kills bottom letterbox black bar. */
@@ -173,17 +185,34 @@
     if (!traps.spike) traps.spike = { interval: 3, up: 1, damage: 1 };
 
     /*
-     * c19：开局一眼火×2+旗+鳄。宽屏保持 c17 列位；竖屏/窄屏按可见列压进首屏。
-     * 世界列（T=40）：spawn≈2；桌面火5/8 旗10 鳄12；竖屏≈3/4/5/6。
+     * c20：竖屏开局一眼「整鳄 + 旗布」。宽屏保持 c17 列位；
+     * 窄屏按像素钉鳄右缘入镜；旗在鳄左上方且 z 高于鳄，布不被嘴挡住。
      */
     var visCols = Math.max(5, Math.floor(W / T));
     var earlyFire1, earlyFire2, earlyFlag, earlyBoss, earlyCut;
+    var portrait = isPortrait();
     if (visCols < 14) {
-      var base = 2, span = Math.max(4, visCols - 2);
-      earlyFire1 = base + Math.max(1, Math.round(span * 0.22));
-      earlyFire2 = base + Math.max(earlyFire1 - base + 1, Math.round(span * 0.42));
-      earlyFlag = base + Math.max(earlyFire2 - base + 1, Math.round(span * 0.62));
-      earlyBoss = base + Math.max(earlyFlag - base + 1, Math.round(span * 0.82));
+      var crocHalf = 48 * crocDrawScale();
+      var flagHalf = 14 * 1.55;
+      var spawnPx = 2 * T + T * 0.5;
+      var camX0 = Math.max(0, spawnPx - W * camBias());
+      var viewR0 = camX0 + W;
+      /* Whole croc on-screen at cold start */
+      var bossX = viewR0 - crocHalf - (portrait ? 12 : 8);
+      bossX = Math.max(camX0 + crocHalf + T * 0.6, bossX);
+      /* Flag left of croc (clear of flipped mouth); leave room for fire×2 */
+      var flagX = bossX - crocHalf - flagHalf - (portrait ? 4 : 10);
+      flagX = Math.max(spawnPx + T * 1.6, flagX);
+      var gap = Math.max(T * 0.9, flagX - spawnPx);
+      var fire1X = spawnPx + gap * 0.32;
+      var fire2X = spawnPx + gap * 0.62;
+      earlyFire1 = (fire1X - T * 0.5) / T;
+      earlyFire2 = (fire2X - T * 0.5) / T;
+      earlyFlag = (flagX - T * 0.5) / T;
+      earlyBoss = (bossX - T * 0.5) / T;
+      if (earlyFire2 <= earlyFire1) earlyFire2 = earlyFire1 + 0.55;
+      if (earlyFlag <= earlyFire2) earlyFlag = earlyFire2 + 0.55;
+      if (earlyBoss <= earlyFlag) earlyBoss = earlyFlag + 0.9;
       earlyCut = earlyBoss + 3;
     } else {
       earlyFire1 = 5; earlyFire2 = 8; earlyFlag = 10; earlyBoss = 12;
@@ -196,7 +225,7 @@
     });
     items.push({ type: 'fire', c: earlyFire1, designX: -1 });
     items.push({ type: 'fire', c: earlyFire2, designX: -1 });
-    items.push({ type: 'flag', c: earlyFlag, designX: -1 });
+    items.push({ type: 'flag', c: earlyFlag, designX: -1, showcase: true });
     /* 展示后再给刺，保证可玩压力仍在 */
     var hasLateSpike = items.some(function (it) { return it.type === 'spike'; });
     if (!hasLateSpike) {
@@ -396,7 +425,7 @@
       this._build();
       this.reset();
       this.scheduleUpdate();
-      /* c19: reveal canvas only after night forest + ground exist — kill navy→brown flash */
+      /* c20/c19: reveal canvas only after night forest + ground exist — kill navy→brown flash */
       try {
         var cvShow = $('gameCanvas');
         if (cvShow) {
@@ -413,7 +442,7 @@
       this.bgNode2 = null;
       if (forestImg && forestImg.naturalWidth) {
         try {
-          /* c19: Texture from already-decoded Image — no async path flash */
+          /* c20/c19: Texture from already-decoded Image — no async path flash */
           var tex = new cc.Texture2D();
           tex.initWithElement(forestImg);
           tex.handleLoadedTexture();
@@ -579,9 +608,16 @@
         } else if (it.type === 'flag') {
           var midF = new cc.Sprite(flagTex);
           midF.setAnchorPoint(0.5, 0);
-          midF.setPosition(px, this.gy);
+          var fy = this.gy;
+          var fz = 5;
+          if (it.showcase) {
+            /* c20: cloth above + in front of croc — not hidden in mouth */
+            fy = this.gy + Math.round(crocDrawScale() * 38);
+            fz = 9;
+          }
+          midF.setPosition(px, fy);
           midF.setScale(1.55);
-          this.world.addChild(midF, 5);
+          this.world.addChild(midF, fz);
         }
       }
 
@@ -601,7 +637,7 @@
       this.bossSp = new cc.Sprite(crocTex);
       this.bossSp.setAnchorPoint(0.5, 0);
       this.bossSp.setPosition(this.boss.x, this.boss.y);
-      this.bossSp.setScale(Math.max(1.85, DRAW_H * 1.5 / 64));
+      this.bossSp.setScale(crocDrawScale());
       this.world.addChild(this.bossSp, 8);
       this.bossSp.setVisible(true);
 
@@ -797,7 +833,7 @@
           this.boss.hurtT = Math.max(0, this.boss.hurtT - dt);
           var bx = this.boss.x + Math.sin(elapsed * 0.7) * 18;
           this.bossSp.setPosition(bx, this.boss.y);
-          this.bossSp.setScaleX((this.px < bx ? -1 : 1) * Math.max(1.85, DRAW_H * 1.5 / 64));
+          this.bossSp.setScaleX((this.px < bx ? -1 : 1) * crocDrawScale());
           if (this.boss.hurtT > 0) this.bossSp.setOpacity(120 + (Math.floor(this.boss.hurtT * 20) % 2) * 100);
           else this.bossSp.setOpacity(255);
           if (this.invuln <= 0 && Math.abs(this.px - bx) < T * 1.2 && this.py < this.gy + DRAW_H) {
@@ -1142,7 +1178,7 @@
       try { cc.game.run('gameCanvas'); } catch (e) { bootErr('启动失败：' + e); }
     }
 
-    /* c19: decode night forest BEFORE Cocos first GL clear — CSS already shows it under opacity:0 canvas */
+    /* c20/c19: decode night forest BEFORE Cocos first GL clear — CSS already shows it under opacity:0 canvas */
     var pre = new Image();
     pre.onload = function () {
       forestImg = pre;
