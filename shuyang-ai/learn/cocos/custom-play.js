@@ -39,6 +39,10 @@
     if (!tip) return;
     tip.classList.toggle('on', window.innerHeight > window.innerWidth);
   }
+  /** Portrait: keep player leftish so fire×2+flag+croc fit first glance. */
+  function camBias() {
+    return (window.innerHeight > window.innerWidth) ? 0.22 : 0.4;
+  }
 
   /** Full-bleed like xy-go: shell = viewport; EXACT_FIT kills bottom letterbox black bar. */
   function fitStage() {
@@ -169,12 +173,22 @@
     if (!traps.spike) traps.spike = { interval: 3, up: 1, damage: 1 };
 
     /*
-     * c17 营销一眼成片：开局镜头（约 world 0..13）内钉死火×2、旗、鳄精灵。
-     * 世界列（T=40）：spawn≈2；火1=5、火2=8、旗=10、鳄=12 —— 全在首屏。
-     * 刺挪到展示之后，避免「先刺死才见血条」。
+     * c19：开局一眼火×2+旗+鳄。宽屏保持 c17 列位；竖屏/窄屏按可见列压进首屏。
+     * 世界列（T=40）：spawn≈2；桌面火5/8 旗10 鳄12；竖屏≈3/4/5/6。
      */
-    var earlyFire1 = 5, earlyFire2 = 8, earlyFlag = 10, earlyBoss = 12;
-    var earlyCut = 18; /* 展示带右界：此前不要刺 */
+    var visCols = Math.max(5, Math.floor(W / T));
+    var earlyFire1, earlyFire2, earlyFlag, earlyBoss, earlyCut;
+    if (visCols < 14) {
+      var base = 2, span = Math.max(4, visCols - 2);
+      earlyFire1 = base + Math.max(1, Math.round(span * 0.22));
+      earlyFire2 = base + Math.max(earlyFire1 - base + 1, Math.round(span * 0.42));
+      earlyFlag = base + Math.max(earlyFire2 - base + 1, Math.round(span * 0.62));
+      earlyBoss = base + Math.max(earlyFlag - base + 1, Math.round(span * 0.82));
+      earlyCut = earlyBoss + 3;
+    } else {
+      earlyFire1 = 5; earlyFire2 = 8; earlyFlag = 10; earlyBoss = 12;
+      earlyCut = 18;
+    }
     items = items.filter(function (it) {
       if (it.type === 'fire' || it.type === 'flag') return false;
       if (it.type === 'spike' && (it.c | 0) < earlyCut) return false;
@@ -382,6 +396,13 @@
       this._build();
       this.reset();
       this.scheduleUpdate();
+      /* c19: reveal canvas only after night forest + ground exist — kill navy→brown flash */
+      try {
+        var cvShow = $('gameCanvas');
+        if (cvShow) {
+          requestAnimationFrame(function () { cvShow.style.opacity = '1'; });
+        }
+      } catch (eShow) {}
       return true;
     },
     _addNightBg: function () {
@@ -392,12 +413,24 @@
       this.bgNode2 = null;
       if (forestImg && forestImg.naturalWidth) {
         try {
-          var sp = new cc.Sprite(BG);
+          /* c19: Texture from already-decoded Image — no async path flash */
+          var tex = new cc.Texture2D();
+          tex.initWithElement(forestImg);
+          tex.handleLoadedTexture();
+          var sp = new cc.Sprite(tex);
           sp.setAnchorPoint(0, 0);
           this.addChild(sp, -5);
           this.bgNode = sp;
           this._layoutBg(0);
-        } catch (e) {}
+        } catch (e) {
+          try {
+            var sp2 = new cc.Sprite(BG);
+            sp2.setAnchorPoint(0, 0);
+            this.addChild(sp2, -5);
+            this.bgNode = sp2;
+            this._layoutBg(0);
+          } catch (e2) {}
+        }
       }
       /* soft vignette */
       var vig = mkColor(W, H, 8, 16, 28, 40);
@@ -427,11 +460,19 @@
       this.bgNode.setPosition(ox, oy);
       if (!this.bgNode2) {
         try {
-          var sp2 = new cc.Sprite(BG);
-          sp2.setAnchorPoint(0, 0);
-          sp2.setScale(scale);
-          this.addChild(sp2, -5);
-          this.bgNode2 = sp2;
+          var spB;
+          if (forestImg && forestImg.naturalWidth) {
+            var texB = new cc.Texture2D();
+            texB.initWithElement(forestImg);
+            texB.handleLoadedTexture();
+            spB = new cc.Sprite(texB);
+          } else {
+            spB = new cc.Sprite(BG);
+          }
+          spB.setAnchorPoint(0, 0);
+          spB.setScale(scale);
+          this.addChild(spB, -5);
+          this.bgNode2 = spB;
         } catch (e2) { this.bgNode2 = null; }
       }
       if (this.bgNode2) {
@@ -609,7 +650,7 @@
       this.ninja.setPosition(this.px, this.py);
       this.ninja.setTexture(SP + 'idle.png');
       this.ninja.setOpacity(255);
-      this.camX = Math.max(0, this.px - W * 0.4);
+      this.camX = Math.max(0, this.px - W * camBias());
       this.world.setPosition(-this.camX, 0);
       this._layoutBg(this.camX);
       hideResult();
@@ -806,7 +847,7 @@
           $('msg').textContent = '先投中鳄王再冲旗！';
         }
 
-        var target = this.px - W * 0.4;
+        var target = this.px - W * camBias();
         if (target < 0) target = 0;
         if (target > this.worldW - W) target = Math.max(0, this.worldW - W);
         this.camX += (target - this.camX) * Math.min(1, dt * 8);
@@ -1058,42 +1099,58 @@
     $('retry').onclick = function () { if (sceneRef) sceneRef.reset(); };
     $('again').onclick = function () { if (sceneRef) sceneRef.reset(); };
 
-    cc.game.onStart = function () {
-      try {
-        cc.view.enableRetina(false);
-        cc.view.adjustViewPort(true);
-        fitStage();
-        cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.EXACT_FIT);
-        spikeTex = buildSpikeTex();
-        fireTex = buildFireTex();
-        coinTex = buildCoinTex();
-        starTex = buildStarTex();
-        flagTex = buildFlagTex();
-        shurikenTex = buildShurikenTex();
-        crocTex = buildCrocTex();
-        var left = RES.length;
-        function tick() {
-          left--;
-          if (left > 0) return;
+    function startEngine() {
+      cc.game.onStart = function () {
+        try {
+          cc.view.enableRetina(false);
+          cc.view.adjustViewPort(true);
           fitStage();
-          cc.director.runScene(new PlayScene());
-          $('msg').textContent = '第9关沼泽 · ←→跳 · F/J投';
-          setTimeout(fitStage, 50);
-        }
-        RES.forEach(function (src) {
-          var img = new Image();
-          img.onload = function () {
-            try { cc.textureCache.addImage(src); } catch (e1) {}
-            if (src.indexOf('canopy-night') >= 0) forestImg = img;
-            if (src.indexOf('idle.png') >= 0 && img.naturalHeight) idleTexH = img.naturalHeight;
-            tick();
-          };
-          img.onerror = function () { bootErr('图片失败 ' + src); tick(); };
-          img.src = src;
-        });
-      } catch (e) { bootErr('启动失败：' + e); }
+          cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.EXACT_FIT);
+          if (cc.director && cc.director.setClearColor) {
+            cc.director.setClearColor(cc.color(11, 21, 32, 255));
+          }
+          spikeTex = buildSpikeTex();
+          fireTex = buildFireTex();
+          coinTex = buildCoinTex();
+          starTex = buildStarTex();
+          flagTex = buildFlagTex();
+          shurikenTex = buildShurikenTex();
+          crocTex = buildCrocTex();
+          var others = RES.filter(function (s) { return s.indexOf('canopy-night') < 0; });
+          var left = others.length;
+          function tick() {
+            left--;
+            if (left > 0) return;
+            fitStage();
+            cc.director.runScene(new PlayScene());
+            $('msg').textContent = '第9关沼泽 · ←→跳 · F/J投';
+            setTimeout(fitStage, 50);
+          }
+          if (!others.length) { left = 1; tick(); return; }
+          others.forEach(function (src) {
+            var img = new Image();
+            img.onload = function () {
+              try { cc.textureCache.addImage(src); } catch (e1) {}
+              if (src.indexOf('idle.png') >= 0 && img.naturalHeight) idleTexH = img.naturalHeight;
+              tick();
+            };
+            img.onerror = function () { bootErr('图片失败 ' + src); tick(); };
+            img.src = src;
+          });
+        } catch (e) { bootErr('启动失败：' + e); }
+      };
+      try { cc.game.run('gameCanvas'); } catch (e) { bootErr('启动失败：' + e); }
+    }
+
+    /* c19: decode night forest BEFORE Cocos first GL clear — CSS already shows it under opacity:0 canvas */
+    var pre = new Image();
+    pre.onload = function () {
+      forestImg = pre;
+      try { if (typeof cc !== 'undefined' && cc.textureCache) cc.textureCache.addImage(BG); } catch (e0) {}
+      startEngine();
     };
-    try { cc.game.run('gameCanvas'); } catch (e) { bootErr('启动失败：' + e); }
+    pre.onerror = function () { bootErr('夜林背景失败'); startEngine(); };
+    pre.src = BG;
   }
 
   if (document.readyState === 'complete') boot();

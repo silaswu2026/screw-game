@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="zh-CN"><!-- ldtonight:v7 --><head><meta charset="utf-8">
+<html lang="zh-CN"><!-- ldtonight:v8 --><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="ld-build" content="ldt7">
+<meta name="ld-build" content="ldt8">
 <title>关卡设计台 · 伍澍暘</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%}
@@ -149,38 +149,28 @@ body.tonight #expectAsk{flex-shrink:0;width:100%;max-width:100%;box-sizing:borde
   body.tonight .pp{font-size:8px}
   body.tonight .pathhint{font-size:12px}
 }
-/* 竖屏：①②③ 画布铺满下半可视区（消空海军蓝）；横屏保持原限高不回退 */
+/* 竖屏：①②③ 画布铺满下半可视区（ldt8：②③同① fill，消 #6ec8ff 空条）；横屏保持原限高 */
 @media (orientation:portrait){
   body.tonight main{padding:4px 8px;gap:6px}
   body.tonight .stage.on{flex:1;min-height:0}
-  /* ②③ 保持 ldt6 过线：contain 不改 */
+  /* ①②③ 同策：wrap 吃满下半 + canvas object-fit:fill（禁 contain 夹成中间一条） */
+  body.tonight #s0.stage.on .cvwrap,
   body.tonight #sF.stage.on .cvwrap,
   body.tonight #sM.stage.on .cvwrap{
     flex:1 1 auto;
     max-height:none;
     min-height:0;
     width:100%;
-  }
-  body.tonight #sF.stage.on .cvwrap canvas,
-  body.tonight #sM.stage.on .cvwrap canvas{
-    width:100%!important;
-    height:100%!important;
-    max-width:100%;
-    max-height:100%;
-    object-fit:contain;
-  }
-  /* ① 专修：舞台铺满可视下半，禁止 contain 夹成中间一条 + 空浅蓝 */
-  body.tonight #s0.stage.on .cvwrap{
-    flex:1 1 auto;
-    max-height:none;
-    min-height:0;
-    width:100%;
-    background:#0e1e34; /* 同看图底，不是 #6ec8ff 空浅蓝 */
+    background:#0e1e34;
     align-items:stretch;
     justify-content:stretch;
   }
   body.tonight #s0.stage.on #cv0,
-  body.tonight #s0.stage.on .cvwrap canvas#cv0{
+  body.tonight #s0.stage.on .cvwrap canvas#cv0,
+  body.tonight #sF.stage.on #cvF,
+  body.tonight #sF.stage.on .cvwrap canvas#cvF,
+  body.tonight #sM.stage.on #cvM,
+  body.tonight #sM.stage.on .cvwrap canvas#cvM{
     width:100%!important;
     height:100%!important;
     max-width:none!important;
@@ -210,7 +200,7 @@ body.tonight #expectAsk{flex-shrink:0;width:100%;max-width:100%;box-sizing:borde
   body.tonight .reflect .rq{font-size:15px}
   body.tonight .reflect .rbtns button{min-height:40px;padding:8px 10px;font-size:14px}
 }
-</style><script src="ld-art.js?v=ld36"></script></head><body>
+</style><script src="ld-art.js?v=ld37"></script></head><body>
 <div class="bar"><figure class="pp"><img src="../avatars/xiaoyu.jpg" alt="小雨" style="object-position:32% 34%"><figcaption>小雨</figcaption></figure>
 <div class="st full-only" data-s="0">⓪ 上节课回顾</div><div class="st" data-s="1">① 看图学习</div><div class="st" data-s="2">② 关卡频率 <i class="sd" data-s="2">●</i><i class="sd" data-s="3">●</i></div><div class="st full-only" data-s="4">③ 关卡位置 <i class="sd" data-s="4">●</i><i class="sd" data-s="5">●</i></div><div class="st full-only" data-s="6">④ 关卡难度 <i class="sd" data-s="6">●</i><i class="sd" data-s="7">●</i></div><div class="st" data-s="8">⑤ 设计关卡</div><div class="st" data-s="9">⑥ 单机玩</div>
 <figure class="pp"><img src="../avatars/dad-wuxin.jpg" alt="爸爸"><figcaption>爸爸</figcaption></figure><figure class="pp"><img src="../avatars/mom-chunyan.jpg" alt="妈妈"><figcaption>妈妈</figcaption></figure></div>
@@ -263,7 +253,7 @@ body.tonight #expectAsk{flex-shrink:0;width:100%;max-width:100%;box-sizing:borde
 <div id="mCt" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:15px;font-weight:800;min-height:34px"></div></section>
 <section class="stage" id="s3"><h2 id="s3t">🧪 玩完觉察</h2>
 <div class="row"><div class="card"><div class="msg" id="sumt"></div><div id="sumseg" style="display:flex;gap:4px;width:100%"></div><div class="msg" id="sumtot"></div></div>
-<div class="card"><a class="go" id="play" href="cocos/custom-play.html?v=c18">🎮 去玩这一关</a>
+<div class="card"><a class="go" id="play" href="cocos/custom-play.html?v=c19">🎮 去玩这一关</a>
 <a class="go sm" id="playXy" href="../../xy-go/?custom=1" style="margin-top:6px;display:inline-block;background:linear-gradient(180deg,#7ab0ff,#3b6fd4);font-size:12px;padding:8px 12px">旧版 xy-go（备用）</a>
 <div class="msg" id="engineNote" style="font-size:12px;color:#ffe7a0;font-weight:800">Cocos 可玩 · 同 JSON · xy-go 备用</div>
 <div class="msg" id="saved" style="color:#9ff0a8"></div></div></div>
@@ -641,27 +631,38 @@ function crisp(cv){if(!cv.clientWidth)return;if(!cv._lw){cv._lw=CWD.get.call(cv)
  CWD.set.call(cv,Math.round(cv._lw*k));CHD.set.call(cv,Math.round(cv._lh*k));const g=cv.getContext('2d');g.setTransform(k,0,0,k,0,0);g.imageSmoothingQuality='high';}
 function crispAll(){document.querySelectorAll('.stage.on canvas').forEach(crisp);}addEventListener('resize',()=>setTimeout(crispAll,50));
 
-/* ldt7：①竖屏把 cv0 逻辑高改成铺满 wrap，地面/水面画满下半（空浅蓝不算舞台） */
-function fitS0Portrait(){
+/* ldt8：①②③ 竖屏逻辑高随 wrap，object-fit:fill 铺满（消 #6ec8ff 空条） */
+function fitTonightCanvas(cvId, stId, baseH){
   if(typeof TONIGHT==='undefined'||!TONIGHT) return;
-  const cv=$('cv0'), st=$('s0');
+  const cv=$(cvId), st=$(stId);
   if(!cv||!st||!st.classList.contains('on')) return;
   const portrait=window.matchMedia('(orientation:portrait)').matches;
   const wrap=cv.parentElement;
   if(!portrait){
-    if(cv._s0Tall){ cv._lw=960; cv._lh=380; cv._k=0; cv._s0Tall=0; crisp(cv); }
+    if(cv._s0Tall){ cv._lw=960; cv._lh=baseH; cv._k=0; cv._s0Tall=0; crisp(cv); }
     return;
   }
   const cw=wrap&&wrap.clientWidth||cv.clientWidth||400;
   const ch=wrap&&wrap.clientHeight||cv.clientHeight||500;
   if(cw<40||ch<80) return;
-  /* keep design width 960; height follows wrap AR so play0/slide 用 H 铺满 */
   const lw=960, lh=Math.max(520, Math.min(1200, Math.round(960*ch/cw)));
   if(!cv._lw){ crisp(cv); }
   if(cv._lw===lw && cv._lh===lh) return;
   cv._lw=lw; cv._lh=lh; cv._k=0; cv._s0Tall=1; crisp(cv);
 }
-addEventListener('resize',()=>{ fitS0Portrait(); if(typeof TONIGHT!=='undefined'&&TONIGHT&&$('s0')&&$('s0').classList.contains('on')&&typeof slide==='function'){ try{ slide(sl); }catch(e){} } });
+function fitS0Portrait(){ fitTonightCanvas('cv0','s0',380); }
+function fitSFPortrait(){ fitTonightCanvas('cvF','sF',360); }
+function fitSMPortrait(){ fitTonightCanvas('cvM','sM',360); }
+function fitTonightPortrait(){ fitS0Portrait(); fitSFPortrait(); fitSMPortrait(); }
+addEventListener('resize',()=>{
+  fitTonightPortrait();
+  if(typeof TONIGHT==='undefined'||!TONIGHT) return;
+  try{
+    if($('s0')&&$('s0').classList.contains('on')&&typeof slide==='function') slide(sl);
+    else if($('sF')&&$('sF').classList.contains('on')&&typeof freqView==='function') freqView(false);
+    else if($('sM')&&$('sM').classList.contains('on')&&typeof mView==='function') mView();
+  }catch(e){}
+});
 
 
 
@@ -718,13 +719,13 @@ function mCheck(){const traps=mMap.map((k,i)=>isTrap(k)?i:-1).filter(i=>i>=0);co
  const safeStart=!traps.some(i=>i<SAFE0);const easy=traps.length?traps[0]<=3:true;let breath=true;for(let i=1;i<traps.length;i++)if(traps[i]-traps[i-1]<=1){const mid=mMap.slice(traps[i-1],traps[i]+1);if(!mid.some(isReward))breath=false;}
  return [['开头空着',safeStart],['先易后难',easy],['有喘气',breath],['花样≤3',types.size<=3]];}
 function mRewardNudge(){for(let x=0;x<MC-1;x++){if(isTrap(mMap[x])&&isTrap(mMap[x+1])){const near=mMap.slice(Math.max(0,x-2),Math.min(MC,x+4)).some(isReward);if(!near)return x;}}return -1;}
-function mView(){cancelAnimationFrame(aM);mPal();mCtl();const cv=$('cvM');crisp(cv);const g=cv.getContext('2d'),W=cv.width,H=cv.height,L=20,cw=(W-200)/MC,gy=H-60;mSave();
+function mView(){cancelAnimationFrame(aM);mPal();mCtl();fitSMPortrait();const cv=$('cvM');crisp(cv);const g=cv.getContext('2d'),W=cv.width,H=cv.height,L=20,cw=(W-200)/MC,gy=H-60;mSave();
  cv.onclick=e=>{const r=cv.getBoundingClientRect(),x=Math.floor(((e.clientX-r.left)/r.width*W-L)/cw);if(x<0||x>=MC)return;
   if(mTool==='del'){mSnap();mMap[x]=null;if(mSelX===x)mSelX=-1;mFlash='';}
   else if(mMap[x]&&(isTrap(mMap[x])||isReward(mMap[x]))){mSel=mMap[x];mSelX=x;if(isTrap(mSel))mTool=mSel;mFlash='';}
   else if(isTrap(mTool)&&x<SAFE0){mFlash='开头要空着（像马里奥出生点）';}
   else{mSnap();mMap[x]=mTool;mSel=mTool;mSelX=x;mFlash='';}mCtl();mSave();};
- (function f(now){g.clearRect(0,0,W,H);const h=mEst(),tot=h.reduce((a,b)=>a+b,0);mHits=tot;
+ (function f(now){g.clearRect(0,0,W,H);if(TONIGHT){const sky=g.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#7eb6ef');sky.addColorStop(.55,'#5a8ec8');sky.addColorStop(1,'#3d6a9a');g.fillStyle=sky;g.fillRect(0,0,W,H);g.fillStyle='#2d4a6e';g.beginPath();g.moveTo(0,H);g.lineTo(0,gy+20);g.quadraticCurveTo(W*.35,gy-40,W*.7,gy+10);g.lineTo(W,gy+25);g.lineTo(W,H);g.fill();}const h=mEst(),tot=h.reduce((a,b)=>a+b,0);mHits=tot;
   // 教练变考 color bands + spawn pad (Cocos/Tiled safe start)
   [[0,3,'#4ea85c33','教'],[3,7,'#e6c20033','练'],[7,10,'#e2793b33','变'],[10,12,'#e23b3b33','考']].forEach(([a,b,c,lab])=>{g.fillStyle=c;g.fillRect(L+a*cw,gy-88,(b-a)*cw,96);g.fillStyle=c.replace('33','cc');g.font='bold 14px sans-serif';g.fillText(lab,L+a*cw+6,gy-74);});
   g.fillStyle='#9ff0a822';g.fillRect(L,gy-88,SAFE0*cw,96);g.fillStyle='#9ff0a8';g.font='bold 12px sans-serif';g.fillText('出生',L+4,gy-58);
@@ -834,7 +835,7 @@ $('fI').oninput=e=>{$('fIv').textContent=e.target.value;};
 function freqView(prev){cancelAnimationFrame(aF);
  if(TONIGHT){$('fSl').style.display='block';$('fBt').style.display='flex';$('sFt').textContent='⏱️ 调频率：拖滑条 · 点按钮跑';n4('n4f',fStep||0);}
  else{$('fSl').style.display=prev?'none':'block';$('fBt').style.display=prev?'block':'none';$('sFt').textContent=prev?'⏱️ 频率 · 忍者匀速跑':'⏱️ 频率：地刺每几秒冒一次';n4('n4f',prev?fStep:0);if(!prev)fStep=1;}
- const cv=$('cvF');crisp(cv);const g=cv.getContext('2d'),W=cv.width,H=cv.height,A=LDART.ART,DUR=12,t0=performance.now()-(prev?(+(new URLSearchParams(location.search).get('pt'))||0)*1000:0);let done=false;$('fRes').textContent='';
+ fitSFPortrait();const cv=$('cvF');crisp(cv);const g=cv.getContext('2d'),W=cv.width,H=cv.height,A=LDART.ART,DUR=12,t0=performance.now()-(prev?(+(new URLSearchParams(location.search).get('pt'))||0)*1000:0);let done=false;$('fRes').textContent='';
  (function f(now){let t=(now-t0)/1000;const I=+$('fI').value,n=fCnt(I),drops=[];for(let s=I;s<=12;s+=I)drops.push(s);
   if(!prev)t=t%(DUR+1.5);const tt=Math.min(t,DUR);g.clearRect(0,0,W,H);
   if(TONIGHT){const sky=g.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#7eb6ef');sky.addColorStop(.55,'#5a8ec8');sky.addColorStop(1,'#3d6a9a');g.fillStyle=sky;g.fillRect(0,0,W,H);g.fillStyle='#2d4a6e';g.beginPath();g.moveTo(0,H-90);g.quadraticCurveTo(W*.3,H-160,W*.55,H-100);g.quadraticCurveTo(W*.8,H-150,W,H-85);g.lineTo(W,H);g.lineTo(0,H);g.fill();g.fillStyle='rgba(255,255,255,.35)';for(let ci=0;ci<3;ci++){const cx=80+ci*280,cy=40+(ci%2)*18;g.beginPath();g.arc(cx,cy,18,0,7);g.arc(cx+22,cy-6,22,0,7);g.arc(cx+44,cy,16,0,7);g.fill();}}
