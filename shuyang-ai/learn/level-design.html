@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="zh-CN"><!-- ldtonight:v5 --><head><meta charset="utf-8">
+<html lang="zh-CN"><!-- ldtonight:v6 --><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="ld-build" content="ldt6">
 <title>关卡设计台 · 伍澍暘</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%}
@@ -111,7 +112,8 @@ body.tonight #fEx{display:none!important}
 body.tonight #fTw{display:none!important}
 body.tonight #fRun{font-size:20px!important;padding:14px 28px!important;min-height:52px;min-width:200px}
 
-body.tonight .cvwrap{flex:0 1 auto;max-height:min(48vh,360px);min-height:120px}
+/* cvwrap: sky fill so leftover isn't navy; size by orientation below */
+body.tonight .cvwrap{flex:0 1 auto;min-height:120px;background:#6ec8ff}
 body.tonight .stage.on > h2,
 body.tonight .kidsub,
 body.tonight #fBt,
@@ -133,6 +135,12 @@ body.tonight #fBt .go{flex:1 1 140px;max-width:220px}
 body.tonight #mPal button{font-size:18px;padding:10px 14px;min-height:44px}
 body.tonight #mCt .go.sm{font-size:18px!important;padding:10px 14px!important;min-height:44px}
 body.tonight .pathhint{font-size:14px;padding:4px 8px}
+/* ④ 玩完：格碎块不叠边 — grid + 固定最小宽，禁止 flex:1 挤碎 */
+body.tonight #s3 .row{flex-direction:column;overflow:auto;gap:8px}
+body.tonight #s3 .card{width:100%;max-width:100%;overflow:hidden;box-sizing:border-box}
+body.tonight #sumseg{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px;width:100%;max-width:100%;overflow:hidden;align-content:start}
+body.tonight #sumseg .seg{flex:none!important;min-width:0;text-align:center;background:#ffffff12;border-radius:8px;padding:6px 4px;box-sizing:border-box}
+body.tonight #expectAsk{flex-shrink:0;width:100%;max-width:100%;box-sizing:border-box}
 @media (max-width:900px){
   body.tonight .reflect .rq{font-size:18px}
   body.tonight .reflect .rbtns button{flex:1 1 40%;font-size:16px;padding:14px 10px}
@@ -141,14 +149,47 @@ body.tonight .pathhint{font-size:14px;padding:4px 8px}
   body.tonight .pp{font-size:8px}
   body.tonight .pathhint{font-size:12px}
 }
-@media (max-height:430px){
+/* 竖屏：①②③ 画布铺满下半可视区（消空海军蓝）；横屏保持原限高不回退 */
+@media (orientation:portrait){
+  body.tonight main{padding:4px 8px;gap:6px}
+  body.tonight .stage.on{flex:1;min-height:0}
+  body.tonight #s0.stage.on .cvwrap,
+  body.tonight #sF.stage.on .cvwrap,
+  body.tonight #sM.stage.on .cvwrap{
+    flex:1 1 auto;
+    max-height:none;
+    min-height:0;
+    width:100%;
+  }
+  body.tonight #s0.stage.on .cvwrap canvas,
+  body.tonight #sF.stage.on .cvwrap canvas,
+  body.tonight #sM.stage.on .cvwrap canvas{
+    width:100%!important;
+    height:100%!important;
+    max-width:100%;
+    max-height:100%;
+    object-fit:contain;
+  }
+  body.tonight #s3.stage.on{overflow:auto}
+  body.tonight #sumseg{grid-template-columns:repeat(auto-fill,minmax(48px,1fr));gap:5px}
+}
+@media (orientation:landscape),(min-width:900px){
+  body.tonight .cvwrap{max-height:min(48vh,360px)}
+}
+@media (max-height:430px) and (orientation:landscape){
   body.tonight .cvwrap{max-height:min(42vh,220px);min-height:100px}
   body.tonight .pathhint{display:none}
   body.tonight .reflect{padding:4px;gap:4px}
   body.tonight .reflect .rq{font-size:15px}
   body.tonight .reflect .rbtns button{min-height:40px;padding:8px 10px;font-size:14px}
 }
-</style><script src="ld-art.js?v=ld34"></script></head><body>
+@media (max-height:430px) and (orientation:portrait){
+  body.tonight .pathhint{display:none}
+  body.tonight .reflect{padding:4px;gap:4px}
+  body.tonight .reflect .rq{font-size:15px}
+  body.tonight .reflect .rbtns button{min-height:40px;padding:8px 10px;font-size:14px}
+}
+</style><script src="ld-art.js?v=ld35"></script></head><body>
 <div class="bar"><figure class="pp"><img src="../avatars/xiaoyu.jpg" alt="小雨" style="object-position:32% 34%"><figcaption>小雨</figcaption></figure>
 <div class="st full-only" data-s="0">⓪ 上节课回顾</div><div class="st" data-s="1">① 看图学习</div><div class="st" data-s="2">② 关卡频率 <i class="sd" data-s="2">●</i><i class="sd" data-s="3">●</i></div><div class="st full-only" data-s="4">③ 关卡位置 <i class="sd" data-s="4">●</i><i class="sd" data-s="5">●</i></div><div class="st full-only" data-s="6">④ 关卡难度 <i class="sd" data-s="6">●</i><i class="sd" data-s="7">●</i></div><div class="st" data-s="8">⑤ 设计关卡</div><div class="st" data-s="9">⑥ 单机玩</div>
 <figure class="pp"><img src="../avatars/dad-wuxin.jpg" alt="爸爸"><figcaption>爸爸</figcaption></figure><figure class="pp"><img src="../avatars/mom-chunyan.jpg" alt="妈妈"><figcaption>妈妈</figcaption></figure></div>
@@ -201,7 +242,7 @@ body.tonight .pathhint{font-size:14px;padding:4px 8px}
 <div id="mCt" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:15px;font-weight:800;min-height:34px"></div></section>
 <section class="stage" id="s3"><h2 id="s3t">🧪 玩完觉察</h2>
 <div class="row"><div class="card"><div class="msg" id="sumt"></div><div id="sumseg" style="display:flex;gap:4px;width:100%"></div><div class="msg" id="sumtot"></div></div>
-<div class="card"><a class="go" id="play" href="cocos/custom-play.html?v=c17">🎮 去玩这一关</a>
+<div class="card"><a class="go" id="play" href="cocos/custom-play.html?v=c18">🎮 去玩这一关</a>
 <a class="go sm" id="playXy" href="../../xy-go/?custom=1" style="margin-top:6px;display:inline-block;background:linear-gradient(180deg,#7ab0ff,#3b6fd4);font-size:12px;padding:8px 12px">旧版 xy-go（备用）</a>
 <div class="msg" id="engineNote" style="font-size:12px;color:#ffe7a0;font-weight:800">Cocos 可玩 · 同 JSON · xy-go 备用</div>
 <div class="msg" id="saved" style="color:#9ff0a8"></div></div></div>
@@ -311,7 +352,7 @@ function save(){const used=new Set(st.tiles.map(t=>t.type)),tr={};for(const k in
  localStorage.setItem(KEY,JSON.stringify({theme:st.theme,cols:COLS,rows:ROWS,tiles:st.tiles,traps:tr,curve:st.curve,savedAt:new Date().toISOString(),by:'伍澍暘'}));
  const r=simulate(),sh=[0,0,0,0,0,0];r.forEach(x=>sh[SEG(x.x)]+=x.h);const tot=sh.reduce((a,b)=>a+b,0);
  $('sumt').textContent=TH[st.theme][0]+'关 · '+COLS+'格 · 预计掉血';
- $('sumseg').innerHTML=sh.map((v,i)=>`<div style="flex:1;text-align:center;background:#ffffff12;border-radius:8px;padding:4px"><div style="font-size:12px;color:#c9c3ef">第${i+1}段</div><div style="font-size:20px;color:${v?'#ff6b6b':'#9ff0a8'}">${v?'-'+v+'❤':'✓'}</div></div>`).join('');
+ $('sumseg').innerHTML=sh.map((v,i)=>`<div class="seg"><div style="font-size:12px;color:#c9c3ef">第${i+1}段</div><div style="font-size:18px;color:${v?'#ff6b6b':'#9ff0a8'}">${v?'-'+v+'❤':'✓'}</div></div>`).join('');
  $('sumtot').innerHTML='总难度 <b style="font-size:24px">'+Math.max(1,Math.min(5,1+Math.round(tot/2)))+'</b> / 5 · 共掉 '+tot+' ❤';$('saved').textContent='已保存 ✅';}
 $('play').onclick=()=>mSave(true);
 
@@ -627,7 +668,7 @@ function mSave(final){const tiles=[];for(let x=0;x<MC;x++)tiles.push({x,y:ROWS-1
  const tr={},used=new Set(mMap);if(used.has('spike'))tr.spike={interval:MP.spike.interval,up:MP.spike.up,damage:MP.spike.damage};if(used.has('fire'))tr.fire={damage:MP.fire.damage,dur:MP.fire.dur,burn:MP.fire.dur};if(used.has('rock'))tr.rock={interval:MP.rock.interval,speed:3,damage:MP.rock.damage};if(used.has('mist'))tr.mist={interval:MP.mist.interval,damage:MP.mist.damage};
  persistLevel({theme:'swamp',cols:MC,rows:ROWS,tiles,traps:tr,mine:{map:mMap,mp:MP}});
  if(final){const h=mEst(),tot=h.reduce((a,b)=>a+b,0);$('sumt').textContent=(TONIGHT?'我摆的一小关':'我的关卡')+' · 12格 · 预计掉血';
-  $('sumseg').innerHTML=mMap.map((k,x)=>k&&k!=='del'?`<div style="flex:1;text-align:center;background:#ffffff12;border-radius:8px;padding:4px"><div style="font-size:20px">${MT[k][0]}</div><div style="font-size:16px;color:${h[x]?'#ff6b6b':'#9ff0a8'}">${isTrap(k)?(h[x]?'-'+h[x]+'❤':'✓'):''}</div></div>`:'').join('');
+  $('sumseg').innerHTML=mMap.map((k,x)=>k&&k!=='del'?`<div class="seg"><div style="font-size:20px">${MT[k][0]}</div><div style="font-size:14px;color:${h[x]?'#ff6b6b':'#9ff0a8'}">${isTrap(k)?(h[x]?'-'+h[x]+'❤':'✓'):'·'}</div></div>`:'').filter(Boolean).join('');
   $('sumtot').innerHTML='一共掉 <b style="font-size:24px">'+tot+'❤</b>'+(mPreviewDone?'':' <span style="color:#ffe7a0;font-size:14px">（先▶跑一次看看）</span>');$('saved').textContent=mPreviewDone?'已保存 ✅ 去玩吧':'先▶跑一次，再玩';}}
 function mCheck(){const traps=mMap.map((k,i)=>isTrap(k)?i:-1).filter(i=>i>=0);const types=new Set(traps.map(i=>mMap[i]));
  const safeStart=!traps.some(i=>i<SAFE0);const easy=traps.length?traps[0]<=3:true;let breath=true;for(let i=1;i<traps.length;i++)if(traps[i]-traps[i-1]<=1){const mid=mMap.slice(traps[i-1],traps[i]+1);if(!mid.some(isReward))breath=false;}

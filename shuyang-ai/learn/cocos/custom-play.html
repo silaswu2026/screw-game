@@ -8,7 +8,7 @@
 <title>玩我的关 · Cocos · 第9关沼泽</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;overflow:hidden;background:#0b1a12}
+html,body{margin:0;height:100%;overflow:hidden;background:#0b1520}
 body{font-family:-apple-system,"PingFang SC","Noto Sans SC",sans-serif;color:#f7f4ff;height:100dvh;height:100vh;position:relative}
 .bar{position:fixed;left:0;right:0;top:0;z-index:30;display:flex;gap:6px;padding:4px 8px;align-items:center;background:#05070f99;min-height:32px;backdrop-filter:blur(4px)}
 .bar a,.bar button.net{color:#fff;font-weight:800;text-decoration:none;background:#3b4590;border:0;border-radius:999px;padding:5px 10px;font-size:12px;cursor:pointer}
@@ -17,9 +17,9 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 .badge{font-size:10px;font-weight:800;color:#1a2040;background:linear-gradient(180deg,#9ff0a8,#4ea85c);border-radius:999px;padding:3px 8px}
 #orientTip{display:none;position:absolute;left:50%;transform:translateX(-50%);top:34px;z-index:12;font-size:11px;font-weight:800;color:#ffe7a0;background:#1a2048cc;padding:3px 10px;border-radius:999px;pointer-events:none;white-space:nowrap}
 #orientTip.on{display:block}
-.shell{position:fixed;inset:0;z-index:0;width:100%;height:100%;background:#3d2a1c;display:block}
-.cvwrap{position:absolute;inset:0;width:100%;height:100%;background:#3d2a1c;overflow:hidden;line-height:0}
-#gameCanvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block;background:#3d2a1c;touch-action:none}
+.shell{position:fixed;inset:0;z-index:0;width:100%;height:100%;background:#0b1520 url(../../../xy-go/scenes/canopy-night.jpg) center/cover no-repeat;display:block}
+.cvwrap{position:absolute;inset:0;width:100%;height:100%;background:transparent;overflow:hidden;line-height:0}
+#gameCanvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block;background:transparent;touch-action:none}
 /* HUD — xy-go style: level card + green bar + coins (no six hearts) */
 .hud{position:fixed;top:40px;left:8px;right:8px;z-index:28;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;gap:8px}
 .lvlcard{background:#102016ee;border-radius:10px;padding:7px 12px;min-width:132px;min-height:44px;border:1px solid #9ff0a855;box-shadow:0 2px 8px #0006}
@@ -80,7 +80,7 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
   .touch #btnJ,.touch #btnT{width:70px}
   .dock{top:auto;bottom:78px;right:12px}
   .cvwrap{border-radius:0}
-  html,body,.shell,.cvwrap,#gameCanvas{background:#3d2a1c}
+  html,body{background:#0b1520}
 }
 </style>
 <script>document.ccConfig={debugMode:0,frameRate:60,id:"gameCanvas",renderMode:1,showFPS:false};</script>
@@ -144,6 +144,6 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
     </div>
   </div>
 </div>
-<script src="custom-play.js?v=c17"></script>
+<script src="custom-play.js?v=c18"></script>
 </body>
 </html>

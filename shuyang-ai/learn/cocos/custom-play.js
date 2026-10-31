@@ -79,7 +79,8 @@
       /* EXACT_FIT: stretch to fill — no black SHOW_ALL bars on widescreen */
       cc.view.setDesignResolutionSize(W, H, cc.ResolutionPolicy.EXACT_FIT);
       if (cc.director && cc.director.setClearColor) {
-        cc.director.setClearColor(cc.color(61, 42, 28, 255));
+        /* night clear — avoid 开局闪棕; dirt bed still paints once scene builds */
+        cc.director.setClearColor(cc.color(11, 21, 32, 255));
       }
       if (cc.view._resizeEvent) cc.view._resizeEvent();
     } catch (e) {}
@@ -384,7 +385,7 @@
       return true;
     },
     _addNightBg: function () {
-      var fallback = mkColor(W + 4, H + 4, 12, 22, 28);
+      var fallback = mkColor(W + 4, H + 4, 11, 21, 32);
       fallback.setPosition(-2, -2);
       this.addChild(fallback, -6);
       this.bgNode = null;
