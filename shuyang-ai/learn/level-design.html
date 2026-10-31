@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="zh-CN"><!-- ldtonight:v8 --><head><meta charset="utf-8">
+<html lang="zh-CN"><!-- ldtonight:v9 --><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="ld-build" content="ldt8">
+<meta name="ld-build" content="ldt9">
 <title>关卡设计台 · 伍澍暘</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%}
@@ -149,7 +149,7 @@ body.tonight #expectAsk{flex-shrink:0;width:100%;max-width:100%;box-sizing:borde
   body.tonight .pp{font-size:8px}
   body.tonight .pathhint{font-size:12px}
 }
-/* 竖屏：①②③ 画布铺满下半可视区（ldt8：②③同① fill，消 #6ec8ff 空条）；横屏保持原限高 */
+/* 竖屏：①②③ 画布铺满下半可视区（ldt8/ldt9：②③同① fill，消 #6ec8ff 空条）；横屏保持原限高 */
 @media (orientation:portrait){
   body.tonight main{padding:4px 8px;gap:6px}
   body.tonight .stage.on{flex:1;min-height:0}
@@ -199,6 +199,61 @@ body.tonight #expectAsk{flex-shrink:0;width:100%;max-width:100%;box-sizing:borde
   body.tonight .reflect{padding:4px;gap:4px}
   body.tonight .reflect .rq{font-size:15px}
   body.tonight .reflect .rbtns button{min-height:40px;padding:8px 10px;font-size:14px}
+}
+/* ldt9：电脑宽屏 / 精指针 — 收按钮、压间距、密布局，贴近引擎桌面感 */
+@media (min-width:900px) and (min-height:520px), (hover:hover) and (pointer:fine) and (min-width:800px){
+  body.tonight .bar{padding:4px 8px 2px;gap:4px}
+  body.tonight .bar img{width:32px;height:32px}
+  body.tonight .pp{font-size:9px}
+  body.tonight .st{font-size:12px;padding:4px 6px}
+  body.tonight main{gap:4px;padding:4px 16px;max-width:1040px}
+  body.tonight .stage.on > h2{font-size:16px}
+  body.tonight .kidsub{font-size:13px}
+  body.tonight .foot{padding:4px 12px 8px;gap:6px}
+  body.tonight .foot .go,body.tonight .foot button{min-height:32px;font-size:14px;padding:6px 14px;box-shadow:0 2px 0 #2f6d3a}
+  body.tonight #fRun{font-size:14px!important;padding:6px 14px!important;min-height:32px;min-width:120px}
+  body.tonight .go.sm{font-size:12px!important;padding:3px 10px!important;min-height:26px}
+  body.tonight #mPal{gap:4px!important}
+  body.tonight #mPal button{font-size:13px;padding:4px 8px;min-height:28px}
+  body.tonight #mCt{gap:6px!important}
+  body.tonight #mCt .go.sm{font-size:13px!important;padding:4px 8px!important;min-height:28px}
+  body.tonight .reflect{padding:6px;gap:6px}
+  body.tonight .reflect .rq{font-size:15px}
+  body.tonight .reflect .rbtns{gap:6px}
+  body.tonight .reflect .rbtns button{min-height:32px;padding:6px 12px;font-size:13px}
+  body.tonight #fBt{gap:6px}
+  body.tonight #fBt .go{flex:0 1 auto;max-width:180px}
+  body.tonight #fIv{font-size:28px!important}
+  body.tonight #fSl{font-size:15px!important}
+  body.tonight .cvwrap{border-radius:12px}
+  body.tonight .pathhint{font-size:12px;padding:2px 8px}
+  body.tonight #sumseg{gap:4px;grid-template-columns:repeat(auto-fill,minmax(48px,1fr))}
+  body.tonight #sumseg .seg{padding:4px 3px;border-radius:6px}
+  /* 非 tonight 课页同收一点，避免电脑大钮 */
+  .foot button,.go{padding:7px 16px;font-size:15px}
+  .pal button,.th button{padding:3px 8px;font-size:13px;margin:1px}
+  .go.sm{font-size:12px!important;padding:3px 10px!important}
+  .st{font-size:13px;padding:4px 4px}
+  .bar{padding:4px 8px 2px}
+  main{gap:4px;padding:4px 12px}
+}
+/* ldt9：手机竖屏 — 收上下控件高度，画布铺满不回退 */
+@media (orientation:portrait) and (max-width:900px){
+  body.tonight .bar{padding:2px 4px;gap:2px}
+  body.tonight .st{font-size:11px;padding:4px 2px}
+  body.tonight .foot{padding:2px 8px 4px;gap:6px}
+  body.tonight .foot .go,body.tonight .foot button{min-height:36px;font-size:14px;padding:6px 12px}
+  body.tonight #fRun{font-size:15px!important;padding:8px 16px!important;min-height:40px;min-width:140px}
+  body.tonight .go.sm{font-size:13px!important;padding:4px 10px!important;min-height:32px}
+  body.tonight #mPal button{font-size:14px;padding:4px 8px;min-height:32px}
+  body.tonight #mCt .go.sm{font-size:14px!important;padding:4px 8px!important;min-height:32px}
+  body.tonight .reflect{padding:6px;gap:6px}
+  body.tonight .reflect .rbtns button{min-height:40px;padding:8px 10px;font-size:14px}
+  body.tonight .kidsub{font-size:13px}
+  body.tonight .stage.on > h2{font-size:16px}
+  body.tonight #fIv{font-size:32px!important}
+  body.tonight #fSl{font-size:16px!important}
+  body.tonight main{gap:4px}
 }
 </style><script src="ld-art.js?v=ld37"></script></head><body>
 <div class="bar"><figure class="pp"><img src="../avatars/xiaoyu.jpg" alt="小雨" style="object-position:32% 34%"><figcaption>小雨</figcaption></figure>
@@ -253,7 +308,7 @@ body.tonight #expectAsk{flex-shrink:0;width:100%;max-width:100%;box-sizing:borde
 <div id="mCt" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:15px;font-weight:800;min-height:34px"></div></section>
 <section class="stage" id="s3"><h2 id="s3t">🧪 玩完觉察</h2>
 <div class="row"><div class="card"><div class="msg" id="sumt"></div><div id="sumseg" style="display:flex;gap:4px;width:100%"></div><div class="msg" id="sumtot"></div></div>
-<div class="card"><a class="go" id="play" href="cocos/custom-play.html?v=c19">🎮 去玩这一关</a>
+<div class="card"><a class="go" id="play" href="cocos/custom-play.html?v=c21">🎮 去玩这一关</a>
 <a class="go sm" id="playXy" href="../../xy-go/?custom=1" style="margin-top:6px;display:inline-block;background:linear-gradient(180deg,#7ab0ff,#3b6fd4);font-size:12px;padding:8px 12px">旧版 xy-go（备用）</a>
 <div class="msg" id="engineNote" style="font-size:12px;color:#ffe7a0;font-weight:800">Cocos 可玩 · 同 JSON · xy-go 备用</div>
 <div class="msg" id="saved" style="color:#9ff0a8"></div></div></div>
@@ -276,7 +331,7 @@ body.tonight #expectAsk{flex-shrink:0;width:100%;max-width:100%;box-sizing:borde
 <div class="foot"><button class="back" id="back">上一步</button><div id="hp" style="align-self:center;font-weight:800;font-size:16px;text-align:center"></div><button id="next">下一步 ▶</button></div>
 <script>
 (function(){
-function fitZ(){const w=innerWidth,h=innerHeight,z=w>1000?Math.max(1,Math.min(w/960,h/520)):1;document.body.style.zoom=z;document.body.style.height=(h/z)+'px';}fitZ();addEventListener('resize',fitZ);
+function fitZ(){const w=innerWidth,h=innerHeight;/* ldt9：宽屏只做轻缩放，避免手机大钮被 zoom 撑成稀疏巨钮 */let z=1;if(w>1000){z=Math.max(1,Math.min(w/1100,h/640,1.35));}document.body.style.zoom=z;document.body.style.height=(h/z)+'px';}fitZ();addEventListener('resize',fitZ);
 let COLS=12;const SW=()=>COLS/6,SEG=x=>Math.min(5,Math.floor(x/SW()));const KEY='xygo-custom-level',ROWS=4,$=id=>document.getElementById(id);
 const CURVE=[1,2,1,3,2,4];
 const E={mud:'🟫',bubble:'🫧',sand:'🏜️',mist:'☠️',wave:'🌊',shark:'🦈',rock:'🪨',meteor:'☄️',fire:'🔥',lowg:'🌙',spring:'🌀',shield:'🛡️',coin:'⭐',flag:'🚩'};
@@ -631,7 +686,7 @@ function crisp(cv){if(!cv.clientWidth)return;if(!cv._lw){cv._lw=CWD.get.call(cv)
  CWD.set.call(cv,Math.round(cv._lw*k));CHD.set.call(cv,Math.round(cv._lh*k));const g=cv.getContext('2d');g.setTransform(k,0,0,k,0,0);g.imageSmoothingQuality='high';}
 function crispAll(){document.querySelectorAll('.stage.on canvas').forEach(crisp);}addEventListener('resize',()=>setTimeout(crispAll,50));
 
-/* ldt8：①②③ 竖屏逻辑高随 wrap，object-fit:fill 铺满（消 #6ec8ff 空条） */
+/* ldt9：①②③ 竖屏逻辑高随 wrap，object-fit:fill 铺满（ldt8 不回退） */
 function fitTonightCanvas(cvId, stId, baseH){
   if(typeof TONIGHT==='undefined'||!TONIGHT) return;
   const cv=$(cvId), st=$(stId);

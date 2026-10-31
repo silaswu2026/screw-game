@@ -46,12 +46,13 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 #netPanel p{margin:0 0 10px;font-size:13px;color:#c9c3ef;font-weight:700}
 #netPanel .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
 /* Touch — ALWAYS in view on desktop too (was display:none ≥900px → 投丢失) */
-.touch{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-between;gap:10px;padding:8px 14px calc(8px + env(safe-area-inset-bottom,0px));user-select:none;pointer-events:none;background:transparent}
-.touch .cluster{display:flex;gap:8px;pointer-events:auto}
-.touch button{border:0;border-radius:16px;width:64px;height:64px;font-size:22px;font-weight:900;color:#fff;background:linear-gradient(180deg,#5a6ab0dd,#3b4590ee);box-shadow:0 3px 0 #2a3268;touch-action:none}
+/* c21：基线略收；手机再缩键放大视窗感；电脑精指针更密更小 */
+.touch{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:space-between;gap:8px;padding:6px 12px calc(6px + env(safe-area-inset-bottom,0px));user-select:none;pointer-events:none;background:transparent}
+.touch .cluster{display:flex;gap:6px;pointer-events:auto}
+.touch button{border:0;border-radius:14px;width:52px;height:52px;font-size:18px;font-weight:900;color:#fff;background:linear-gradient(180deg,#5a6ab0dd,#3b4590ee);box-shadow:0 3px 0 #2a3268;touch-action:none}
 .touch button:active,.touch button.on{transform:translateY(2px);box-shadow:none;background:linear-gradient(180deg,#78d484,#4ea85c)}
-.touch #btnJ{width:72px;background:linear-gradient(180deg,#ffb06bdd,#e2793bee);box-shadow:0 3px 0 #a35a20;font-size:16px}
-.touch #btnT{width:72px;background:linear-gradient(180deg,#7ab0ffdd,#3b6fd4ee);box-shadow:0 3px 0 #274a8a;font-size:16px}
+.touch #btnJ{width:60px;background:linear-gradient(180deg,#ffb06bdd,#e2793bee);box-shadow:0 3px 0 #a35a20;font-size:14px}
+.touch #btnT{width:60px;background:linear-gradient(180deg,#7ab0ffdd,#3b6fd4ee);box-shadow:0 3px 0 #274a8a;font-size:14px}
 .dock{position:absolute;z-index:9;right:8px;top:44px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:46%}
 .go{border:0;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:900;color:#fff;background:linear-gradient(180deg,#78d484,#4ea85c);box-shadow:0 2px 0 #2f6d3a;text-decoration:none;display:inline-flex;align-items:center;cursor:pointer}
 .go.sec{background:linear-gradient(180deg,#7ab0ff,#3b6fd4);box-shadow:0 2px 0 #274a8a;font-size:11px}
@@ -61,24 +62,32 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
 #result .big{font-size:28px;font-weight:900;margin:0 0 6px}
 #result .sub{font-size:13px;color:#c9c3ef;font-weight:800;margin:0 0 10px}
 #result .ctl{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-@media (orientation:portrait){
+/* 手机竖屏：缩虚拟键 + 顶栏/HUD，#gameCanvas 仍全屏铺满 → 视窗占比更大 */
+@media (orientation:portrait),(pointer:coarse) and (max-width:900px){
   #orientTip.on{display:block}
-  .touch button{width:72px;height:72px}.touch #btnJ,.touch #btnT{width:88px}
-  .hud{top:38px}.lvlcard{min-height:48px}#lvlChip{font-size:15px}#bossBar{top:100px}#msg{top:134px}
+  .bar{min-height:28px;padding:2px 6px}
+  .bar a,.bar button.net{padding:3px 8px;font-size:11px}
+  h1{font-size:12px}
+  .touch{padding:4px 10px calc(4px + env(safe-area-inset-bottom,0px));gap:6px}
+  .touch button{width:48px;height:48px;font-size:16px;border-radius:12px}
+  .touch #btnJ,.touch #btnT{width:56px;font-size:13px}
+  .hud{top:32px}.lvlcard{min-height:36px;padding:5px 8px;min-width:110px}#lvlChip{font-size:12px;margin:0 0 3px}#bossBar{top:84px}#msg{top:114px;font-size:11px}
+  .dock{top:40px}
 }
 @media (orientation:landscape),(max-height:480px){
   #orientTip{display:none!important}
   .bar{min-height:26px;padding:2px 8px}h1{font-size:12px}.badge{display:none}
-  .touch{background:transparent}
-  .touch button{width:52px;height:52px;font-size:18px}.touch #btnJ,.touch #btnT{width:64px;font-size:14px}
-  .hud{top:32px}#msg{font-size:11px;top:110px}#bossBar{top:84px}
+  .touch{background:transparent;padding:4px 10px calc(4px + env(safe-area-inset-bottom,0px))}
+  .touch button{width:44px;height:44px;font-size:16px}.touch #btnJ,.touch #btnT{width:52px;font-size:12px}
+  .hud{top:30px}#msg{font-size:11px;top:100px}#bossBar{top:78px}
 }
-@media (min-width:900px) and (min-height:520px){
-  /* Keep touch visible; no bottom black letterbox strip */
-  .touch{padding-bottom:14px;background:transparent}
-  .touch button{width:58px;height:58px}
-  .touch #btnJ,.touch #btnT{width:70px}
-  .dock{top:auto;bottom:78px;right:12px}
+/* 电脑宽屏：更小更密虚拟键，贴近桌面操作 */
+@media (min-width:900px) and (min-height:520px),(hover:hover) and (pointer:fine) and (min-width:800px){
+  .touch{padding:8px 16px 12px;background:transparent;gap:6px}
+  .touch button{width:42px;height:42px;font-size:14px;border-radius:11px}
+  .touch #btnJ,.touch #btnT{width:50px;font-size:12px}
+  .bar a,.bar button.net{padding:3px 8px;font-size:11px}
+  .dock{top:auto;bottom:66px;right:12px}
   .cvwrap{border-radius:0}
   html,body{background:#0b1520 url(../../../xy-go/scenes/canopy-night.jpg) center/cover no-repeat}
 }
@@ -144,6 +153,6 @@ h1{margin:0;font-size:13px;color:#ffe7a0;flex:1;text-align:center;font-weight:90
     </div>
   </div>
 </div>
-<script src="custom-play.js?v=c20"></script>
+<script src="custom-play.js?v=c21"></script>
 </body>
 </html>

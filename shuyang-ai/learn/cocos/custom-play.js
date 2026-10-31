@@ -1,6 +1,7 @@
 /**
  * 玩我的关 — Cocos2d-JS Lite ≈ xy-go ?custom=1 第9关·沼泽
  * Same JSON / T=40 / PAD·EXP / canopy-night / 鳄王. Engine only.
+ * c21: layout/CSS chrome only (desktop denser keys, phone smaller pads); CHAR_FRAC/levels unchanged.
  */
 (function () {
   var KEY = 'xygo-custom-level';
@@ -185,7 +186,7 @@
     if (!traps.spike) traps.spike = { interval: 3, up: 1, damage: 1 };
 
     /*
-     * c20：竖屏开局一眼「整鳄 + 旗布」。宽屏保持 c17 列位；
+     * c21/c20：竖屏开局一眼「整鳄 + 旗布」。宽屏保持 c17 列位；
      * 窄屏按像素钉鳄右缘入镜；旗在鳄左上方且 z 高于鳄，布不被嘴挡住。
      */
     var visCols = Math.max(5, Math.floor(W / T));
@@ -425,7 +426,7 @@
       this._build();
       this.reset();
       this.scheduleUpdate();
-      /* c20/c19: reveal canvas only after night forest + ground exist — kill navy→brown flash */
+      /* c21/c20: reveal canvas only after night forest + ground exist — kill navy→brown flash */
       try {
         var cvShow = $('gameCanvas');
         if (cvShow) {
@@ -442,7 +443,7 @@
       this.bgNode2 = null;
       if (forestImg && forestImg.naturalWidth) {
         try {
-          /* c20/c19: Texture from already-decoded Image — no async path flash */
+          /* c21/c20: Texture from already-decoded Image — no async path flash */
           var tex = new cc.Texture2D();
           tex.initWithElement(forestImg);
           tex.handleLoadedTexture();
@@ -611,7 +612,7 @@
           var fy = this.gy;
           var fz = 5;
           if (it.showcase) {
-            /* c20: cloth above + in front of croc — not hidden in mouth */
+            /* c21/c20: cloth above + in front of croc — not hidden in mouth */
             fy = this.gy + Math.round(crocDrawScale() * 38);
             fz = 9;
           }
@@ -1178,7 +1179,7 @@
       try { cc.game.run('gameCanvas'); } catch (e) { bootErr('启动失败：' + e); }
     }
 
-    /* c20/c19: decode night forest BEFORE Cocos first GL clear — CSS already shows it under opacity:0 canvas */
+    /* c21/c20: decode night forest BEFORE Cocos first GL clear — CSS already shows it under opacity:0 canvas */
     var pre = new Image();
     pre.onload = function () {
       forestImg = pre;
